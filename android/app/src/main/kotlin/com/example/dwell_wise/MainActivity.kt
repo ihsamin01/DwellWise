@@ -1,0 +1,5 @@
+package com.example.dwell_wise
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
