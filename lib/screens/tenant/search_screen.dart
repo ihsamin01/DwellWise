@@ -6,10 +6,13 @@ import '../../providers/saved_properties_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
 import '../../providers/search_filters_provider.dart';
 import '../../models/property_model.dart';
+import '../../services/mock_search_service.dart';
 import '../../widgets/bottom_navigation.dart';
 import '../../widgets/property_card.dart';
 
-/// Tenant Search Screen with autocomplete suggestions, hierarchical bottom sheet modals and dynamic sort selectors.
+/// Tenant Search Screen: hierarchical Division > District > Thana > Area
+/// selection (full Bangladesh dataset), selections shown inside the search
+/// box, and location-based results revealed only after pressing Search.
 class TenantSearchScreen extends StatefulWidget {
   const TenantSearchScreen({Key? key}) : super(key: key);
 
@@ -18,62 +21,8 @@ class TenantSearchScreen extends StatefulWidget {
 }
 
 class _TenantSearchScreenState extends State<TenantSearchScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocusNode = FocusNode();
-  
-  String _searchQuery = '';
-  bool _showSuggestions = false;
-  final List<String> _autocompletePool = ['Dhaka', 'Gulshan', 'Banani', 'Dhanmondi', 'Uttara', 'Mirpur', 'Gazipur'];
-  List<String> _filteredSuggestions = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(_onSearchQueryChanged);
-    _searchFocusNode.addListener(_onSearchFocusChanged);
-  }
-
-  @override
-  void dispose() {
-    _searchController.removeListener(_onSearchQueryChanged);
-    _searchFocusNode.removeListener(_onSearchFocusChanged);
-    _searchController.dispose();
-    _searchFocusNode.dispose();
-    super.dispose();
-  }
-
-  void _onSearchQueryChanged() {
-    final text = _searchController.text.trim();
-    setState(() {
-      _searchQuery = text;
-      if (text.isNotEmpty) {
-        _filteredSuggestions = _autocompletePool
-            .where((s) => s.toLowerCase().contains(text.toLowerCase()))
-            .toList();
-        _showSuggestions = _filteredSuggestions.isNotEmpty && _searchFocusNode.hasFocus;
-      } else {
-        _filteredSuggestions = [];
-        _showSuggestions = false;
-      }
-    });
-  }
-
-  void _onSearchFocusChanged() {
-    setState(() {
-      _showSuggestions = _searchFocusNode.hasFocus && _searchController.text.isNotEmpty;
-    });
-  }
-
-  void _selectSuggestion(String suggestion) {
-    _searchController.text = suggestion;
-    _searchController.selection = TextSelection.fromPosition(
-      TextPosition(offset: suggestion.length),
-    );
-    setState(() {
-      _showSuggestions = false;
-    });
-    _searchFocusNode.unfocus();
-  }
+  bool _hasSearched = false;
+  List<PropertyModel> _results = [];
 
   void _handlePropertyTap(BuildContext context, PropertyModel property) {
     context.read<RecentlyViewedProvider>().addProperty(property.id);
@@ -92,6 +41,57 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  /// Any filter change invalidates previous results until Search is pressed.
+  void _invalidateResults() {
+    setState(() {
+      _hasSearched = false;
+      _results = [];
+    });
+  }
+
+  void _runSearch(BuildContext context, SearchFiltersProvider filterProvider) {
+    if (!filterProvider.hasSelection) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select at least a Division first')),
+      );
+      return;
+    }
+
+    final propertyProvider = context.read<PropertyProvider>();
+
+    // 1. Location-generated realistic listings.
+    final generated = MockSearchService.generate(
+      division: filterProvider.division,
+      district: filterProvider.district,
+      thana: filterProvider.thana,
+      area: filterProvider.area,
+    );
+
+    // 2. Any home-feed posts that genuinely match the most specific locality.
+    final locality = (filterProvider.area.isNotEmpty
+            ? filterProvider.area
+            : filterProvider.thana.isNotEmpty
+                ? filterProvider.thana
+                : filterProvider.district)
+        .toLowerCase();
+    final homeMatches = locality.isEmpty
+        ? <PropertyModel>[]
+        : propertyProvider.properties
+            .where((p) =>
+                p.area.toLowerCase().contains(locality) ||
+                p.address.toLowerCase().contains(locality))
+            .toList();
+
+    // Register generated posts so details/saved/recently screens resolve them.
+    propertyProvider.registerSearchResults(generated);
+
+    setState(() {
+      _results = [...homeMatches, ...generated];
+      _hasSearched = true;
+    });
   }
 
   void _showFilterModal(BuildContext context, SearchFiltersProvider filterProvider, String type) {
@@ -145,16 +145,26 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
       ),
       builder: (context) {
         String localSelected = currentVal;
+        String query = '';
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final visible = query.isEmpty
+                ? options
+                : options.where((o) => o.toLowerCase().contains(query.toLowerCase())).toList();
             return SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 16,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -163,33 +173,68 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                       'Select $type',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xff1F2937)),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
+                    // Quick search within long option lists (e.g. 64 districts)
+                    if (options.length > 8)
+                      Container(
+                        height: 40,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: const Color(0xffD1D5DB)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.search, size: 18, color: Color(0xff9CA3AF)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                style: const TextStyle(fontSize: 14, color: Color(0xff1F2937)),
+                                decoration: InputDecoration(
+                                  hintText: 'Type to filter $type list...',
+                                  hintStyle: const TextStyle(fontSize: 13, color: Color(0xff9CA3AF)),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                ),
+                                onChanged: (val) => setModalState(() => query = val),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     Flexible(
-                      child: options.isEmpty
+                      child: visible.isEmpty
                           ? const Padding(
                               padding: EdgeInsets.symmetric(vertical: 20.0),
                               child: Text('No options available.', style: TextStyle(color: Color(0xff6B7280))),
                             )
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              itemCount: options.length,
-                              itemBuilder: (context, index) {
-                                final opt = options[index];
-                                return RadioListTile<String>(
-                                  title: Text(opt, style: const TextStyle(fontSize: 14, color: Color(0xff1F2937))),
-                                  value: opt,
-                                  groupValue: localSelected,
-                                  activeColor: const Color(0xff1E40AF),
-                                  onChanged: (val) {
-                                    setModalState(() {
-                                      localSelected = val ?? '';
-                                    });
-                                  },
-                                );
-                              },
+                          : ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxHeight: MediaQuery.of(context).size.height * 0.5,
+                              ),
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: visible.length,
+                                itemBuilder: (context, index) {
+                                  final opt = visible[index];
+                                  return RadioListTile<String>(
+                                    title: Text(opt, style: const TextStyle(fontSize: 14, color: Color(0xff1F2937))),
+                                    value: opt,
+                                    groupValue: localSelected,
+                                    activeColor: const Color(0xff1E40AF),
+                                    dense: true,
+                                    onChanged: (val) {
+                                      setModalState(() {
+                                        localSelected = val ?? '';
+                                      });
+                                    },
+                                  );
+                                },
+                              ),
                             ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xffF59E0B), // CTA Orange
@@ -199,6 +244,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                       onPressed: () {
                         if (localSelected.isNotEmpty) {
                           onSelect(localSelected);
+                          _invalidateResults();
                         }
                         Navigator.pop(context);
                       },
@@ -216,54 +262,25 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final propertyProvider = context.watch<PropertyProvider>();
     final savedProvider = context.watch<SavedPropertiesProvider>();
     final filterProvider = context.watch<SearchFiltersProvider>();
 
-    final allListings = propertyProvider.properties;
-
-    // Apply filtering logic based on SearchFiltersProvider and text query
-    var filteredListings = allListings.where((p) {
-      // 1. Text search matches
-      final matchesSearchQuery = _searchQuery.isEmpty ||
-          p.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          p.area.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          p.address.toLowerCase().contains(_searchQuery.toLowerCase());
-
-      // 2. Division filter matches
-      // Gazipur is Gazipur district, Gazipur Sadar. Dhaka covers Gulshan, Banani, Mirpur, Uttara, Dhanmondi
-      final isGazipur = p.id == 'p11';
-      final matchesDivision = filterProvider.division.isEmpty ||
-          (filterProvider.division == 'Dhaka' && !isGazipur) ||
-          (filterProvider.division == 'Khulna' && false); // no Khulna mocks
-
-      // 3. District filter matches
-      final matchesDistrict = filterProvider.district.isEmpty ||
-          (filterProvider.district == 'Dhaka' && !isGazipur) ||
-          (filterProvider.district == 'Gazipur' && isGazipur);
-
-      // 4. Thana filter matches
-      final matchesThana = filterProvider.thana.isEmpty ||
-          p.area.toLowerCase().contains(filterProvider.thana.toLowerCase()) ||
-          p.address.toLowerCase().contains(filterProvider.thana.toLowerCase());
-
-      // 5. Area filter matches
-      final matchesArea = filterProvider.area.isEmpty ||
-          p.area.toLowerCase().contains(filterProvider.area.toLowerCase()) ||
-          p.address.toLowerCase().contains(filterProvider.area.toLowerCase());
-
-      return matchesSearchQuery && matchesDivision && matchesDistrict && matchesThana && matchesArea;
-    }).toList();
-
-    // Apply Sorting logic
+    // Apply sorting to the searched results.
+    final sortedResults = List<PropertyModel>.from(_results);
     if (filterProvider.sortBy == 'Price Low-High') {
-      filteredListings.sort((a, b) => a.price.compareTo(b.price));
+      sortedResults.sort((a, b) => a.price.compareTo(b.price));
     } else if (filterProvider.sortBy == 'Price High-Low') {
-      filteredListings.sort((a, b) => b.price.compareTo(a.price));
-    } else if (filterProvider.sortBy == 'Rating') {
-      // Sort mock by ID lengths
-      filteredListings.sort((a, b) => b.id.compareTo(a.id));
+      sortedResults.sort((a, b) => b.price.compareTo(a.price));
     }
+
+    final selectionPath = filterProvider.selectionPath;
+    final mostSpecific = filterProvider.area.isNotEmpty
+        ? filterProvider.area
+        : filterProvider.thana.isNotEmpty
+            ? filterProvider.thana
+            : filterProvider.district.isNotEmpty
+                ? filterProvider.district
+                : filterProvider.division;
 
     return Scaffold(
       backgroundColor: const Color(0xffF3F4F6),
@@ -305,225 +322,249 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
           ),
         ),
       ),
-      body: Stack(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 1. SEARCH HEADER SECTION (Sticky Search Bar)
-              Container(
+          // 1. SEARCH BOX — displays the selected location path
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
                 color: Colors.white,
-                padding: const EdgeInsets.all(16.0),
-                child: Container(
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: _searchFocusNode.hasFocus ? const Color(0xff1E40AF) : const Color(0xffD1D5DB),
-                      width: _searchFocusNode.hasFocus ? 1.5 : 1.0,
-                    ),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.search, color: Color(0xff6B7280)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          focusNode: _searchFocusNode,
-                          style: const TextStyle(color: Color(0xff1F2937), fontSize: 15),
-                          decoration: const InputDecoration(
-                            hintText: 'Search neighborhood or city...',
-                            hintStyle: TextStyle(color: Color(0xff9CA3AF)),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: selectionPath.isEmpty ? const Color(0xffD1D5DB) : const Color(0xff1E40AF),
+                  width: selectionPath.isEmpty ? 1.0 : 1.5,
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  const Icon(Icons.search, color: Color(0xff6B7280)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: selectionPath.isEmpty
+                        ? const Text(
+                            'Select your location below...',
+                            style: TextStyle(color: Color(0xff9CA3AF), fontSize: 15),
+                            overflow: TextOverflow.ellipsis,
+                          )
+                        : SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Text(
+                              selectionPath,
+                              style: const TextStyle(
+                                color: Color(0xff1F2937),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.location_on, color: Color(0xff6B7280)),
+                ],
+              ),
+            ),
+          ),
+
+          // 2. FILTER BUTTONS SECTION (Division, District, Thana, Area)
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'FILTERS',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xff6B7280),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        filterProvider.clearAll();
+                        _invalidateResults();
+                      },
+                      child: const Text(
+                        'Clear All',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xff1E40AF),
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Icon(Icons.location_on, color: Color(0xff6B7280)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Horizontal scrollable buttons
+                SizedBox(
+                  height: 36,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      _buildFilterButton(
+                        label: filterProvider.division.isEmpty
+                            ? 'Division ▼'
+                            : '${filterProvider.division} ▼',
+                        isActive: filterProvider.division.isNotEmpty,
+                        onTap: () => _showFilterModal(context, filterProvider, 'Division'),
+                      ),
+                      _buildFilterButton(
+                        label: filterProvider.district.isEmpty
+                            ? 'District ▼'
+                            : '${filterProvider.district} ▼',
+                        isActive: filterProvider.district.isNotEmpty,
+                        onTap: () => _showFilterModal(context, filterProvider, 'District'),
+                      ),
+                      _buildFilterButton(
+                        label: filterProvider.thana.isEmpty
+                            ? 'Thana ▼'
+                            : '${filterProvider.thana} ▼',
+                        isActive: filterProvider.thana.isNotEmpty,
+                        onTap: () => _showFilterModal(context, filterProvider, 'Thana'),
+                      ),
+                      _buildFilterButton(
+                        label: filterProvider.area.isEmpty
+                            ? 'Area ▼'
+                            : '${filterProvider.area} ▼',
+                        isActive: filterProvider.area.isNotEmpty,
+                        onTap: () => _showFilterModal(context, filterProvider, 'Area'),
+                      ),
                     ],
                   ),
                 ),
-              ),
+                const SizedBox(height: 12),
 
-              // 2. FILTER BUTTONS SECTION (Division, District, Thana, Area)
-              Container(
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'FILTERS',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xff6B7280),
-                          ),
+                // 3. SEARCH BUTTON
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xffF59E0B), // CTA Orange
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    elevation: 0,
+                  ),
+                  onPressed: () => _runSearch(context, filterProvider),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.search, color: Colors.white, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Search',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
                         ),
-                        GestureDetector(
-                          onTap: () {
-                            filterProvider.clearAll();
-                            _searchController.clear();
-                          },
-                          child: const Text(
-                            'Clear All',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xff1E40AF),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    // Horizontal scrollable buttons
-                    SizedBox(
-                      height: 36,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        children: [
-                          _buildFilterButton(
-                            label: filterProvider.division.isEmpty
-                                ? 'Division ▼'
-                                : '${filterProvider.division} ▼',
-                            isActive: filterProvider.division.isNotEmpty,
-                            onTap: () => _showFilterModal(context, filterProvider, 'Division'),
-                          ),
-                          _buildFilterButton(
-                            label: filterProvider.district.isEmpty
-                                ? 'District ▼'
-                                : '${filterProvider.district} ▼',
-                            isActive: filterProvider.district.isNotEmpty,
-                            onTap: () => _showFilterModal(context, filterProvider, 'District'),
-                          ),
-                          _buildFilterButton(
-                            label: filterProvider.thana.isEmpty
-                                ? 'Thana ▼'
-                                : '${filterProvider.thana} ▼',
-                            isActive: filterProvider.thana.isNotEmpty,
-                            onTap: () => _showFilterModal(context, filterProvider, 'Thana'),
-                          ),
-                          _buildFilterButton(
-                            label: filterProvider.area.isEmpty
-                                ? 'Area ▼'
-                                : '${filterProvider.area} ▼',
-                            isActive: filterProvider.area.isNotEmpty,
-                            onTap: () => _showFilterModal(context, filterProvider, 'Area'),
-                          ),
-                        ],
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
 
-              // Divider lines
-              Container(height: 1, color: const Color(0xffD1D5DB)),
+          // Divider line
+          Container(height: 1, color: const Color(0xffD1D5DB)),
 
-              // RESULTS HEADER (Count and Sort dropdown)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Showing ${filteredListings.length} results in Dhaka',
+          // 4. RESULTS — only after pressing Search
+          if (_hasSearched) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Showing ${sortedResults.length} results in $mostSpecific',
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xff6B7280),
                       ),
                     ),
-                    DropdownButton<String>(
-                      value: filterProvider.sortBy == 'Newest' ? 'Sort: Newest ▼' : 'Sort: ${filterProvider.sortBy} ▼',
-                      underline: const SizedBox.shrink(),
-                      icon: const SizedBox.shrink(),
-                      style: const TextStyle(
-                        color: Color(0xff1E40AF),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                  ),
+                  DropdownButton<String>(
+                    value: filterProvider.sortBy,
+                    underline: const SizedBox.shrink(),
+                    icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: Color(0xff1E40AF)),
+                    style: const TextStyle(
+                      color: Color(0xff1E40AF),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                    onChanged: (val) {
+                      if (val != null) filterProvider.setSortBy(val);
+                    },
+                    items: const [
+                      DropdownMenuItem(value: 'Newest', child: Text('Sort: Newest')),
+                      DropdownMenuItem(value: 'Price Low-High', child: Text('Price: Low-High')),
+                      DropdownMenuItem(value: 'Price High-Low', child: Text('Price: High-Low')),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: sortedResults.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No properties found for this location.',
+                        style: TextStyle(color: Color(0xff6B7280)),
                       ),
-                      onChanged: (val) {
-                        if (val != null) {
-                          final cleanedSort = val.replaceAll('Sort: ', '').replaceAll(' ▼', '');
-                          filterProvider.setSortBy(cleanedSort);
-                        }
+                    )
+                  : ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 120.0),
+                      itemCount: sortedResults.length,
+                      itemBuilder: (context, index) {
+                        final property = sortedResults[index];
+                        final isSaved = savedProvider.isSaved(property.id);
+
+                        return PropertyCard(
+                          property: property,
+                          showDetails: true,
+                          isSaved: isSaved,
+                          onTap: () => _handlePropertyTap(context, property),
+                          onSaveTap: () => _handleSaveToggle(context, savedProvider, property),
+                        );
                       },
-                      items: const [
-                        DropdownMenuItem(value: 'Sort: Newest ▼', child: Text('Sort: Newest')),
-                        DropdownMenuItem(value: 'Sort: Price Low-High ▼', child: Text('Price: Low-High')),
-                        DropdownMenuItem(value: 'Sort: Price High-Low ▼', child: Text('Price: High-Low')),
-                        DropdownMenuItem(value: 'Sort: Rating ▼', child: Text('Sort: Rating')),
-                      ],
+                    ),
+            ),
+          ] else
+            // Pre-search empty state: clean, no images
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.travel_explore, size: 56, color: Color(0xffD1D5DB)),
+                    SizedBox(height: 14),
+                    Text(
+                      'Select your location and press Search',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xff1F2937),
+                      ),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'Division > District > Thana > Area',
+                      style: TextStyle(fontSize: 12, color: Color(0xff6B7280)),
                     ),
                   ],
-                ),
-              ),
-
-              // RESULTS LIST VIEW
-              Expanded(
-                child: filteredListings.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No properties found matching the criteria.',
-                          style: TextStyle(color: Color(0xff6B7280)),
-                        ),
-                      )
-                    : ListView.builder(
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        itemCount: filteredListings.length,
-                        itemBuilder: (context, index) {
-                          final property = filteredListings[index];
-                          final isSaved = savedProvider.isSaved(property.id);
-
-                          return PropertyCard(
-                            property: property,
-                            showDetails: true,
-                            isSaved: isSaved,
-                            onTap: () => _handlePropertyTap(context, property),
-                            onSaveTap: () => _handleSaveToggle(context, savedProvider, property),
-                          );
-                        },
-                      ),
-              ),
-
-              const SizedBox(height: 120), // nav bar bottom clearance
-            ],
-          ),
-
-          // Autocomplete suggestions floating panel overlay
-          if (_showSuggestions)
-            Positioned(
-              top: 64, // below sticky search header box
-              left: 16,
-              right: 16,
-              child: Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                child: Container(
-                  color: Colors.white,
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _filteredSuggestions.length,
-                    itemBuilder: (context, index) {
-                      final sug = _filteredSuggestions[index];
-                      return ListTile(
-                        leading: const Icon(Icons.location_city, size: 18, color: Color(0xff6B7280)),
-                        title: Text(sug, style: const TextStyle(fontSize: 14, color: Color(0xff1F2937))),
-                        onTap: () => _selectSuggestion(sug),
-                      );
-                    },
-                  ),
                 ),
               ),
             ),

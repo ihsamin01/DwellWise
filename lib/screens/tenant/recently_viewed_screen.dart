@@ -37,7 +37,7 @@ class TenantRecentlyViewedScreen extends StatelessWidget {
     final savedProvider = context.watch<SavedPropertiesProvider>();
     final recentlyViewedProvider = context.watch<RecentlyViewedProvider>();
 
-    final allProperties = propertyProvider.properties;
+    final allProperties = propertyProvider.lookupPool;
     final recentlyViewedIds = recentlyViewedProvider.recentlyViewedIds;
 
     // Map viewed IDs to actual properties, skipping any that no longer exist.

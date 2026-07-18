@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import '../data/bd_locations.dart';
 
-/// Provider handling hierarchical location filter values (Division, District, Thana, Area) and sorting.
+/// Provider handling hierarchical location filter values (Division, District,
+/// Thana, Area) backed by the full Bangladesh dataset in [BdLocations],
+/// plus result sorting.
 class SearchFiltersProvider with ChangeNotifier {
   String _division = '';
   String _district = '';
@@ -13,6 +16,20 @@ class SearchFiltersProvider with ChangeNotifier {
   String get thana => _thana;
   String get area => _area;
   String get sortBy => _sortBy;
+
+  /// Human-readable breadcrumb of the current selection, most specific last.
+  /// e.g. "Dhaka > Dhaka > Pallabi > Kalshi". Empty when nothing selected.
+  String get selectionPath {
+    final parts = <String>[
+      if (_division.isNotEmpty) _division,
+      if (_district.isNotEmpty) _district,
+      if (_thana.isNotEmpty) _thana,
+      if (_area.isNotEmpty) _area,
+    ];
+    return parts.join(' > ');
+  }
+
+  bool get hasSelection => _division.isNotEmpty;
 
   void setDivision(String val) {
     _division = val;
@@ -55,53 +72,16 @@ class SearchFiltersProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Hierarchical mock data structures
-  final List<String> divisionsList = ['Dhaka', 'Chattogram', 'Khulna', 'Rajshahi'];
+  // ---- Dataset-backed option lists ----
 
-  List<String> getDistrictsForDivision(String div) {
-    switch (div) {
-      case 'Dhaka':
-        return ['Dhaka', 'Gazipur', 'Narayanganj'];
-      case 'Chattogram':
-        return ['Chittagong', 'Cox\'s Bazar', 'Feni'];
-      case 'Khulna':
-        return ['Khulna', 'Jessore'];
-      case 'Rajshahi':
-        return ['Rajshahi', 'Bogra'];
-      default:
-        return [];
-    }
-  }
+  List<String> get divisionsList => BdLocations.divisions;
 
-  List<String> getThanasForDistrict(String dist) {
-    switch (dist) {
-      case 'Dhaka':
-        return ['Dhanmondi', 'Gulshan', 'Banani', 'Mirpur', 'Uttara'];
-      case 'Chittagong':
-        return ['Double Mooring', 'Panchlaish', 'Halishahar'];
-      case 'Khulna':
-        return ['Sadar', 'Sonadanga'];
-      case 'Rajshahi':
-        return ['Boalia', 'Rajput'];
-      default:
-        return [];
-    }
-  }
+  List<String> getDistrictsForDivision(String div) =>
+      BdLocations.districtsOf(div);
 
-  List<String> getAreasForThana(String th) {
-    switch (th) {
-      case 'Gulshan':
-        return ['Gulshan 1', 'Gulshan 2', 'Gulshan Avenue'];
-      case 'Banani':
-        return ['Banani Block A', 'Banani Block H', 'Banani Block E'];
-      case 'Dhanmondi':
-        return ['Dhanmondi Lake', 'Dhanmondi Road 27', 'Dhanmondi Road 8A'];
-      case 'Uttara':
-        return ['Sector 4', 'Sector 11', 'Sector 13'];
-      case 'Mirpur':
-        return ['Mirpur 1', 'Mirpur 10', 'Mirpur DOHS'];
-      default:
-        return ['$th Area 1', '$th Area 2'];
-    }
-  }
+  List<String> getThanasForDistrict(String dist) =>
+      BdLocations.thanasOf(_division, dist);
+
+  List<String> getAreasForThana(String th) =>
+      BdLocations.areasForThana(_district, th);
 }

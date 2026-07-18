@@ -178,9 +178,11 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     final recommendedList = _applyPriceFilter(allProperties);
     final recentlyViewedIds = recentlyViewedProvider.recentlyViewedIds;
 
-    // Map viewed IDs to actual properties
+    // Map viewed IDs to actual properties (home feed + search results),
+    // skipping any id that can no longer be resolved.
     final recentlyViewedList = recentlyViewedIds
-        .map((id) => allProperties.firstWhere((p) => p.id == id, orElse: () => allProperties.first))
+        .map(propertyProvider.findById)
+        .whereType<PropertyModel>()
         .toList();
 
     return Scaffold(

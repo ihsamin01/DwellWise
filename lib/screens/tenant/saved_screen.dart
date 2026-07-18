@@ -53,7 +53,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
     final propertyProvider = context.watch<PropertyProvider>();
     final savedProvider = context.watch<SavedPropertiesProvider>();
 
-    final allProperties = propertyProvider.properties;
+    final allProperties = propertyProvider.lookupPool;
     final savedIds = savedProvider.savedIds;
 
     // Filter properties list dynamically based on SavedProvider IDs

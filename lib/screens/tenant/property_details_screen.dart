@@ -42,8 +42,8 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
     final propertyProvider = context.watch<PropertyProvider>();
     final savedProvider = context.watch<SavedPropertiesProvider>();
 
-    final allProperties = propertyProvider.properties;
-    
+    final allProperties = propertyProvider.lookupPool;
+
     // Find matching property model
     final property = allProperties.firstWhere(
       (p) => p.id == widget.propertyId,

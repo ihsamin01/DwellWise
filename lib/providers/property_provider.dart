@@ -11,10 +11,34 @@ class PropertyProvider with ChangeNotifier {
   bool _isLoading = false;
   final Set<String> _savedPropertyIds = {};
 
+  /// Search-generated listings, kept so details/saved/recently-viewed screens
+  /// can resolve them by id just like home-feed properties.
+  final Map<String, PropertyModel> _searchGenerated = {};
+
   List<PropertyModel> get properties => _properties;
   PropertyModel? get selectedProperty => _selectedProperty;
   bool get isLoading => _isLoading;
-  
+
+  /// Home-feed properties plus any search-generated listings (for lookups).
+  List<PropertyModel> get lookupPool =>
+      [..._properties, ..._searchGenerated.values];
+
+  /// Finds a property by id across the home feed and search results.
+  PropertyModel? findById(String id) {
+    for (final p in _properties) {
+      if (p.id == id) return p;
+    }
+    return _searchGenerated[id];
+  }
+
+  /// Registers search-generated listings for global lookup (idempotent).
+  void registerSearchResults(List<PropertyModel> results) {
+    for (final p in results) {
+      _searchGenerated[p.id] = p;
+    }
+    // No notifyListeners: called during search flow; screens already rebuild.
+  }
+
   List<PropertyModel> get savedProperties =>
       _properties.where((p) => _savedPropertyIds.contains(p.id)).toList();
 
