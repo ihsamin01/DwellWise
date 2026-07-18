@@ -13,7 +13,7 @@ import '../screens/tenant/search_screen.dart';
 import '../screens/tenant/listings_screen.dart';
 import '../screens/tenant/property_details_screen.dart';
 import '../screens/tenant/map_view_screen.dart';
-import '../screens/tenant/saved_listings_screen.dart';
+import '../screens/tenant/saved_screen.dart';
 import '../screens/tenant/inquiries_screen.dart';
 import '../screens/owner/owner_home_screen.dart';
 import '../screens/owner/create_listing_screen.dart';
@@ -86,7 +86,7 @@ class AppRoutes {
       ),
       GoRoute(
         path: '/saved-listings',
-        builder: (context, state) => const TenantSavedListingsScreen(),
+        builder: (context, state) => const TenantSavedScreen(),
       ),
       GoRoute(
         path: '/inquiries',
