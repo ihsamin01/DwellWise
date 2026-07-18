@@ -14,6 +14,7 @@ import '../screens/tenant/listings_screen.dart';
 import '../screens/tenant/property_details_screen.dart';
 import '../screens/tenant/map_view_screen.dart';
 import '../screens/tenant/saved_screen.dart';
+import '../screens/tenant/recently_viewed_screen.dart';
 import '../screens/tenant/inquiries_screen.dart';
 import '../screens/owner/owner_home_screen.dart';
 import '../screens/owner/create_listing_screen.dart';
@@ -66,6 +67,10 @@ class AppRoutes {
         builder: (context, state) => const TenantHomeScreen(),
       ),
       GoRoute(
+        path: '/home',
+        builder: (context, state) => const TenantHomeScreen(),
+      ),
+      GoRoute(
         path: '/search',
         builder: (context, state) => const TenantSearchScreen(),
       ),
@@ -81,6 +86,13 @@ class AppRoutes {
         },
       ),
       GoRoute(
+        path: '/property/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return TenantPropertyDetailsScreen(propertyId: id);
+        },
+      ),
+      GoRoute(
         path: '/map-view',
         builder: (context, state) => const TenantMapViewScreen(),
       ),
@@ -89,8 +101,20 @@ class AppRoutes {
         builder: (context, state) => const TenantSavedScreen(),
       ),
       GoRoute(
+        path: '/saved',
+        builder: (context, state) => const TenantSavedScreen(),
+      ),
+      GoRoute(
+        path: '/recently-viewed',
+        builder: (context, state) => const TenantRecentlyViewedScreen(),
+      ),
+      GoRoute(
         path: '/inquiries',
         builder: (context, state) => const TenantInquiriesScreen(),
+      ),
+      GoRoute(
+        path: '/messages',
+        builder: (context, state) => const ChatScreen(chatId: 'placeholder'),
       ),
 
       // Owner routes
