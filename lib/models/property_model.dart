@@ -4,6 +4,7 @@ class PropertyModel {
   final String title;
   final String description;
   final double price;
+  final String propertyType;
   final String area;
   final String address;
   final double latitude;
@@ -22,6 +23,7 @@ class PropertyModel {
     required this.title,
     required this.description,
     required this.price,
+    this.propertyType = 'Apartment',
     required this.area,
     required this.address,
     required this.latitude,
@@ -43,6 +45,7 @@ class PropertyModel {
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      propertyType: json['property_type'] as String? ?? 'Apartment',
       area: json['area'] as String? ?? '',
       address: json['address'] as String? ?? '',
       latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
@@ -65,6 +68,7 @@ class PropertyModel {
       'title': title,
       'description': description,
       'price': price,
+      'property_type': propertyType,
       'area': area,
       'address': address,
       'latitude': latitude,

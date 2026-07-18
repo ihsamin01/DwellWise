@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/property_provider.dart';
-import '../../providers/search_provider.dart';
+import '../../providers/saved_properties_provider.dart';
+import '../../providers/recently_viewed_provider.dart';
+import '../../providers/search_filters_provider.dart';
 import '../../models/property_model.dart';
 import '../../widgets/bottom_navigation.dart';
-import '../../widgets/global_app_bar.dart';
+import '../../widgets/property_card.dart';
 
-/// Screen representing tenant search query results and filters.
+/// Tenant Search Screen with autocomplete suggestions, hierarchical bottom sheet modals and dynamic sort selectors.
 class TenantSearchScreen extends StatefulWidget {
   const TenantSearchScreen({Key? key}) : super(key: key);
 
@@ -17,32 +18,72 @@ class TenantSearchScreen extends StatefulWidget {
 }
 
 class _TenantSearchScreenState extends State<TenantSearchScreen> {
-  final _searchController = TextEditingController();
-  bool _showPriceSlider = false;
-  bool _hasRoomsFilter = true;
-  String _selectedSort = 'Newest';
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  
+  String _searchQuery = '';
+  bool _showSuggestions = false;
+  final List<String> _autocompletePool = ['Dhaka', 'Gulshan', 'Banani', 'Dhanmondi', 'Uttara', 'Mirpur', 'Gazipur'];
+  List<String> _filteredSuggestions = [];
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_onSearchChanged);
+    _searchController.addListener(_onSearchQueryChanged);
+    _searchFocusNode.addListener(_onSearchFocusChanged);
   }
 
   @override
   void dispose() {
-    _searchController.removeListener(_onSearchChanged);
+    _searchController.removeListener(_onSearchQueryChanged);
+    _searchFocusNode.removeListener(_onSearchFocusChanged);
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
-  void _onSearchChanged() {
-    context.read<SearchProvider>().updateSearchQuery(_searchController.text);
+  void _onSearchQueryChanged() {
+    final text = _searchController.text.trim();
+    setState(() {
+      _searchQuery = text;
+      if (text.isNotEmpty) {
+        _filteredSuggestions = _autocompletePool
+            .where((s) => s.toLowerCase().contains(text.toLowerCase()))
+            .toList();
+        _showSuggestions = _filteredSuggestions.isNotEmpty && _searchFocusNode.hasFocus;
+      } else {
+        _filteredSuggestions = [];
+        _showSuggestions = false;
+      }
+    });
   }
 
-  void _toggleFavorite(BuildContext context, PropertyProvider provider, PropertyModel property) {
-    final isSaved = provider.isSaved(property.id);
-    provider.toggleFavorite(property.id);
-    
+  void _onSearchFocusChanged() {
+    setState(() {
+      _showSuggestions = _searchFocusNode.hasFocus && _searchController.text.isNotEmpty;
+    });
+  }
+
+  void _selectSuggestion(String suggestion) {
+    _searchController.text = suggestion;
+    _searchController.selection = TextSelection.fromPosition(
+      TextPosition(offset: suggestion.length),
+    );
+    setState(() {
+      _showSuggestions = false;
+    });
+    _searchFocusNode.unfocus();
+  }
+
+  void _handlePropertyTap(BuildContext context, PropertyModel property) {
+    context.read<RecentlyViewedProvider>().addProperty(property.id);
+    context.push('/property/${property.id}');
+  }
+
+  void _handleSaveToggle(BuildContext context, SavedPropertiesProvider savedProvider, PropertyModel property) {
+    final isSaved = savedProvider.isSaved(property.id);
+    savedProvider.toggleSave(property.id);
+
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -53,494 +94,475 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final searchProvider = context.watch<SearchProvider>();
-    final propertyProvider = context.watch<PropertyProvider>();
+  void _showFilterModal(BuildContext context, SearchFiltersProvider filterProvider, String type) {
+    List<String> options = [];
+    String currentVal = '';
+    Function(String) onSelect;
 
-    // Apply custom slider limits from specs: Min 25,000, Max 50,000 if not adjusted
-    // Let's filter based on search query, category, price range, and bedrooms
-    final sourceList = propertyProvider.properties;
-    
-    // Apply filters from provider state
-    var filteredListings = searchProvider.filterListings(sourceList);
-
-    // Apply mock rooms filter condition if rooms chip is active (e.g. 3+ rooms)
-    if (_hasRoomsFilter) {
-      filteredListings = filteredListings.where((p) => p.beds >= 3).toList();
+    switch (type) {
+      case 'Division':
+        options = filterProvider.divisionsList;
+        currentVal = filterProvider.division;
+        onSelect = (val) => filterProvider.setDivision(val);
+        break;
+      case 'District':
+        if (filterProvider.division.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please select a Division first')),
+          );
+          return;
+        }
+        options = filterProvider.getDistrictsForDivision(filterProvider.division);
+        currentVal = filterProvider.district;
+        onSelect = (val) => filterProvider.setDistrict(val);
+        break;
+      case 'Thana':
+        if (filterProvider.district.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please select a District first')),
+          );
+          return;
+        }
+        options = filterProvider.getThanasForDistrict(filterProvider.district);
+        currentVal = filterProvider.thana;
+        onSelect = (val) => filterProvider.setThana(val);
+        break;
+      case 'Area':
+        if (filterProvider.thana.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please select a Thana first')),
+          );
+          return;
+        }
+        options = filterProvider.getAreasForThana(filterProvider.thana);
+        currentVal = filterProvider.area;
+        onSelect = (val) => filterProvider.setArea(val);
+        break;
+      default:
+        return;
     }
 
-    // Apply mock price range slide from specs (25k - 50k range slider)
-    filteredListings = filteredListings.where((p) {
-      return p.price >= searchProvider.priceRange.start && p.price <= searchProvider.priceRange.end;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+      ),
+      builder: (context) {
+        String localSelected = currentVal;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Select $type',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xff1F2937)),
+                    ),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: options.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 20.0),
+                              child: Text('No options available.', style: TextStyle(color: Color(0xff6B7280))),
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: options.length,
+                              itemBuilder: (context, index) {
+                                final opt = options[index];
+                                return RadioListTile<String>(
+                                  title: Text(opt, style: const TextStyle(fontSize: 14, color: Color(0xff1F2937))),
+                                  value: opt,
+                                  groupValue: localSelected,
+                                  activeColor: const Color(0xff1E40AF),
+                                  onChanged: (val) {
+                                    setModalState(() {
+                                      localSelected = val ?? '';
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xffF59E0B), // CTA Orange
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () {
+                        if (localSelected.isNotEmpty) {
+                          onSelect(localSelected);
+                        }
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Apply Filter', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final propertyProvider = context.watch<PropertyProvider>();
+    final savedProvider = context.watch<SavedPropertiesProvider>();
+    final filterProvider = context.watch<SearchFiltersProvider>();
+
+    final allListings = propertyProvider.properties;
+
+    // Apply filtering logic based on SearchFiltersProvider and text query
+    var filteredListings = allListings.where((p) {
+      // 1. Text search matches
+      final matchesSearchQuery = _searchQuery.isEmpty ||
+          p.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          p.area.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          p.address.toLowerCase().contains(_searchQuery.toLowerCase());
+
+      // 2. Division filter matches
+      // Gazipur is Gazipur district, Gazipur Sadar. Dhaka covers Gulshan, Banani, Mirpur, Uttara, Dhanmondi
+      final isGazipur = p.id == 'p11';
+      final matchesDivision = filterProvider.division.isEmpty ||
+          (filterProvider.division == 'Dhaka' && !isGazipur) ||
+          (filterProvider.division == 'Khulna' && false); // no Khulna mocks
+
+      // 3. District filter matches
+      final matchesDistrict = filterProvider.district.isEmpty ||
+          (filterProvider.district == 'Dhaka' && !isGazipur) ||
+          (filterProvider.district == 'Gazipur' && isGazipur);
+
+      // 4. Thana filter matches
+      final matchesThana = filterProvider.thana.isEmpty ||
+          p.area.toLowerCase().contains(filterProvider.thana.toLowerCase()) ||
+          p.address.toLowerCase().contains(filterProvider.thana.toLowerCase());
+
+      // 5. Area filter matches
+      final matchesArea = filterProvider.area.isEmpty ||
+          p.area.toLowerCase().contains(filterProvider.area.toLowerCase()) ||
+          p.address.toLowerCase().contains(filterProvider.area.toLowerCase());
+
+      return matchesSearchQuery && matchesDivision && matchesDistrict && matchesThana && matchesArea;
     }).toList();
 
-    // Sort listings mock representation
-    if (_selectedSort == 'Price') {
+    // Apply Sorting logic
+    if (filterProvider.sortBy == 'Price Low-High') {
       filteredListings.sort((a, b) => a.price.compareTo(b.price));
-    } else if (_selectedSort == 'Rating') {
-      filteredListings.sort((a, b) => b.id.compareTo(a.id)); // mock sort
+    } else if (filterProvider.sortBy == 'Price High-Low') {
+      filteredListings.sort((a, b) => b.price.compareTo(a.price));
+    } else if (filterProvider.sortBy == 'Rating') {
+      // Sort mock by ID lengths
+      filteredListings.sort((a, b) => b.id.compareTo(a.id));
     }
 
     return Scaffold(
       backgroundColor: const Color(0xffF3F4F6),
-      appBar: const GlobalAppBar(),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 1. SEARCH HEADER SECTION (Sticky at top)
-          Container(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60.0),
+        child: Container(
+          decoration: const BoxDecoration(
             color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: Container(
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xffD1D5DB)),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  const Icon(Icons.search, color: Color(0xff6B7280)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      style: const TextStyle(color: Color(0xff1F2937)),
-                      decoration: const InputDecoration(
-                        hintText: 'Search neighborhood or city...',
-                        hintStyle: TextStyle(color: Color(0xff9CA3AF)),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  const Icon(Icons.location_on_outlined, color: Color(0xff6B7280)),
-                ],
-              ),
+            border: Border(
+              bottom: BorderSide(color: Color(0xffD1D5DB), width: 1.0),
             ),
           ),
-
-          // 2. FILTERS SECTION (Sticky below search)
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Filters',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xff1F2937),
-                      ),
+          child: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Color(0xff1E40AF), size: 24),
+              onPressed: () => context.go('/home'),
+            ),
+            title: const Text(
+              'DwellWise',
+              style: TextStyle(
+                color: Color(0xff1E40AF),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            centerTitle: true,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.share_outlined, color: Color(0xff1E40AF), size: 24),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Share copy triggered.')),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      body: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 1. SEARCH HEADER SECTION (Sticky Search Bar)
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(16.0),
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _searchFocusNode.hasFocus ? const Color(0xff1E40AF) : const Color(0xffD1D5DB),
+                      width: _searchFocusNode.hasFocus ? 1.5 : 1.0,
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        searchProvider.resetFilters();
-                        _searchController.clear();
-                        setState(() {
-                          _hasRoomsFilter = false;
-                          _showPriceSlider = false;
-                        });
-                      },
-                      child: const Text(
-                        'Clear all',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xff1E40AF),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 36,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
                     children: [
-                      // Budget chip (toggles collapsible slider)
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _showPriceSlider = !_showPriceSlider;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xff1E40AF),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            children: const [
-                              Text(
-                                'Budget ▼',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                      const Icon(Icons.search, color: Color(0xff6B7280)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          focusNode: _searchFocusNode,
+                          style: const TextStyle(color: Color(0xff1F2937), fontSize: 15),
+                          decoration: const InputDecoration(
+                            hintText: 'Search neighborhood or city...',
+                            hintStyle: TextStyle(color: Color(0xff9CA3AF)),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-
-                      // Rooms chip (with removal)
-                      if (_hasRoomsFilter) ...[
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _hasRoomsFilter = false;
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xff1E40AF),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              children: const [
-                                Text(
-                                  '3+ Rooms ✕',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-
-                      // Property type chip (static UI)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xffF3F4F6),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xffD1D5DB)),
-                        ),
-                        alignment: Alignment.center,
-                        child: const Text(
-                          'Apartment',
-                          style: TextStyle(
-                            color: Color(0xff1F2937),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
+                      const Icon(Icons.location_on, color: Color(0xff6B7280)),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          // 3. COLLAPSIBLE PRICE RANGE SLIDER
-          AnimatedCrossFade(
-            firstChild: Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Divider(height: 1),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'PRICE RANGE (MONTHLY)',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xff6B7280),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '৳${(searchProvider.priceRange.start / 1000).toStringAsFixed(0)}k - ৳${(searchProvider.priceRange.end / 1000).toStringAsFixed(0)}k',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xff1F2937),
-                    ),
-                  ),
-                  RangeSlider(
-                    values: searchProvider.priceRange,
-                    min: 25000,
-                    max: 150000,
-                    divisions: 25,
-                    activeColor: const Color(0xff1E40AF),
-                    inactiveColor: const Color(0xffD1D5DB),
-                    onChanged: (val) {
-                      searchProvider.updatePriceRange(val);
-                    },
-                  ),
-                ],
               ),
-            ),
-            secondChild: const SizedBox.shrink(),
-            crossFadeState: _showPriceSlider ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-            duration: const Duration(milliseconds: 200),
-          ),
 
-          // 4. RESULTS COUNT HEADER SECTION
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Showing ${filteredListings.length} results in Dhaka',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xff6B7280),
-                  ),
-                ),
-                // Sort Dropdown
-                DropdownButton<String>(
-                  value: _selectedSort,
-                  underline: const SizedBox.shrink(),
-                  icon: const Icon(Icons.arrow_drop_down, color: Color(0xff1E40AF)),
-                  style: const TextStyle(
-                    color: Color(0xff1E40AF),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() {
-                        _selectedSort = val;
-                      });
-                    }
-                  },
-                  items: const [
-                    DropdownMenuItem(value: 'Newest', child: Text('Sort: Newest')),
-                    DropdownMenuItem(value: 'Price', child: Text('Sort: Price')),
-                    DropdownMenuItem(value: 'Rating', child: Text('Sort: Rating')),
+              // 2. FILTER BUTTONS SECTION (Division, District, Thana, Area)
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'FILTERS',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xff6B7280),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            filterProvider.clearAll();
+                            _searchController.clear();
+                          },
+                          child: const Text(
+                            'Clear All',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xff1E40AF),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    // Horizontal scrollable buttons
+                    SizedBox(
+                      height: 36,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        children: [
+                          _buildFilterButton(
+                            label: filterProvider.division.isEmpty
+                                ? 'Division ▼'
+                                : '${filterProvider.division} ▼',
+                            isActive: filterProvider.division.isNotEmpty,
+                            onTap: () => _showFilterModal(context, filterProvider, 'Division'),
+                          ),
+                          _buildFilterButton(
+                            label: filterProvider.district.isEmpty
+                                ? 'District ▼'
+                                : '${filterProvider.district} ▼',
+                            isActive: filterProvider.district.isNotEmpty,
+                            onTap: () => _showFilterModal(context, filterProvider, 'District'),
+                          ),
+                          _buildFilterButton(
+                            label: filterProvider.thana.isEmpty
+                                ? 'Thana ▼'
+                                : '${filterProvider.thana} ▼',
+                            isActive: filterProvider.thana.isNotEmpty,
+                            onTap: () => _showFilterModal(context, filterProvider, 'Thana'),
+                          ),
+                          _buildFilterButton(
+                            label: filterProvider.area.isEmpty
+                                ? 'Area ▼'
+                                : '${filterProvider.area} ▼',
+                            isActive: filterProvider.area.isNotEmpty,
+                            onTap: () => _showFilterModal(context, filterProvider, 'Area'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                   ],
                 ),
-              ],
-            ),
+              ),
+
+              // Divider lines
+              Container(height: 1, color: const Color(0xffD1D5DB)),
+
+              // RESULTS HEADER (Count and Sort dropdown)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Showing ${filteredListings.length} results in Dhaka',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xff6B7280),
+                      ),
+                    ),
+                    DropdownButton<String>(
+                      value: filterProvider.sortBy == 'Newest' ? 'Sort: Newest ▼' : 'Sort: ${filterProvider.sortBy} ▼',
+                      underline: const SizedBox.shrink(),
+                      icon: const SizedBox.shrink(),
+                      style: const TextStyle(
+                        color: Color(0xff1E40AF),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                      onChanged: (val) {
+                        if (val != null) {
+                          final cleanedSort = val.replaceAll('Sort: ', '').replaceAll(' ▼', '');
+                          filterProvider.setSortBy(cleanedSort);
+                        }
+                      },
+                      items: const [
+                        DropdownMenuItem(value: 'Sort: Newest ▼', child: Text('Sort: Newest')),
+                        DropdownMenuItem(value: 'Sort: Price Low-High ▼', child: Text('Price: Low-High')),
+                        DropdownMenuItem(value: 'Sort: Price High-Low ▼', child: Text('Price: High-Low')),
+                        DropdownMenuItem(value: 'Sort: Rating ▼', child: Text('Sort: Rating')),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // RESULTS LIST VIEW
+              Expanded(
+                child: filteredListings.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No properties found matching the criteria.',
+                          style: TextStyle(color: Color(0xff6B7280)),
+                        ),
+                      )
+                    : ListView.builder(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        itemCount: filteredListings.length,
+                        itemBuilder: (context, index) {
+                          final property = filteredListings[index];
+                          final isSaved = savedProvider.isSaved(property.id);
+
+                          return PropertyCard(
+                            property: property,
+                            showDetails: true,
+                            isSaved: isSaved,
+                            onTap: () => _handlePropertyTap(context, property),
+                            onSaveTap: () => _handleSaveToggle(context, savedProvider, property),
+                          );
+                        },
+                      ),
+              ),
+
+              const SizedBox(height: 120), // nav bar bottom clearance
+            ],
           ),
 
-          // 5. RESULTS LIST (Scrolls below filters)
-          Expanded(
-            child: filteredListings.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No matches found for your filter criteria.',
-                      style: TextStyle(color: Color(0xff6B7280)),
-                    ),
-                  )
-                : ListView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    itemCount: filteredListings.length,
+          // Autocomplete suggestions floating panel overlay
+          if (_showSuggestions)
+            Positioned(
+              top: 64, // below sticky search header box
+              left: 16,
+              right: 16,
+              child: Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                child: Container(
+                  color: Colors.white,
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _filteredSuggestions.length,
                     itemBuilder: (context, index) {
-                      final property = filteredListings[index];
-                      final isSaved = propertyProvider.isSaved(property.id);
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 20.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xffD1D5DB)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Stack(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(8),
-                                    topRight: Radius.circular(8),
-                                  ),
-                                  child: CachedNetworkImage(
-                                    imageUrl: property.imageUrls.isNotEmpty
-                                        ? property.imageUrls[0]
-                                        : 'https://placeholder.com/600',
-                                    height: 200,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
-                                      color: Colors.grey.shade200,
-                                      height: 200,
-                                      child: const Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                    ),
-                                    errorWidget: (context, url, error) => const Icon(Icons.error),
-                                  ),
-                                ),
-                                // Verified Badge
-                                if (property.isVerified)
-                                  Positioned(
-                                    top: 12,
-                                    left: 12,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.9),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Row(
-                                        children: const [
-                                          Icon(Icons.verified, color: Color(0xff10B981), size: 14),
-                                          SizedBox(width: 4),
-                                          Text(
-                                            'Verified',
-                                            style: TextStyle(
-                                              color: Color(0xff10B981),
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                // Heart button
-                                Positioned(
-                                  top: 12,
-                                  right: 12,
-                                  child: GestureDetector(
-                                    onTap: () => _toggleFavorite(context, propertyProvider, property),
-                                    child: CircleAvatar(
-                                      backgroundColor: Colors.white.withOpacity(0.9),
-                                      child: Icon(
-                                        isSaved ? Icons.favorite : Icons.favorite_border,
-                                        color: isSaved ? const Color(0xffDC2626) : const Color(0xffD1D5DB),
-                                        size: 24,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            
-                            // Property details
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    property.title,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xff1F2937),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        '৳${property.price.toInt()}',
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xff1E40AF),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      const Text(
-                                        'per month',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xff6B7280),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    '${property.beds} Bed  ${property.baths} Bath  ${property.sizeSqFt.toInt()} sqft',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xff6B7280),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.location_on_outlined, size: 14, color: Color(0xff6B7280)),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Text(
-                                          property.address,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Color(0xff6B7280),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    property.description,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Color(0xff6B7280),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  
-                                  // View on Map Button
-                                  GestureDetector(
-                                    onTap: () => context.go('/map-view'),
-                                    child: Container(
-                                      height: 36,
-                                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xff1E40AF),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: const Center(
-                                        widthFactor: 1,
-                                        child: Text(
-                                          'View on Map',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                      final sug = _filteredSuggestions[index];
+                      return ListTile(
+                        leading: const Icon(Icons.location_city, size: 18, color: Color(0xff6B7280)),
+                        title: Text(sug, style: const TextStyle(fontSize: 14, color: Color(0xff1F2937))),
+                        onTap: () => _selectSuggestion(sug),
                       );
                     },
                   ),
-          ),
-          const SizedBox(height: 56), // bottom clearance for bottom nav
+                ),
+              ),
+            ),
         ],
       ),
       bottomNavigationBar: const BottomNavigation(currentIndex: 1),
+    );
+  }
+
+  Widget _buildFilterButton({
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isActive ? const Color(0xffEFF6FF) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isActive ? const Color(0xff1E40AF) : const Color(0xffD1D5DB),
+              width: isActive ? 1.5 : 1.0,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isActive ? const Color(0xff1E40AF) : const Color(0xff1F2937),
+              fontSize: 12,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

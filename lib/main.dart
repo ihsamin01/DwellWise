@@ -10,6 +10,9 @@ import 'providers/property_provider.dart';
 import 'providers/search_provider.dart';
 import 'providers/chat_provider.dart';
 import 'providers/admin_provider.dart';
+import 'providers/saved_properties_provider.dart';
+import 'providers/recently_viewed_provider.dart';
+import 'providers/search_filters_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +33,9 @@ class DwellWiseApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SearchProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => AdminProvider()),
+        ChangeNotifierProvider(create: (_) => SavedPropertiesProvider()),
+        ChangeNotifierProvider(create: (_) => RecentlyViewedProvider()),
+        ChangeNotifierProvider(create: (_) => SearchFiltersProvider()),
       ],
       child: MaterialApp.router(
         title: 'DwellWise',
