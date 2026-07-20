@@ -25,6 +25,10 @@ import '../screens/admin/reported_listings_screen.dart';
 import '../screens/chat/chat_screen.dart';
 import '../screens/profile/edit_profile_screen.dart';
 import '../screens/profile/change_password_screen.dart';
+import '../screens/profile/account_verification_screen.dart';
+import '../screens/profile/add_property_screen.dart';
+import '../screens/profile/my_properties_screen.dart';
+import '../screens/profile/purchase_history_screen.dart';
 import '../screens/profile/account_security_screen.dart';
 import '../screens/profile/notification_settings_screen.dart';
 import '../screens/profile/language_settings_screen.dart';
@@ -182,6 +186,22 @@ class AppRoutes {
       GoRoute(
         path: '/profile/change-password',
         builder: (context, state) => const ChangePasswordScreen(),
+      ),
+      GoRoute(
+        path: '/profile/verification',
+        builder: (context, state) => const AccountVerificationScreen(),
+      ),
+      GoRoute(
+        path: '/profile/add-property',
+        builder: (context, state) => const AddPropertyScreen(),
+      ),
+      GoRoute(
+        path: '/profile/my-properties',
+        builder: (context, state) => const MyPropertiesScreen(),
+      ),
+      GoRoute(
+        path: '/profile/purchase-history',
+        builder: (context, state) => const PurchaseHistoryScreen(),
       ),
       GoRoute(
         path: '/profile/security',

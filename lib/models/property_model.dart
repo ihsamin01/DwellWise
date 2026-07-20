@@ -4,6 +4,9 @@ class PropertyModel {
   final String title;
   final String description;
   final double price;
+
+  /// Billing period the [price] applies to: 'Monthly', 'Weekly' or 'Daily'.
+  final String priceFor;
   final String propertyType;
   final String area;
   final String address;
@@ -11,7 +14,16 @@ class PropertyModel {
   final double longitude;
   final int beds;
   final int baths;
+
+  /// Number of balconies. Defaults to 0 for older/mock listings.
+  final int balcony;
   final double sizeSqFt;
+
+  /// Month the unit becomes available (e.g. 'August'). Empty when unspecified.
+  final String availableFrom;
+
+  /// Utility bills bundled into the rent, e.g. ['Electricity bill', 'Gas bill'].
+  final List<String> includedBills;
   final List<String> imageUrls;
   final bool isVerified;
   final String ownerId;
@@ -23,6 +35,7 @@ class PropertyModel {
     required this.title,
     required this.description,
     required this.price,
+    this.priceFor = 'Monthly',
     this.propertyType = 'Apartment',
     required this.area,
     required this.address,
@@ -30,7 +43,10 @@ class PropertyModel {
     required this.longitude,
     required this.beds,
     required this.baths,
+    this.balcony = 0,
     required this.sizeSqFt,
+    this.availableFrom = '',
+    this.includedBills = const [],
     required this.imageUrls,
     required this.isVerified,
     required this.ownerId,
@@ -45,6 +61,7 @@ class PropertyModel {
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      priceFor: json['price_for'] as String? ?? 'Monthly',
       propertyType: json['property_type'] as String? ?? 'Apartment',
       area: json['area'] as String? ?? '',
       address: json['address'] as String? ?? '',
@@ -52,7 +69,10 @@ class PropertyModel {
       longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
       beds: json['beds'] as int? ?? 0,
       baths: json['baths'] as int? ?? 0,
+      balcony: json['balcony'] as int? ?? 0,
       sizeSqFt: (json['size_sqft'] as num?)?.toDouble() ?? 0.0,
+      availableFrom: json['available_from'] as String? ?? '',
+      includedBills: List<String>.from(json['included_bills'] ?? []),
       imageUrls: List<String>.from(json['image_urls'] ?? []),
       isVerified: json['is_verified'] as bool? ?? false,
       ownerId: json['owner_id'] as String? ?? '',
@@ -68,6 +88,7 @@ class PropertyModel {
       'title': title,
       'description': description,
       'price': price,
+      'price_for': priceFor,
       'property_type': propertyType,
       'area': area,
       'address': address,
@@ -75,7 +96,10 @@ class PropertyModel {
       'longitude': longitude,
       'beds': beds,
       'baths': baths,
+      'balcony': balcony,
       'size_sqft': sizeSqFt,
+      'available_from': availableFrom,
+      'included_bills': includedBills,
       'image_urls': imageUrls,
       'is_verified': isVerified,
       'owner_id': ownerId,

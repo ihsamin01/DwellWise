@@ -53,16 +53,34 @@ class UserProvider with ChangeNotifier {
   /// Toggles between Seeker and Owner visual perspectives.
   void switchPerspective(UserRole newRole) {
     if (_userModel != null) {
-      _userModel = UserModel(
-        id: _userModel!.id,
-        email: _userModel!.email,
-        name: _userModel!.name,
-        phoneNumber: _userModel!.phoneNumber,
-        role: newRole,
-        avatarUrl: _userModel!.avatarUrl,
-        createdAt: _userModel!.createdAt,
-      );
+      _userModel = _userModel!.copyWith(role: newRole);
       notifyListeners();
     }
+  }
+
+  /// Current account verification lifecycle state.
+  VerificationStatus get verificationStatus =>
+      _userModel?.verificationStatus ?? VerificationStatus.unverified;
+
+  /// Submits the account-verification request (form + mock ৳500 fee paid).
+  /// Moves the account into [VerificationStatus.pending] awaiting admin review.
+  Future<bool> submitVerification() async {
+    if (_userModel == null) return false;
+    _isLoading = true;
+    notifyListeners();
+    // Simulate the request reaching the admin queue.
+    await Future.delayed(const Duration(milliseconds: 600));
+    _userModel = _userModel!.copyWith(verificationStatus: VerificationStatus.pending);
+    _isLoading = false;
+    notifyListeners();
+    return true;
+  }
+
+  /// Mock admin approval that grants the green verified badge. In a real
+  /// build this would be triggered from the admin dashboard.
+  void approveVerification() {
+    if (_userModel == null) return;
+    _userModel = _userModel!.copyWith(verificationStatus: VerificationStatus.verified);
+    notifyListeners();
   }
 }

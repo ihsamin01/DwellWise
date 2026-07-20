@@ -3,6 +3,18 @@
         android:label="dwell_wise"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <!-- Google Maps API key.
+             The in-app embedded google_maps_flutter map needs a real key to
+             render tiles. To enable it:
+               1. Create a project at https://console.cloud.google.com
+               2. Enable "Maps SDK for Android" + a billing account.
+               3. Replace YOUR_API_KEY_HERE below with the generated key.
+             Until then the "Open in Google Maps" button (url_launcher) still
+             opens the exact typed address in the Maps app — no key required. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="YOUR_API_KEY_HERE" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -40,6 +52,15 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Lets url_launcher open web/geo links in an external app. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
         </intent>
     </queries>
 </manifest>

@@ -26,7 +26,11 @@ dependencies:
   
   # Google Maps & Location
   google_maps_flutter: ^2.5.0
-  
+
+  # Opens the exact typed address in the Google Maps app / browser
+  # (works without a Maps API key).
+  url_launcher: ^6.2.0
+
   # AI Integration
   google_generative_ai: ^0.4.0
   

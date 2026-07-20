@@ -11,6 +11,14 @@ class PropertyProvider with ChangeNotifier {
   bool _isLoading = false;
   final Set<String> _savedPropertyIds = {};
 
+  /// Owner id representing the currently signed-in user, so listings they post
+  /// via "Add property" can be surfaced back to them under "My properties".
+  static const String currentUserId = 'me';
+
+  /// Listings posted by the current user. Seeded with a couple of dummy
+  /// entries so the "My properties" screen is never empty for the demo.
+  final List<PropertyModel> _myListings = _seedMyListings();
+
   /// Search-generated listings, kept so details/saved/recently-viewed screens
   /// can resolve them by id just like home-feed properties.
   final Map<String, PropertyModel> _searchGenerated = {};
@@ -42,6 +50,16 @@ class PropertyProvider with ChangeNotifier {
   List<PropertyModel> get savedProperties =>
       _properties.where((p) => _savedPropertyIds.contains(p.id)).toList();
 
+  /// Listings the current user has posted (newest first).
+  List<PropertyModel> get myListings => List.unmodifiable(_myListings);
+
+  /// Removes one of the current user's own listings.
+  void removeMyListing(String propertyId) {
+    _myListings.removeWhere((p) => p.id == propertyId);
+    _properties.removeWhere((p) => p.id == propertyId);
+    notifyListeners();
+  }
+
   /// Loads properties list.
   Future<void> fetchProperties() async {
     _isLoading = true;
@@ -67,6 +85,10 @@ class PropertyProvider with ChangeNotifier {
     try {
       await _dbService.createProperty(newProperty);
       _properties.insert(0, newProperty);
+      // Surface it back to the poster under "My properties" too.
+      if (newProperty.ownerId == currentUserId) {
+        _myListings.insert(0, newProperty);
+      }
       return true;
     } catch (e) {
       debugPrint('Error creating listing: $e');
@@ -96,6 +118,68 @@ class PropertyProvider with ChangeNotifier {
   /// Checks if a property is favorited.
   bool isSaved(String propertyId) {
     return _savedPropertyIds.contains(propertyId);
+  }
+
+  /// Two dummy listings so "My properties" has content on first open.
+  static List<PropertyModel> _seedMyListings() {
+    const img = 'https://images.unsplash.com/photo-';
+    const q = '?auto=format&fit=crop&w=600&q=80';
+    return [
+      PropertyModel(
+        id: 'me1',
+        title: 'My Family Flat, Mirpur DOHS',
+        description:
+            'Well-maintained 3-bed apartment inside Mirpur DOHS. Gas line, lift, reserved parking and 24/7 security. Posted by me for rent.',
+        price: 28000,
+        priceFor: 'Monthly',
+        propertyType: 'Family',
+        area: 'Mirpur DOHS',
+        address: 'Road 6, Avenue 9, Mirpur DOHS, Dhaka',
+        latitude: 23.8226,
+        longitude: 90.3688,
+        beds: 3,
+        baths: 3,
+        balcony: 2,
+        sizeSqFt: 1400,
+        availableFrom: 'August',
+        includedBills: ['Gas bill', 'Water bill'],
+        imageUrls: [
+          '${img}1522708323590-d24dbb6b0267$q',
+          '${img}1600585154340-be6161a56a0c$q',
+        ],
+        isVerified: true,
+        ownerId: currentUserId,
+        facilities: ['LIFT', 'GARAGE', 'CCTV', 'GAS'],
+        createdAt: DateTime.now().subtract(const Duration(days: 8)),
+      ),
+      PropertyModel(
+        id: 'me2',
+        title: 'My Bachelor Sublet, Uttara Sector 4',
+        description:
+            'Single furnished room for a working bachelor. Attached bath, shared kitchen. Near Uttara metro station. Posted by me.',
+        price: 8500,
+        priceFor: 'Monthly',
+        propertyType: 'Sublet',
+        area: 'Sector 4',
+        address: 'Road 3, Sector 4, Uttara, Dhaka',
+        latitude: 23.8722,
+        longitude: 90.3842,
+        beds: 1,
+        baths: 1,
+        balcony: 1,
+        sizeSqFt: 220,
+        availableFrom: 'September',
+        includedBills: ['Electricity bill', 'Gas bill', 'Water bill'],
+        imageUrls: [
+          '${img}1540518614846-7eded433c457$q',
+          '${img}1505691938895-1758d7feb511$q',
+        ],
+        isVerified: false,
+        ownerId: currentUserId,
+        facilities: ['CCTV', 'GAS'],
+        createdAt: DateTime.now().subtract(const Duration(days: 3)),
+      ),
+    ];
   }
 
   void _loadMockProperties() {
