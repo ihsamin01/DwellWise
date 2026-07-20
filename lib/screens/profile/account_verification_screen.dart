@@ -152,9 +152,13 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(title: Text(AppStrings.t(context, 'p_acc_verif'))),
-      body: status == VerificationStatus.unverified
-          ? _buildForm(colors)
-          : _buildStatusView(colors, status),
+      // SafeArea keeps the submit button clear of the device's bottom
+      // navigation bar (gesture bar or 3-button bar) on every device.
+      body: SafeArea(
+        child: status == VerificationStatus.unverified
+            ? _buildForm(colors)
+            : _buildStatusView(colors, status),
+      ),
     );
   }
 
@@ -199,7 +203,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     return Form(
       key: _formKey,
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
         children: [
           Container(
             padding: const EdgeInsets.all(14),
