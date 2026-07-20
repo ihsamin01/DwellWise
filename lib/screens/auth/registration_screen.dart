@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../../config/app_colors.dart';
 import '../../providers/auth_provider.dart';
 
 /// Screen representing user registration page.
@@ -13,7 +14,7 @@ class RegistrationScreen extends StatefulWidget {
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -108,24 +109,24 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     }
   }
 
-  Widget _buildInputLabel(String labelText, bool isRequired) {
+  Widget _buildInputLabel(AppColors colors, String labelText, bool isRequired) {
     if (!isRequired) {
       return Text(
         labelText,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.bold,
-          color: Color(0xff6B7280),
+          color: colors.textSecondary,
         ),
       );
     }
     return RichText(
       text: TextSpan(
         text: labelText.replaceAll(' *', ''),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.bold,
-          color: Color(0xff6B7280),
+          color: colors.textSecondary,
         ),
         children: const [
           TextSpan(
@@ -142,10 +143,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     final isLoading = context.watch<AuthProvider>().isLoading;
 
     return Scaffold(
-      backgroundColor: const Color(0xffF3F4F6), // Background Light Gray
+      backgroundColor: colors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -162,21 +164,21 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Color(0xff6B7280)),
+                      icon: Icon(Icons.arrow_back, color: colors.textSecondary),
                       onPressed: () => context.pop(),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: const Color(0xffE5E7EB), // Very Light Gray
+                        color: colors.placeholder,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Step 1 of 2',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xff6B7280), // Text Secondary
+                          color: colors.textSecondary,
                         ),
                       ),
                     ),
@@ -190,63 +192,63 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: const Color(0xff1E40AF).withOpacity(0.1),
+                      color: colors.primary.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.home_work_rounded,
                       size: 40,
-                      color: Color(0xff1E40AF),
+                      color: colors.primary,
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
 
                 // Heading
-                const Text(
+                Text(
                   'Create Account',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xff1E40AF), // Primary Blue
+                    color: colors.primary,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Join DwellWise to find or list verified rentals',
                   style: TextStyle(
                     fontSize: 15,
-                    color: Color(0xff6B7280), // Text Secondary
+                    color: colors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
 
                 // Full Name Input
-                _buildInputLabel('FULL NAME *', true),
+                _buildInputLabel(colors, 'FULL NAME *', true),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _nameController,
-                  style: const TextStyle(color: Color(0xff1F2937)),
+                  style: TextStyle(color: colors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Enter your full name',
-                    hintStyle: const TextStyle(color: Color(0xff9CA3AF)),
-                    fillColor: Colors.white,
+                    hintStyle: TextStyle(color: colors.textSecondary),
+                    fillColor: colors.surface,
                     filled: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    prefixIcon: const Icon(Icons.person_outline, color: Color(0xff6B7280)),
+                    prefixIcon: Icon(Icons.person_outline, color: colors.textSecondary),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xffD1D5DB)),
+                      borderSide: BorderSide(color: colors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xffD1D5DB)),
+                      borderSide: BorderSide(color: colors.border),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xff1E40AF), width: 1.5),
+                      borderSide: BorderSide(color: colors.primary, width: 1.5),
                     ),
                     errorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -262,29 +264,29 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 const SizedBox(height: 20), // Form vertical gap
 
                 // Phone Number Input
-                _buildInputLabel('PHONE NUMBER *', true),
+                _buildInputLabel(colors, 'PHONE NUMBER *', true),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  style: const TextStyle(color: Color(0xff1F2937)),
+                  style: TextStyle(color: colors.textPrimary),
                   decoration: InputDecoration(
                     hintText: '1XXX-XXXXXX',
-                    hintStyle: const TextStyle(color: Color(0xff9CA3AF)),
-                    fillColor: Colors.white,
+                    hintStyle: TextStyle(color: colors.textSecondary),
+                    fillColor: colors.surface,
                     filled: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     prefixIcon: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const SizedBox(width: 16),
-                        const Icon(Icons.phone_outlined, color: Color(0xff6B7280)),
+                        Icon(Icons.phone_outlined, color: colors.textSecondary),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           '+880',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Color(0xff1F2937),
+                            color: colors.textPrimary,
                             fontSize: 16,
                           ),
                         ),
@@ -292,22 +294,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         Container(
                           width: 1,
                           height: 24,
-                          color: const Color(0xffD1D5DB),
+                          color: colors.border,
                         ),
                         const SizedBox(width: 12),
                       ],
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xffD1D5DB)),
+                      borderSide: BorderSide(color: colors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xffD1D5DB)),
+                      borderSide: BorderSide(color: colors.border),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xff1E40AF), width: 1.5),
+                      borderSide: BorderSide(color: colors.primary, width: 1.5),
                     ),
                     errorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -323,23 +325,23 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 const SizedBox(height: 20), // Form vertical gap
 
                 // Password Input
-                _buildInputLabel('PASSWORD *', true),
+                _buildInputLabel(colors, 'PASSWORD *', true),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
-                  style: const TextStyle(color: Color(0xff1F2937)),
+                  style: TextStyle(color: colors.textPrimary),
                   decoration: InputDecoration(
                     hintText: '••••••••',
-                    hintStyle: const TextStyle(color: Color(0xff9CA3AF)),
-                    fillColor: Colors.white,
+                    hintStyle: TextStyle(color: colors.textSecondary),
+                    fillColor: colors.surface,
                     filled: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    prefixIcon: const Icon(Icons.lock_outline, color: Color(0xff6B7280)),
+                    prefixIcon: Icon(Icons.lock_outline, color: colors.textSecondary),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                        color: const Color(0xff6B7280),
+                        color: colors.textSecondary,
                       ),
                       onPressed: () {
                         setState(() {
@@ -349,15 +351,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xffD1D5DB)),
+                      borderSide: BorderSide(color: colors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xffD1D5DB)),
+                      borderSide: BorderSide(color: colors.border),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xff1E40AF), width: 1.5),
+                      borderSide: BorderSide(color: colors.primary, width: 1.5),
                     ),
                     errorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -371,41 +373,41 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   validator: _validatePassword,
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Min 6 characters',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xff9CA3AF), // Hint Gray
+                    color: colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 20), // Form vertical gap
 
                 // Current Address Input
-                _buildInputLabel('CURRENT ADDRESS *', true),
+                _buildInputLabel(colors, 'CURRENT ADDRESS *', true),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _addressController,
                   maxLines: 3,
                   keyboardType: TextInputType.multiline,
-                  style: const TextStyle(color: Color(0xff1F2937)),
+                  style: TextStyle(color: colors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Building address, street, area',
-                    hintStyle: const TextStyle(color: Color(0xff9CA3AF)),
-                    fillColor: Colors.white,
+                    hintStyle: TextStyle(color: colors.textSecondary),
+                    fillColor: colors.surface,
                     filled: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    prefixIcon: const Icon(Icons.location_on_outlined, color: Color(0xff6B7280)),
+                    prefixIcon: Icon(Icons.location_on_outlined, color: colors.textSecondary),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xffD1D5DB)),
+                      borderSide: BorderSide(color: colors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xffD1D5DB)),
+                      borderSide: BorderSide(color: colors.border),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xff1E40AF), width: 1.5),
+                      borderSide: BorderSide(color: colors.primary, width: 1.5),
                     ),
                     errorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -432,18 +434,18 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'Already have an account? ',
-                      style: TextStyle(fontSize: 14, color: Color(0xff6B7280)),
+                      style: TextStyle(fontSize: 14, color: colors.textSecondary),
                     ),
                     GestureDetector(
                       onTap: () => context.pop(),
-                      child: const Text(
+                      child: Text(
                         'Log In',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xff1E40AF),
+                          color: colors.primary,
                         ),
                       ),
                     ),
@@ -454,24 +456,24 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 // Security Section
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: const [
+                  children: [
                     Row(
                       children: [
-                        Icon(Icons.lock_outline, size: 14, color: Color(0xff6B7280)),
-                        SizedBox(width: 6),
+                        Icon(Icons.lock_outline, size: 14, color: colors.textSecondary),
+                        const SizedBox(width: 6),
                         Text(
                           'SECURE ENCRYPTION',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xff6B7280)),
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: colors.textSecondary),
                         ),
                       ],
                     ),
                     Row(
                       children: [
-                        Icon(Icons.gavel_outlined, size: 14, color: Color(0xff6B7280)),
-                        SizedBox(width: 6),
+                        Icon(Icons.gavel_outlined, size: 14, color: colors.textSecondary),
+                        const SizedBox(width: 6),
                         Text(
                           'LEGAL COMPLIANCE',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xff6B7280)),
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: colors.textSecondary),
                         ),
                       ],
                     ),
@@ -480,11 +482,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 const SizedBox(height: 48),
 
                 // Footer lines
-                const Text(
+                Text(
                   '© 2024 DwellWise. All rights reserved.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xffD1D5DB),
+                    color: colors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -496,31 +498,31 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   children: [
                     GestureDetector(
                       onTap: () {},
-                      child: const Text(
+                      child: Text(
                         'Privacy',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xff1E40AF)),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: colors.primary),
                       ),
                     ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text('|', style: TextStyle(fontSize: 12, color: Color(0xffD1D5DB))),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Text('|', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                     ),
                     GestureDetector(
                       onTap: () {},
-                      child: const Text(
+                      child: Text(
                         'Terms of Service',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xff1E40AF)),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: colors.primary),
                       ),
                     ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text('|', style: TextStyle(fontSize: 12, color: Color(0xffD1D5DB))),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Text('|', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                     ),
                     GestureDetector(
                       onTap: () {},
-                      child: const Text(
+                      child: Text(
                         'Contact Support',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xff1E40AF)),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: colors.primary),
                       ),
                     ),
                   ],

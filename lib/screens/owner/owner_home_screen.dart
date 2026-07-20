@@ -35,9 +35,13 @@ class OwnerHomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               'My Property Portfolio',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xff1E293B)),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 16),
             

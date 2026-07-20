@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../config/app_colors.dart';
 import '../../widgets/custom_button.dart';
 
 /// Screen representing application feature walkthrough page slider.
@@ -45,8 +46,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xffFAFAFA),
+      backgroundColor: colors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -66,13 +68,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         const SizedBox(height: 48),
                         Text(
                           step.title,
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xff1E293B)),
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: colors.textPrimary),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
                         Text(
                           step.description,
-                          style: const TextStyle(fontSize: 15, color: Colors.grey),
+                          style: TextStyle(fontSize: 15, color: colors.textSecondary),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -81,7 +83,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 },
               ),
             ),
-            
+
             // Indicators
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -91,7 +93,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   width: _currentIndex == index ? 24 : 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: _currentIndex == index ? const Color(0xffF59E0B) : Colors.grey.shade300,
+                    color: _currentIndex == index ? const Color(0xffF59E0B) : colors.border,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 );

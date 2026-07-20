@@ -47,14 +47,17 @@ class OwnerListingDetailsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Card(
-              color: Colors.teal.shade50,
-              child: const Padding(
-                padding: EdgeInsets.all(16.0),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    Text('Views This Week', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    SizedBox(height: 8),
-                    Text('148', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xff0F766E))),
+                    Text(
+                      'Views This Week',
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('148', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xff0F766E))),
                   ],
                 ),
               ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../../config/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../models/user_model.dart';
@@ -12,9 +13,10 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     final userProvider = context.watch<UserProvider>();
     final authProvider = context.watch<AuthProvider>();
-    
+
     final user = userProvider.userModel;
 
     return Scaffold(
@@ -52,7 +54,7 @@ class ProfileScreen extends StatelessWidget {
             ),
             Text(
               user?.email ?? authProvider.currentUser?.email ?? 'samin@dwellwise.com',
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(color: colors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -69,7 +71,7 @@ class ProfileScreen extends StatelessWidget {
                       context.go('/tenant-home');
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: user?.role == UserRole.tenant ? const Color(0xff0F766E) : Colors.grey.shade300,
+                      backgroundColor: user?.role == UserRole.tenant ? const Color(0xff0F766E) : colors.border,
                     ),
                     child: const Text('Tenant'),
                   ),
@@ -82,7 +84,7 @@ class ProfileScreen extends StatelessWidget {
                       context.go('/owner-home');
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: user?.role == UserRole.owner ? const Color(0xff0F766E) : Colors.grey.shade300,
+                      backgroundColor: user?.role == UserRole.owner ? const Color(0xff0F766E) : colors.border,
                     ),
                     child: const Text('Landlord'),
                   ),

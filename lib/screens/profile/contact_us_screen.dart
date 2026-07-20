@@ -93,16 +93,17 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: const Color(0xff6B7280)),
+        Icon(icon, size: 20, color: secondary),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: Color(0xff6B7280))),
+              Text(label, style: TextStyle(fontSize: 12, color: secondary)),
               const SizedBox(height: 2),
               Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             ],

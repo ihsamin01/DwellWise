@@ -52,20 +52,21 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Privacy Policy')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
+          Text(
             'This Privacy Policy explains how DwellWise collects, uses, and protects your information.',
-            style: TextStyle(color: Color(0xff6B7280)),
+            style: TextStyle(color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 20),
           for (final section in _sections) ...[
             Text(section.$1, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
-            Text(section.$2, style: const TextStyle(height: 1.5, color: Color(0xff374151))),
+            Text(section.$2, style: TextStyle(height: 1.5, color: colorScheme.onSurface)),
             const SizedBox(height: 20),
           ],
         ],

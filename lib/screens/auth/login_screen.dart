@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../../config/app_colors.dart';
 import '../../providers/auth_provider.dart';
 
 /// Screen representing user login page.
@@ -15,7 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
-  
+
   bool _obscurePassword = true;
   bool _keepMeSignedIn = false;
 
@@ -51,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
       final authProvider = context.read<AuthProvider>();
-      
+
       final success = await authProvider.login(
         '+880${_phoneController.text.trim()}',
         _passwordController.text,
@@ -80,10 +81,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     final isLoading = context.watch<AuthProvider>().isLoading;
 
     return Scaffold(
-      backgroundColor: const Color(0xffF3F4F6), // Background Light Gray
+      backgroundColor: colors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -94,77 +96,77 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 40), // Top Spacing
-                
+
                 // Centered Logo
                 Center(
                   child: Container(
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: const Color(0xff1E40AF).withOpacity(0.1), // 10% opacity primary blue
+                      color: colors.primary.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.home_work_rounded,
                       size: 40,
-                      color: Color(0xff1E40AF), // Primary Blue
+                      color: colors.primary,
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Welcome Headings
-                const Text(
+                Text(
                   'Welcome Back',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xff1E40AF), // Primary Blue
+                    color: colors.primary,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Find your next perfect dwelling in Bangladesh',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Color(0xff6B7280), // Text Secondary
+                    color: colors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
 
                 // Form section - Phone Number
-                const Text(
+                Text(
                   'PHONE NUMBER',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xff6B7280), // Text Secondary
+                    color: colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  style: const TextStyle(color: Color(0xff1F2937)), // Text Primary
+                  style: TextStyle(color: colors.textPrimary),
                   decoration: InputDecoration(
                     hintText: '1XXX-XXXXXX',
-                    hintStyle: const TextStyle(color: Color(0xff9CA3AF)), // Placeholder
-                    fillColor: Colors.white,
+                    hintStyle: TextStyle(color: colors.textSecondary),
+                    fillColor: colors.surface,
                     filled: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     prefixIcon: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const SizedBox(width: 16),
-                        const Icon(Icons.phone_outlined, color: Color(0xff6B7280)),
+                        Icon(Icons.phone_outlined, color: colors.textSecondary),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           '+880',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Color(0xff1F2937),
+                            color: colors.textPrimary,
                             fontSize: 16,
                           ),
                         ),
@@ -172,22 +174,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         Container(
                           width: 1,
                           height: 24,
-                          color: const Color(0xffD1D5DB),
+                          color: colors.border,
                         ),
                         const SizedBox(width: 12),
                       ],
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xffD1D5DB)),
+                      borderSide: BorderSide(color: colors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xffD1D5DB)),
+                      borderSide: BorderSide(color: colors.border),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xff1E40AF), width: 1.5),
+                      borderSide: BorderSide(color: colors.primary, width: 1.5),
                     ),
                     errorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -203,30 +205,30 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20), // Form vertical gap
 
                 // Password Field
-                const Text(
+                Text(
                   'PASSWORD',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xff6B7280), // Text Secondary
+                    color: colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
-                  style: const TextStyle(color: Color(0xff1F2937)), // Text Primary
+                  style: TextStyle(color: colors.textPrimary),
                   decoration: InputDecoration(
                     hintText: '••••••••',
-                    hintStyle: const TextStyle(color: Color(0xff9CA3AF)), // Placeholder
-                    fillColor: Colors.white,
+                    hintStyle: TextStyle(color: colors.textSecondary),
+                    fillColor: colors.surface,
                     filled: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    prefixIcon: const Icon(Icons.lock_outline, color: Color(0xff6B7280)),
+                    prefixIcon: Icon(Icons.lock_outline, color: colors.textSecondary),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                        color: const Color(0xff6B7280),
+                        color: colors.textSecondary,
                       ),
                       onPressed: () {
                         setState(() {
@@ -236,15 +238,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xffD1D5DB)),
+                      borderSide: BorderSide(color: colors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xffD1D5DB)),
+                      borderSide: BorderSide(color: colors.border),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xff1E40AF), width: 1.5),
+                      borderSide: BorderSide(color: colors.primary, width: 1.5),
                     ),
                     errorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -270,7 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 24,
                           child: Checkbox(
                             value: _keepMeSignedIn,
-                            activeColor: const Color(0xff1E40AF),
+                            activeColor: colors.primary,
                             onChanged: (val) {
                               setState(() {
                                 _keepMeSignedIn = val ?? false;
@@ -279,11 +281,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'Keep me signed in',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Color(0xff6B7280), // Text Secondary
+                            color: colors.textSecondary,
                           ),
                         ),
                       ],
@@ -294,11 +296,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SnackBar(content: Text('Forgot Password flow initialized.')),
                         );
                       },
-                      child: const Text(
+                      child: Text(
                         'Forgot Password?',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xff1E40AF), // Primary Blue
+                          color: colors.primary,
                           decoration: TextDecoration.underline,
                         ),
                       ),
@@ -317,20 +319,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // OR Continue section
                 Row(
-                  children: const [
-                    Expanded(child: Divider(color: Color(0xffE5E7EB))),
+                  children: [
+                    Expanded(child: Divider(color: colors.border)),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Text(
                         'OR CONTINUE WITH',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xff6B7280),
+                          color: colors.textSecondary,
                         ),
                       ),
                     ),
-                    Expanded(child: Divider(color: Color(0xffE5E7EB))),
+                    Expanded(child: Divider(color: colors.border)),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -345,18 +347,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       "Don't have an account? ",
-                      style: TextStyle(fontSize: 14, color: Color(0xff6B7280)),
+                      style: TextStyle(fontSize: 14, color: colors.textSecondary),
                     ),
                     GestureDetector(
                       onTap: () => context.push('/register'),
-                      child: const Text(
+                      child: Text(
                         'Register',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xff1E40AF),
+                          color: colors.primary,
                         ),
                       ),
                     ),
@@ -365,22 +367,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 24),
 
                 // Legal text
-                const Text(
+                Text(
                   "By signing in, you agree to DwellWise's Terms of Service and Privacy Policy",
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xff9CA3AF),
+                    color: colors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
 
                 // Footer
-                const Text(
+                Text(
                   '© 2024 DwellWise. Professional Rental Solutions.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xffD1D5DB),
+                    color: colors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -465,29 +467,30 @@ class _GoogleSignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xffD1D5DB)),
+          border: Border.all(color: colors.border),
         ),
         alignment: Alignment.center,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(
               Icons.g_mobiledata_rounded,
-              color: Color(0xff1E40AF),
+              color: colors.primary,
               size: 32,
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text(
               'Google',
               style: TextStyle(
-                color: Color(0xff1E40AF),
+                color: colors.primary,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),

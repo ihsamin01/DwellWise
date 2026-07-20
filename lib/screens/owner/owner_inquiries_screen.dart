@@ -44,13 +44,16 @@ class OwnerInquiriesScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            Text('Listing: $propertyTitle', style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            Text(
+              'Listing: $propertyTitle',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
+            ),
             const SizedBox(height: 8),
             Text('Offered rent: $offeredPrice'),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
-              color: Colors.grey.shade100,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Text('"$message"', style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 12)),
             ),
             const SizedBox(height: 16),

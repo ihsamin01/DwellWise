@@ -20,9 +20,9 @@ class RatingWidget extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           rating.toStringAsFixed(1),
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Color(0xff1E293B),
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 13,
           ),
         ),
