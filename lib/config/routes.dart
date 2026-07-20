@@ -25,6 +25,7 @@ import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/admin/pending_listings_screen.dart';
 import '../screens/admin/reported_listings_screen.dart';
 import '../screens/chat/chat_screen.dart';
+import '../screens/chat/chats_screen.dart';
 
 /// GoRouter configuration for the DwellWise application.
 class AppRoutes {
@@ -114,7 +115,7 @@ class AppRoutes {
       ),
       GoRoute(
         path: '/messages',
-        builder: (context, state) => const ChatScreen(chatId: 'placeholder'),
+        builder: (context, state) => const ChatsScreen(),
       ),
 
       // Owner routes
