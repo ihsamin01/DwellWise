@@ -169,7 +169,7 @@ class AccountSecurityScreen extends StatelessWidget {
           const SizedBox(height: 24),
           const Text('Danger Zone', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xffDC2626))),
           Card(
-            color: const Color(0xffFEF2F2),
+            color: const Color(0xffDC2626).withOpacity(0.08),
             child: ListTile(
               leading: const Icon(Icons.delete_forever_outlined, color: Color(0xffDC2626)),
               title: const Text('Delete Account', style: TextStyle(color: Color(0xffDC2626), fontWeight: FontWeight.bold)),

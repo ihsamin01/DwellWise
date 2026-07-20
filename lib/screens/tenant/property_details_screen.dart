@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../config/app_colors.dart';
 import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/chat_provider.dart';
@@ -41,6 +42,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     final propertyProvider = context.watch<PropertyProvider>();
     final savedProvider = context.watch<SavedPropertiesProvider>();
 
@@ -73,27 +75,27 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
     final owner = OwnerDirectory.forId(property.ownerId);
 
     return Scaffold(
-      backgroundColor: const Color(0xffF3F4F6),
+      backgroundColor: colors.background,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60.0),
         child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: colors.surface,
             border: Border(
-              bottom: BorderSide(color: Color(0xffD1D5DB), width: 1.0),
+              bottom: BorderSide(color: colors.border, width: 1.0),
             ),
           ),
           child: AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: colors.surface,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Color(0xff1E40AF), size: 24),
+              icon: Icon(Icons.arrow_back, color: colors.primary, size: 24),
               onPressed: () => context.go('/home'),
             ),
-            title: const Text(
+            title: Text(
               'DwellWise',
               style: TextStyle(
-                color: Color(0xff1E40AF),
+                color: colors.primary,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -101,7 +103,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
             centerTitle: true,
             actions: [
               IconButton(
-                icon: const Icon(Icons.share_outlined, color: Color(0xff1E40AF), size: 24),
+                icon: Icon(Icons.share_outlined, color: colors.primary, size: 24),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Link copied to clipboard.')),
@@ -111,7 +113,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
               IconButton(
                 icon: Icon(
                   isSaved ? Icons.favorite : Icons.favorite_border,
-                  color: isSaved ? const Color(0xffDC2626) : const Color(0xff1E40AF),
+                  color: isSaved ? const Color(0xffDC2626) : colors.primary,
                   size: 24,
                 ),
                 onPressed: () => _handleSaveToggle(context, savedProvider, property),
@@ -165,7 +167,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
 
             // 2. PROPERTY INFO SECTION (white card, no border)
             Container(
-              color: Colors.white,
+              color: colors.surface,
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,18 +178,18 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                     children: [
                       Text(
                         '৳${property.price.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xff1E40AF),
+                          color: colors.primary,
                         ),
                       ),
                       const SizedBox(width: 6),
-                      const Text(
+                      Text(
                         'per month',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xff6B7280),
+                          color: colors.textSecondary,
                         ),
                       ),
                     ],
@@ -195,19 +197,19 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                   const SizedBox(height: 8),
                   Text(
                     property.propertyType,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xff6B7280),
+                      color: colors.textSecondary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     property.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xff1F2937),
+                      color: colors.textPrimary,
                     ),
                   ),
                 ],
@@ -217,12 +219,12 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
 
             // 3. LOCATION SECTION (white card)
             Container(
-              color: Colors.white,
+              color: colors.surface,
               padding: const EdgeInsets.all(20.0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.location_on, color: Color(0xff1E40AF), size: 20),
+                  Icon(Icons.location_on, color: colors.primary, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
@@ -230,18 +232,18 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                       children: [
                         Text(
                           property.address,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xff1F2937),
+                            color: colors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           '${property.area}, Dhaka',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xff6B7280),
+                            color: colors.textSecondary,
                           ),
                         ),
                       ],
@@ -254,14 +256,14 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
 
             // 4. KEY INFO ROW (white card)
             Container(
-              color: Colors.white,
+              color: colors.surface,
               padding: const EdgeInsets.all(20.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildKeyInfoItem(Icons.king_bed, '${property.beds} Bed'),
-                  _buildKeyInfoItem(Icons.bathtub, '${property.baths} Bath'),
-                  _buildKeyInfoItem(Icons.square_foot, '${property.sizeSqFt.toInt()} sqft'),
+                  _buildKeyInfoItem(colors, Icons.king_bed, '${property.beds} Bed'),
+                  _buildKeyInfoItem(colors, Icons.bathtub, '${property.baths} Bath'),
+                  _buildKeyInfoItem(colors, Icons.square_foot, '${property.sizeSqFt.toInt()} sqft'),
                 ],
               ),
             ),
@@ -269,17 +271,17 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
 
             // 5. KEY FACILITIES SECTION (white card)
             Container(
-              color: Colors.white,
+              color: colors.surface,
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Key Facilities',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xff1F2937),
+                      color: colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -291,17 +293,17 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
 
             // 6. ABOUT PROPERTY SECTION (white card)
             Container(
-              color: Colors.white,
+              color: colors.surface,
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'About this property',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xff1F2937),
+                      color: colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -309,9 +311,9 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                     property.description,
                     maxLines: _isDescriptionExpanded ? null : 4,
                     overflow: _isDescriptionExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: Color(0xff6B7280),
+                      color: colors.textSecondary,
                       height: 1.5,
                     ),
                   ),
@@ -324,10 +326,10 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                     },
                     child: Text(
                       _isDescriptionExpanded ? 'Read less' : 'Read more',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xff1E40AF),
+                        color: colors.primary,
                       ),
                     ),
                   ),
@@ -338,7 +340,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
 
             // 7. LOCATION MAP SECTION (white card)
             Container(
-              color: Colors.white,
+              color: colors.surface,
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -346,12 +348,12 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Location',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xff1F2937),
+                          color: colors.textPrimary,
                         ),
                       ),
                       GestureDetector(
@@ -360,12 +362,12 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                             const SnackBar(content: Text('Opening Google Maps preview.')),
                           );
                         },
-                        child: const Text(
+                        child: Text(
                           'Open Maps',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xff1E40AF),
+                            color: colors.primary,
                           ),
                         ),
                       ),
@@ -376,7 +378,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                   Container(
                     height: 200,
                     decoration: BoxDecoration(
-                      color: const Color(0xffE5E7EB), // Gray map background
+                      color: colors.placeholder,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Stack(
@@ -385,7 +387,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                         // Map vector lines look design
                         CustomPaint(
                           size: const Size(double.infinity, 200),
-                          painter: _MapPainter(),
+                          painter: _MapPainter(lineColor: colors.border),
                         ),
                         // Green Pin indicator
                         const Icon(
@@ -404,22 +406,22 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
             // 8. PROPERTY OWNER SECTION (white card with border left)
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 0),
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: colors.surface,
                 border: Border(
-                  left: BorderSide(color: Color(0xff1E40AF), width: 4.0),
+                  left: BorderSide(color: colors.primary, width: 4.0),
                 ),
               ),
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'PROPERTY OWNER',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xff6B7280),
+                      color: colors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -429,11 +431,11 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                       Container(
                         width: 48,
                         height: 48,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Color(0xffEFF6FF),
+                          color: colors.primaryTint,
                         ),
-                        child: const Icon(Icons.person, color: Color(0xff1E40AF), size: 28),
+                        child: Icon(Icons.person, color: colors.primary, size: 28),
                       ),
                       const SizedBox(width: 12),
                       // Details
@@ -445,10 +447,10 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                               children: [
                                 Text(
                                   owner.name,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xff1F2937),
+                                    color: colors.textPrimary,
                                   ),
                                 ),
                                 if (owner.isVerified) ...const [
@@ -464,9 +466,9 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                                 const SizedBox(width: 6),
                                 Text(
                                   '${owner.rating.toStringAsFixed(1)} (${owner.reviewCount} reviews)',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: Color(0xff6B7280),
+                                    color: colors.textSecondary,
                                   ),
                                 ),
                               ],
@@ -483,7 +485,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
 
             // 9. CONTACT SECTION (white card buttons)
             Container(
-              color: Colors.white,
+              color: colors.surface,
               padding: const EdgeInsets.all(20.0),
               child: Row(
                 children: [
@@ -504,7 +506,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                         decoration: BoxDecoration(
                           color: const Color(0xff1F2937), // Dark Gray
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xffD1D5DB)),
+                          border: Border.all(color: colors.border),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -583,15 +585,15 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
     });
   }
 
-  Widget _buildKeyInfoItem(IconData icon, String text) {
+  Widget _buildKeyInfoItem(AppColors colors, IconData icon, String text) {
     return Column(
       children: [
-        Icon(icon, color: const Color(0xff1E40AF), size: 24),
+        Icon(icon, color: colors.primary, size: 24),
         const SizedBox(height: 6),
         Text(
           text,
-          style: const TextStyle(
-            color: Color(0xff1F2937),
+          style: TextStyle(
+            color: colors.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 14,
           ),
@@ -640,6 +642,7 @@ class _DetailsCarouselState extends State<_DetailsCarousel> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     final images = widget.imageUrls.isNotEmpty
         ? widget.imageUrls
         : ['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80'];
@@ -659,7 +662,7 @@ class _DetailsCarouselState extends State<_DetailsCarousel> {
             return CachedNetworkImage(
               imageUrl: images[index],
               fit: BoxFit.cover,
-              placeholder: (context, url) => Container(color: const Color(0xffE5E7EB)),
+              placeholder: (context, url) => Container(color: colors.placeholder),
               errorWidget: (context, url, err) => const Icon(Icons.error),
             );
           },
@@ -676,8 +679,8 @@ class _DetailsCarouselState extends State<_DetailsCarousel> {
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _currentIndex == index 
-                        ? const Color(0xffF59E0B) 
+                    color: _currentIndex == index
+                        ? const Color(0xffF59E0B)
                         : Colors.white.withOpacity(0.5),
                   ),
                 );
@@ -699,6 +702,7 @@ class GridItemFacilities extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     // Standard list to draw grid items
     final list = facilities.isEmpty ? ['WiFi', 'Parking', 'Gym', 'Security'] : facilities;
 
@@ -728,17 +732,17 @@ class GridItemFacilities extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xffEFF6FF),
+                color: colors.primaryTint,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(facIcon, color: const Color(0xff1E40AF), size: 20),
+              child: Icon(facIcon, color: colors.primary, size: 20),
             ),
             const SizedBox(width: 12),
             Text(
               fac,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Color(0xff1F2937),
+                color: colors.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -750,10 +754,14 @@ class GridItemFacilities extends StatelessWidget {
 }
 
 class _MapPainter extends CustomPainter {
+  final Color lineColor;
+
+  _MapPainter({required this.lineColor});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white
+      ..color = lineColor
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
@@ -765,5 +773,5 @@ class _MapPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _MapPainter oldDelegate) => oldDelegate.lineColor != lineColor;
 }

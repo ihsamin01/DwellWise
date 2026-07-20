@@ -12,9 +12,13 @@ class AdminDashboardScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(24.0),
         children: [
-          const Text(
+          Text(
             'System Controls',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xff1E293B)),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 24),
           _buildControlTile(

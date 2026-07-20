@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../../config/app_colors.dart';
 import '../../providers/property_provider.dart';
 import '../../widgets/bottom_navigation.dart';
 
@@ -15,6 +16,7 @@ class TenantMapViewScreen extends StatefulWidget {
 class _TenantMapViewScreenState extends State<TenantMapViewScreen> {
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     final properties = context.watch<PropertyProvider>().properties;
 
     return Scaffold(
@@ -22,11 +24,11 @@ class _TenantMapViewScreenState extends State<TenantMapViewScreen> {
       body: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xffE6F6F5), Color(0xffF8FAFC)],
+                colors: [colors.primaryTint, colors.background],
               ),
             ),
             child: Center(
@@ -79,7 +81,7 @@ class _TenantMapViewScreenState extends State<TenantMapViewScreen> {
             left: 16,
             right: 16,
             child: Card(
-              color: Colors.white.withOpacity(0.9),
+              color: colors.surface.withOpacity(0.9),
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
                 child: Row(

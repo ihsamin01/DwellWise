@@ -15,22 +15,23 @@ class DwellFilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return FilterChip(
       label: Text(label),
       selected: isSelected,
       onSelected: onSelected,
       selectedColor: const Color(0xff0F766E),
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: colorScheme.surfaceContainerHighest,
       checkmarkColor: Colors.white,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : const Color(0xff1E293B),
+        color: isSelected ? Colors.white : colorScheme.onSurface,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 13,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(
-          color: isSelected ? const Color(0xff0F766E) : Colors.grey.shade300,
+          color: isSelected ? const Color(0xff0F766E) : colorScheme.outlineVariant,
         ),
       ),
     );

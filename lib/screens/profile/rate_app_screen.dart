@@ -106,7 +106,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
                         ),
                         Text(
                           DateFormat('d MMM yyyy').format(review.createdAt),
-                          style: const TextStyle(fontSize: 12, color: Color(0xff6B7280)),
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
