@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../config/app_colors.dart';
 import '../models/property_model.dart';
 
 /// Formats an integer amount with thousands separators, e.g. 85000 -> "85,000".
@@ -34,6 +35,8 @@ class PropertyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
     if (!showDetails) {
       // 1. HORIZONTAL RECENTLY VIEWED CARD LAYOUT (120x150px)
       return GestureDetector(
@@ -42,9 +45,9 @@ class PropertyCard extends StatelessWidget {
           width: 120,
           margin: const EdgeInsets.only(right: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colors.surface,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xffD1D5DB)),
+            border: Border.all(color: colors.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,10 +64,10 @@ class PropertyCard extends StatelessWidget {
                   height: 100,
                   width: 120,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(color: const Color(0xffE5E7EB)),
+                  placeholder: (context, url) => Container(color: colors.placeholder),
                   errorWidget: (context, url, err) => Container(
-                    color: const Color(0xffE5E7EB),
-                    child: const Icon(Icons.home_work_outlined, color: Color(0xff6B7280)),
+                    color: colors.placeholder,
+                    child: Icon(Icons.home_work_outlined, color: colors.textSecondary),
                   ),
                 ),
               ),
@@ -77,19 +80,19 @@ class PropertyCard extends StatelessWidget {
                       property.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xff1F2937),
+                        color: colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '৳${(property.price / 1000).toStringAsFixed(0)}k',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xff1E40AF),
+                        color: colors.primary,
                       ),
                     ),
                   ],
@@ -109,7 +112,7 @@ class PropertyCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 20.0),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
@@ -173,7 +176,7 @@ class PropertyCard extends StatelessWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: colors.surface,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
@@ -185,7 +188,7 @@ class PropertyCard extends StatelessWidget {
                       ),
                       child: Icon(
                         isSaved ? Icons.favorite : Icons.favorite_border,
-                        color: isSaved ? const Color(0xffDC2626) : const Color(0xff9CA3AF),
+                        color: isSaved ? const Color(0xffDC2626) : colors.textSecondary,
                         size: 22,
                       ),
                     ),
@@ -209,10 +212,10 @@ class PropertyCard extends StatelessWidget {
                           property.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xff1F2937),
+                            color: colors.textPrimary,
                           ),
                         ),
                       ),
@@ -222,17 +225,17 @@ class PropertyCard extends StatelessWidget {
                         children: [
                           Text(
                             '৳${formatWithCommas(property.price)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xff1E40AF),
+                              color: colors.primary,
                             ),
                           ),
-                          const Text(
+                          Text(
                             'per month',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Color(0xff6B7280),
+                              color: colors.textSecondary,
                             ),
                           ),
                         ],
@@ -244,16 +247,16 @@ class PropertyCard extends StatelessWidget {
                   // Location
                   Row(
                     children: [
-                      const Icon(Icons.location_on, size: 14, color: Color(0xff6B7280)),
+                      Icon(Icons.location_on, size: 14, color: colors.textSecondary),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           property.address,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: Color(0xff6B7280),
+                            color: colors.textSecondary,
                           ),
                         ),
                       ),
@@ -264,11 +267,11 @@ class PropertyCard extends StatelessWidget {
                   // Spec chips (Bed / Bath / Size)
                   Row(
                     children: [
-                      _specChip('${property.beds} Bed'),
+                      _specChip(colors, '${property.beds} Bed'),
                       const SizedBox(width: 8),
-                      _specChip('${property.baths} Bath'),
+                      _specChip(colors, '${property.baths} Bath'),
                       const SizedBox(width: 8),
-                      _specChip('${formatWithCommas(property.sizeSqFt)} sqft'),
+                      _specChip(colors, '${formatWithCommas(property.sizeSqFt)} sqft'),
                     ],
                   ),
                 ],
@@ -281,19 +284,19 @@ class PropertyCard extends StatelessWidget {
   }
 
   /// Small rounded pill used for the bed / bath / size specs.
-  Widget _specChip(String label) {
+  Widget _specChip(AppColors colors, String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xffEFF6FF),
+        color: colors.primaryTint,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: Color(0xff1E40AF),
+          color: colors.primary,
         ),
       ),
     );
@@ -320,6 +323,7 @@ class _ImageCarouselState extends State<_ImageCarousel> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     final images = widget.imageUrls.isNotEmpty
         ? widget.imageUrls
         : ['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80'];
@@ -340,10 +344,10 @@ class _ImageCarouselState extends State<_ImageCarousel> {
               imageUrl: images[index],
               fit: BoxFit.cover,
               width: double.infinity,
-              placeholder: (context, url) => Container(color: const Color(0xffE5E7EB)),
+              placeholder: (context, url) => Container(color: colors.placeholder),
               errorWidget: (context, url, err) => Container(
-                color: const Color(0xffE5E7EB),
-                child: const Icon(Icons.home_work_outlined, color: Color(0xff6B7280)),
+                color: colors.placeholder,
+                child: Icon(Icons.home_work_outlined, color: colors.textSecondary),
               ),
             );
           },

@@ -92,11 +92,7 @@ class ProfileScreen extends StatelessWidget {
             const Spacer(),
             CustomButton(
               text: 'Edit Profile Settings',
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Profile edit configuration loaded.')),
-                );
-              },
+              onPressed: () => context.push('/profile/edit'),
             ),
           ],
         ),

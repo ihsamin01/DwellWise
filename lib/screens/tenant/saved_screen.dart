@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../../config/app_colors.dart';
 import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
@@ -56,6 +57,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     final propertyProvider = context.watch<PropertyProvider>();
     final savedProvider = context.watch<SavedPropertiesProvider>();
 
@@ -67,24 +69,24 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
         allProperties.where((p) => savedIds.contains(p.id)).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xffF3F4F6),
+      backgroundColor: colors.background,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60.0),
         child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: colors.surface,
             border: Border(
-              bottom: BorderSide(color: Color(0xffD1D5DB), width: 1.0),
+              bottom: BorderSide(color: colors.border, width: 1.0),
             ),
           ),
           child: AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: colors.surface,
             elevation: 0,
             automaticallyImplyLeading: false,
-            title: const Text(
+            title: Text(
               'Saved Properties',
               style: TextStyle(
-                color: Color(0xff1E40AF),
+                color: colors.primary,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -98,7 +100,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
         children: [
           Expanded(
             child: savedList.isEmpty && _removingIds.isEmpty
-                ? _buildEmptyState(context)
+                ? _buildEmptyState(context, colors)
                 : ListView.builder(
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 0),
@@ -139,34 +141,34 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, AppColors colors) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.favorite_border,
               size: 60,
-              color: Color(0xffD1D5DB), // Border Gray
+              color: colors.border,
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No saved properties yet',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Color(0xff1F2937),
+                color: colors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Start exploring and save your favorites',
               style: TextStyle(
                 fontSize: 14,
-                color: Color(0xff6B7280),
+                color: colors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),

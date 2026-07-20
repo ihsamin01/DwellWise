@@ -13,6 +13,11 @@ import 'providers/admin_provider.dart';
 import 'providers/saved_properties_provider.dart';
 import 'providers/recently_viewed_provider.dart';
 import 'providers/search_filters_provider.dart';
+import 'providers/theme_provider.dart';
+import 'providers/locale_provider.dart';
+import 'providers/notification_settings_provider.dart';
+import 'providers/security_provider.dart';
+import 'providers/app_review_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,14 +41,23 @@ class DwellWiseApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SavedPropertiesProvider()),
         ChangeNotifierProvider(create: (_) => RecentlyViewedProvider()),
         ChangeNotifierProvider(create: (_) => SearchFiltersProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationSettingsProvider()),
+        ChangeNotifierProvider(create: (_) => SecurityProvider()),
+        ChangeNotifierProvider(create: (_) => AppReviewProvider()),
       ],
-      child: MaterialApp.router(
-        title: 'DwellWise',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.light,
-        routerConfig: AppRoutes.router,
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp.router(
+            title: 'DwellWise',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            routerConfig: AppRoutes.router,
+          );
+        },
       ),
     );
   }

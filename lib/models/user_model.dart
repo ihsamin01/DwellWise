@@ -9,6 +9,7 @@ class UserModel {
   final String phoneNumber;
   final UserRole role;
   final String? avatarUrl;
+  final String? address;
   final DateTime createdAt;
 
   UserModel({
@@ -18,6 +19,7 @@ class UserModel {
     required this.phoneNumber,
     required this.role,
     this.avatarUrl,
+    this.address,
     required this.createdAt,
   });
 
@@ -30,6 +32,7 @@ class UserModel {
       phoneNumber: json['phone_number'] as String? ?? '',
       role: _parseRole(json['role'] as String?),
       avatarUrl: json['avatar_url'] as String?,
+      address: json['address'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -43,8 +46,28 @@ class UserModel {
       'phone_number': phoneNumber,
       'role': role.name,
       'avatar_url': avatarUrl,
+      'address': address,
       'created_at': createdAt.toIso8601String(),
     };
+  }
+
+  UserModel copyWith({
+    String? name,
+    String? phoneNumber,
+    String? email,
+    String? avatarUrl,
+    String? address,
+  }) {
+    return UserModel(
+      id: id,
+      email: email ?? this.email,
+      name: name ?? this.name,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      role: role,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      address: address ?? this.address,
+      createdAt: createdAt,
+    );
   }
 
   static UserRole _parseRole(String? roleStr) {

@@ -72,14 +72,65 @@ class AppTheme {
   }
 
   static ThemeData get darkTheme {
+    const darkBackground = Color(0xff121212);
+    const darkSurface = Color(0xff1E1E1E);
+    const darkTextColor = Color(0xffF3F4F6);
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       primaryColor: primaryColor,
+      scaffoldBackgroundColor: darkBackground,
       colorScheme: const ColorScheme.dark(
         primary: primaryColor,
         secondary: accentColor,
         error: errorColor,
+        surface: darkSurface,
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
+        onSurface: darkTextColor,
+      ),
+      textTheme: const TextTheme(
+        headlineLarge: TextStyle(
+          color: darkTextColor,
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+        ),
+        headlineMedium: TextStyle(
+          color: darkTextColor,
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+        titleLarge: TextStyle(
+          color: darkTextColor,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+        ),
+        bodyLarge: TextStyle(
+          color: darkTextColor,
+          fontSize: 16,
+        ),
+        bodyMedium: TextStyle(
+          color: darkTextColor,
+          fontSize: 14,
+        ),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: darkSurface,
+        foregroundColor: darkTextColor,
+        elevation: 0,
+      ),
+      cardColor: darkSurface,
+      dividerColor: const Color(0xff374151),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
       ),
     );
   }

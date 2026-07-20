@@ -6,7 +6,14 @@ import '../services/supabase_service.dart';
 class UserProvider with ChangeNotifier {
   final SupabaseService _dbService = SupabaseService();
 
-  UserModel? _userModel;
+  UserModel? _userModel = UserModel(
+    id: 'tenant1',
+    email: 'samin@dwellwise.com',
+    name: 'Samin Azhan',
+    phoneNumber: '+8801700000000',
+    role: UserRole.tenant,
+    createdAt: DateTime(2025, 11, 4),
+  );
   bool _isLoading = false;
 
   UserModel? get userModel => _userModel;
