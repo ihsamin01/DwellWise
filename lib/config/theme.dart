@@ -5,7 +5,8 @@ class AppTheme {
   AppTheme._();
 
   // Colors specified in the requirements
-  static const Color primaryColor = Color(0xff0F766E); // Deep Teal
+  static const Color primaryColor = Color(0xff1E40AF); // Brand Blue (logo)
+  static const Color primaryDark = Color(0xff1E3A8A);  // Deeper blue for gradients
   static const Color accentColor = Color(0xffF59E0B);  // Warm Amber
   static const Color successColor = Color(0xff10B981); // Emerald
   static const Color errorColor = Color(0xffEF4444);   // Soft Red
@@ -57,6 +58,13 @@ class AppTheme {
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
+        centerTitle: true,
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -116,9 +124,16 @@ class AppTheme {
         ),
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: darkSurface,
-        foregroundColor: darkTextColor,
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
         elevation: 0,
+        centerTitle: true,
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       cardColor: darkSurface,
       dividerColor: const Color(0xff374151),

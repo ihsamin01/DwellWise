@@ -51,7 +51,7 @@ class AdminDashboardScreen extends StatelessWidget {
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        leading: Icon(icon, size: 36, color: const Color(0xff0F766E)),
+        leading: Icon(icon, size: 36, color: const Color(0xff1E40AF)),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4.0),

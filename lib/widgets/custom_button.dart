@@ -17,7 +17,7 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeColor = color ?? const Color(0xff0F766E); // Deep Teal primary default
+    final themeColor = color ?? const Color(0xff1E40AF); // Brand Blue primary default
 
     return SizedBox(
       height: 50,

@@ -57,7 +57,7 @@ class OwnerListingDetailsScreen extends StatelessWidget {
                       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 8),
-                    const Text('148', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xff0F766E))),
+                    const Text('148', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xff1E40AF))),
                   ],
                 ),
               ),

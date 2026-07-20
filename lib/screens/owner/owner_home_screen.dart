@@ -74,13 +74,13 @@ class OwnerHomeScreen extends StatelessWidget {
             const SizedBox(height: 12),
             
             ListTile(
-              leading: const Icon(Icons.list_alt, color: Color(0xff0F766E)),
+              leading: const Icon(Icons.list_alt, color: Color(0xff1E40AF)),
               title: const Text('Manage Listings'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 14),
               onTap: () => context.push('/my-listings'),
             ),
             ListTile(
-              leading: const Icon(Icons.question_answer_outlined, color: Color(0xff0F766E)),
+              leading: const Icon(Icons.question_answer_outlined, color: Color(0xff1E40AF)),
               title: const Text('Review Applications'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 14),
               onTap: () => context.push('/owner-inquiries'),
@@ -98,7 +98,7 @@ class OwnerHomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: const Color(0xff0F766E)),
+            Icon(icon, color: const Color(0xff1E40AF)),
             const SizedBox(height: 16),
             Text(val, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),

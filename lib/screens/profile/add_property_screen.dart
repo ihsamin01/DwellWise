@@ -207,6 +207,14 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
           controller: _tabController,
           isScrollable: true,
           onTap: (_) => setState(() {}),
+          // Explicit white labels so the selected tab stays visible on the
+          // blue app bar (the default label colour would blend into it).
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          unselectedLabelStyle: const TextStyle(fontSize: 13),
           tabs: const [
             Tab(icon: Icon(Icons.info_outline, size: 18), text: 'Basic'),
             Tab(icon: Icon(Icons.location_city, size: 18), text: 'Location'),

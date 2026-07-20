@@ -24,11 +24,13 @@ class ProfileScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+        padding: EdgeInsets.zero,
         children: [
           _ProfileHeader(user: user, colors: colors),
-          const SizedBox(height: 24),
-
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+            child: Column(
+              children: [
           _MenuTile(
             colors: colors,
             icon: Icons.verified_user_outlined,
@@ -79,6 +81,9 @@ class ProfileScreen extends StatelessWidget {
             isDestructive: true,
             onTap: () => _confirmLogout(context),
           ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -120,62 +125,84 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Stack(
-          children: [
-            CircleAvatar(
-              radius: 48,
-              backgroundColor: colors.primary.withOpacity(0.12),
-              backgroundImage:
-                  user?.avatarUrl != null ? NetworkImage(user!.avatarUrl!) : null,
-              child: user?.avatarUrl == null
-                  ? Icon(Icons.person, size: 52, color: colors.primary)
-                  : null,
-            ),
-            if (user?.isVerified ?? false)
-              Positioned(
-                bottom: 2,
-                right: 2,
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: colors.background,
-                    shape: BoxShape.circle,
+    const gradientTop = Color(0xff1E40AF);
+    const gradientBottom = Color(0xff1E3A8A);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 26),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [gradientTop, gradientBottom],
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+      ),
+      child: Column(
+        children: [
+          Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: CircleAvatar(
+                  radius: 46,
+                  backgroundColor: Colors.white,
+                  backgroundImage:
+                      user?.avatarUrl != null ? NetworkImage(user!.avatarUrl!) : null,
+                  child: user?.avatarUrl == null
+                      ? const Icon(Icons.person, size: 52, color: gradientTop)
+                      : null,
+                ),
+              ),
+              if (user?.isVerified ?? false)
+                Positioned(
+                  bottom: 2,
+                  right: 2,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.verified, color: Color(0xff10B981), size: 24),
                   ),
-                  child: const Icon(Icons.verified, color: Color(0xff10B981), size: 24),
                 ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Flexible(
-              child: Text(
-                user?.name ?? 'Guest User',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: colors.textPrimary,
-                ),
-              ),
-            ),
-            if (user?.isVerified ?? false) ...[
-              const SizedBox(width: 6),
-              const Icon(Icons.verified, color: Color(0xff10B981), size: 20),
             ],
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          user?.phoneNumber ?? user?.email ?? '',
-          style: TextStyle(fontSize: 15, color: colors.textSecondary),
-        ),
-        const SizedBox(height: 10),
-        _VerificationChip(status: user?.verificationStatus ?? VerificationStatus.unverified),
-      ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  user?.name ?? 'Guest User',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              if (user?.isVerified ?? false) ...[
+                const SizedBox(width: 6),
+                const Icon(Icons.verified, color: Colors.white, size: 20),
+              ],
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            user?.phoneNumber ?? user?.email ?? '',
+            style: TextStyle(fontSize: 15, color: Colors.white.withOpacity(0.85)),
+          ),
+          const SizedBox(height: 12),
+          _VerificationChip(status: user?.verificationStatus ?? VerificationStatus.unverified),
+        ],
+      ),
     );
   }
 }
@@ -209,11 +236,10 @@ class _VerificationChip extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: Colors.white.withOpacity(0.95),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -222,7 +248,7 @@ class _VerificationChip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: color),
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: color),
           ),
         ],
       ),

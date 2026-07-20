@@ -64,7 +64,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(step.icon, size: 96, color: const Color(0xff0F766E)),
+                        Icon(step.icon, size: 96, color: const Color(0xff1E40AF)),
                         const SizedBox(height: 48),
                         Text(
                           step.title,
