@@ -1,19 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../providers/chat_provider.dart';
 import '../providers/saved_properties_provider.dart';
 
 /// Bottom Navigation Bar with safe area adjustments, badges, and GoRouter mappings.
 class BottomNavigation extends StatelessWidget {
   final int currentIndex;
+  final ValueChanged<int>? onDestinationSelected;
+  final int? messagesUnreadCount;
 
   const BottomNavigation({
     Key? key,
     required this.currentIndex,
+    this.onDestinationSelected,
+    this.messagesUnreadCount,
   }) : super(key: key);
 
   void _onTabTapped(BuildContext context, int index) {
     if (index == currentIndex) return;
+
+    if (onDestinationSelected != null) {
+      onDestinationSelected!(index);
+      return;
+    }
+
     switch (index) {
       case 0:
         context.go('/home');
@@ -41,13 +52,28 @@ class BottomNavigation extends StatelessWidget {
 
     final savedIds = context.watch<SavedPropertiesProvider>().savedIds;
     final savedCount = savedIds.length;
+    final unreadMessages = messagesUnreadCount ??
+        context.watch<ChatProvider>().unreadConversationCount;
 
     final items = [
       _NavBtn(icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Home'),
-      _NavBtn(icon: Icons.search_outlined, activeIcon: Icons.search, label: 'Search'),
-      _NavBtn(icon: Icons.favorite_border_outlined, activeIcon: Icons.favorite, label: 'Saved', showSavedCount: true),
-      _NavBtn(icon: Icons.chat_bubble_outline, activeIcon: Icons.chat_bubble, label: 'Messages'),
-      _NavBtn(icon: Icons.account_circle_outlined, activeIcon: Icons.account_circle, label: 'Profile'),
+      _NavBtn(
+          icon: Icons.search_outlined,
+          activeIcon: Icons.search,
+          label: 'Search'),
+      _NavBtn(
+          icon: Icons.favorite_border_outlined,
+          activeIcon: Icons.favorite,
+          label: 'Saved',
+          showSavedCount: true),
+      _NavBtn(
+          icon: Icons.chat_bubble_outline,
+          activeIcon: Icons.chat_bubble,
+          label: 'Messages'),
+      _NavBtn(
+          icon: Icons.account_circle_outlined,
+          activeIcon: Icons.account_circle,
+          label: 'Profile'),
     ];
 
     final bottomPadding = MediaQuery.of(context).padding.bottom;
@@ -105,6 +131,40 @@ class BottomNavigation extends StatelessWidget {
             );
           }
 
+          if (item.label == 'Messages' && unreadMessages > 0) {
+            iconWidget = Stack(
+              clipBehavior: Clip.none,
+              children: [
+                iconWidget,
+                Positioned(
+                  top: -5,
+                  right: -8,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: const BoxDecoration(
+                      color: Color(0xffDC2626),
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '$unreadMessages',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
           return Expanded(
             child: GestureDetector(
               onTap: () => _onTabTapped(context, index),
@@ -126,7 +186,8 @@ class BottomNavigation extends StatelessWidget {
                         item.label,
                         style: TextStyle(
                           fontSize: 9,
-                          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                          fontWeight:
+                              isActive ? FontWeight.bold : FontWeight.normal,
                           color: isActive ? activeColor : inactiveColor,
                         ),
                       ),
