@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../config/app_colors.dart';
 import '../../models/property_model.dart';
 import '../../providers/property_provider.dart';
+import '../../providers/user_provider.dart';
 import '../../widgets/property_card.dart';
 
 /// Lists the properties the current user has posted for rent, with a quick
@@ -17,6 +18,11 @@ class MyPropertiesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     final listings = context.watch<PropertyProvider>().myListings;
+    // These are the current user's own posts, so the owner shown on each card
+    // is the signed-in user's profile name and phone number.
+    final user = context.watch<UserProvider>().userModel;
+    final ownerName = user?.name ?? 'You';
+    final ownerPhone = user?.phoneNumber ?? '';
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -37,6 +43,8 @@ class MyPropertiesScreen extends StatelessWidget {
                 return _MyPropertyCard(
                   property: property,
                   colors: colors,
+                  ownerName: ownerName,
+                  ownerPhone: ownerPhone,
                   onTap: () => context.push('/property/${property.id}'),
                   onDelete: () => _confirmDelete(context, property),
                 );
@@ -76,12 +84,16 @@ class MyPropertiesScreen extends StatelessWidget {
 class _MyPropertyCard extends StatelessWidget {
   final PropertyModel property;
   final AppColors colors;
+  final String ownerName;
+  final String ownerPhone;
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
   const _MyPropertyCard({
     required this.property,
     required this.colors,
+    required this.ownerName,
+    required this.ownerPhone,
     required this.onTap,
     required this.onDelete,
   });
@@ -190,12 +202,69 @@ class _MyPropertyCard extends StatelessWidget {
                             'From ${property.availableFrom}'),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  Divider(height: 1, color: colors.border.withOpacity(0.6)),
+                  const SizedBox(height: 12),
+                  _ownerRow(colors),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  /// Owner (the current user) shown on each listing: name + phone from profile.
+  Widget _ownerRow(AppColors colors) {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 18,
+          backgroundColor: colors.primary.withOpacity(0.12),
+          child: Icon(Icons.person, size: 20, color: colors.primary),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                ownerName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary),
+              ),
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Icon(Icons.phone_outlined, size: 13, color: colors.textSecondary),
+                  const SizedBox(width: 4),
+                  Text(
+                    ownerPhone.isNotEmpty ? ownerPhone : 'No phone added',
+                    style: TextStyle(fontSize: 12.5, color: colors.textSecondary),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: colors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            'Owner',
+            style: TextStyle(
+                fontSize: 11, fontWeight: FontWeight.w600, color: colors.primary),
+          ),
+        ),
+      ],
     );
   }
 
