@@ -10,7 +10,12 @@ import '../../widgets/property_card.dart';
 
 /// Screen listing properties favorited by the tenant.
 class TenantSavedScreen extends StatefulWidget {
-  const TenantSavedScreen({Key? key}) : super(key: key);
+  final bool showBottomNavigation;
+
+  const TenantSavedScreen({
+    super.key,
+    this.showBottomNavigation = true,
+  });
 
   @override
   State<TenantSavedScreen> createState() => _TenantSavedScreenState();
@@ -19,7 +24,8 @@ class TenantSavedScreen extends StatefulWidget {
 class _TenantSavedScreenState extends State<TenantSavedScreen> {
   final Set<String> _removingIds = {};
 
-  void _onUnsave(BuildContext context, SavedPropertiesProvider savedProvider, PropertyModel property) async {
+  void _onUnsave(BuildContext context, SavedPropertiesProvider savedProvider,
+      PropertyModel property) async {
     setState(() {
       _removingIds.add(property.id);
     });
@@ -57,7 +63,8 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
     final savedIds = savedProvider.savedIds;
 
     // Filter properties list dynamically based on SavedProvider IDs
-    final savedList = allProperties.where((p) => savedIds.contains(p.id)).toList();
+    final savedList =
+        allProperties.where((p) => savedIds.contains(p.id)).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xffF3F4F6),
@@ -113,8 +120,10 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
                                   property: property,
                                   showDetails: true,
                                   isSaved: true,
-                                  onTap: () => _handlePropertyTap(context, property),
-                                  onSaveTap: () => _onUnsave(context, savedProvider, property),
+                                  onTap: () =>
+                                      _handlePropertyTap(context, property),
+                                  onSaveTap: () => _onUnsave(
+                                      context, savedProvider, property),
                                 ),
                         ),
                       );
@@ -124,7 +133,9 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
           const SizedBox(height: 120), // bottom clearance for bottom nav
         ],
       ),
-      bottomNavigationBar: const BottomNavigation(currentIndex: 2),
+      bottomNavigationBar: widget.showBottomNavigation
+          ? const BottomNavigation(currentIndex: 2)
+          : null,
     );
   }
 

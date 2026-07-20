@@ -4,12 +4,10 @@ import 'package:go_router/go_router.dart';
 // Screen imports
 import '../screens/common/splash_screen.dart';
 import '../screens/common/onboarding_screen.dart';
-import '../screens/common/profile_screen.dart';
+import '../screens/common/main_tabs_shell.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/registration_screen.dart';
 import '../screens/auth/otp_screen.dart';
-import '../screens/tenant/home_screen.dart';
-import '../screens/tenant/search_screen.dart';
 import '../screens/tenant/listings_screen.dart';
 import '../screens/tenant/property_details_screen.dart';
 import '../screens/tenant/map_view_screen.dart';
@@ -25,7 +23,6 @@ import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/admin/pending_listings_screen.dart';
 import '../screens/admin/reported_listings_screen.dart';
 import '../screens/chat/chat_screen.dart';
-import '../screens/chat/chats_screen.dart';
 
 /// GoRouter configuration for the DwellWise application.
 class AppRoutes {
@@ -45,7 +42,7 @@ class AppRoutes {
       ),
       GoRoute(
         path: '/profile',
-        builder: (context, state) => const ProfileScreen(),
+        builder: (context, state) => const MainTabsShell(initialIndex: 4),
       ),
 
       // Auth routes
@@ -65,15 +62,15 @@ class AppRoutes {
       // Tenant routes
       GoRoute(
         path: '/tenant-home',
-        builder: (context, state) => const TenantHomeScreen(),
+        builder: (context, state) => const MainTabsShell(initialIndex: 0),
       ),
       GoRoute(
         path: '/home',
-        builder: (context, state) => const TenantHomeScreen(),
+        builder: (context, state) => const MainTabsShell(initialIndex: 0),
       ),
       GoRoute(
         path: '/search',
-        builder: (context, state) => const TenantSearchScreen(),
+        builder: (context, state) => const MainTabsShell(initialIndex: 1),
       ),
       GoRoute(
         path: '/listings',
@@ -103,7 +100,7 @@ class AppRoutes {
       ),
       GoRoute(
         path: '/saved',
-        builder: (context, state) => const TenantSavedScreen(),
+        builder: (context, state) => const MainTabsShell(initialIndex: 2),
       ),
       GoRoute(
         path: '/recently-viewed',
@@ -115,7 +112,7 @@ class AppRoutes {
       ),
       GoRoute(
         path: '/messages',
-        builder: (context, state) => const ChatsScreen(),
+        builder: (context, state) => const MainTabsShell(initialIndex: 3),
       ),
 
       // Owner routes
