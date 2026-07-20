@@ -189,6 +189,34 @@ class ChatProvider with ChangeNotifier {
     markConversationRead(chatId);
   }
 
+  /// Starts (or reuses) a conversation thread with a property owner and
+  /// returns its chat id, so the Messages inbox always has an entry for
+  /// owners the tenant has reached out to.
+  String startConversationWithOwner({
+    required String ownerId,
+    required String ownerName,
+    String? ownerImage,
+  }) {
+    final chatId = 'owner-$ownerId';
+
+    if (chatById(chatId) == null) {
+      _chats.insert(
+        0,
+        ChatModel(
+          id: chatId,
+          userName: ownerName,
+          userImage: ownerImage,
+          lastMessage: 'Say hello to $ownerName',
+          lastMessageTime: DateTime.now(),
+          isOnline: true,
+        ),
+      );
+      notifyListeners();
+    }
+
+    return chatId;
+  }
+
   void deleteConversation(String chatId) {
     _chats.removeWhere((chat) => chat.id == chatId);
     _messagesByChatId.remove(chatId);

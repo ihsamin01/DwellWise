@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
+import '../../providers/chat_provider.dart';
 import '../../models/property_model.dart';
+import '../../data/owner_directory.dart';
 
 /// Detailed view of a rental property.
 class TenantPropertyDetailsScreen extends StatefulWidget {
@@ -68,6 +70,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
     );
 
     final isSaved = savedProvider.isSaved(property.id);
+    final owner = OwnerDirectory.forId(property.ownerId);
 
     return Scaffold(
       backgroundColor: const Color(0xffF3F4F6),
@@ -439,31 +442,29 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              children: const [
+                              children: [
                                 Text(
-                                  'Rashed Ahmed',
-                                  style: TextStyle(
+                                  owner.name,
+                                  style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                     color: Color(0xff1F2937),
                                   ),
                                 ),
-                                SizedBox(width: 6),
-                                Icon(Icons.verified, color: Color(0xff10B981), size: 14),
+                                if (owner.isVerified) ...const [
+                                  SizedBox(width: 6),
+                                  Icon(Icons.verified, color: Color(0xff10B981), size: 14),
+                                ],
                               ],
                             ),
                             const SizedBox(height: 4),
                             Row(
-                              children: const [
-                                Icon(Icons.star, color: Colors.amber, size: 14),
-                                Icon(Icons.star, color: Colors.amber, size: 14),
-                                Icon(Icons.star, color: Colors.amber, size: 14),
-                                Icon(Icons.star, color: Colors.amber, size: 14),
-                                Icon(Icons.star_half, color: Colors.amber, size: 14),
-                                SizedBox(width: 6),
+                              children: [
+                                ..._buildStarIcons(owner.rating),
+                                const SizedBox(width: 6),
                                 Text(
-                                  '4.5 (24 reviews)',
-                                  style: TextStyle(
+                                  '${owner.rating.toStringAsFixed(1)} (${owner.reviewCount} reviews)',
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xff6B7280),
                                   ),
@@ -490,9 +491,13 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Chat initialized with Rashed Ahmed.')),
-                        );
+                        final chatId = context
+                            .read<ChatProvider>()
+                            .startConversationWithOwner(
+                              ownerId: property.ownerId,
+                              ownerName: owner.name,
+                            );
+                        context.push('/chat/$chatId');
                       },
                       child: Container(
                         height: 48,
@@ -525,7 +530,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                     child: GestureDetector(
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Calling Owner: +8801700000000')),
+                          SnackBar(content: Text('Calling Owner: ${owner.phone}')),
                         );
                       },
                       child: Container(
@@ -561,6 +566,21 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
         ),
       ),
     );
+  }
+
+  List<Widget> _buildStarIcons(double rating) {
+    return List.generate(5, (index) {
+      final threshold = index + 1;
+      IconData icon;
+      if (rating >= threshold) {
+        icon = Icons.star;
+      } else if (rating >= threshold - 0.5) {
+        icon = Icons.star_half;
+      } else {
+        icon = Icons.star_border;
+      }
+      return Icon(icon, color: Colors.amber, size: 14);
+    });
   }
 
   Widget _buildKeyInfoItem(IconData icon, String text) {
