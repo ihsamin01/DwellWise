@@ -9,12 +9,19 @@ class SearchFiltersProvider with ChangeNotifier {
   String _district = '';
   String _thana = '';
   String _area = '';
+  String _type = '';
   String _sortBy = 'Newest';
+
+  /// User-facing property categories offered by the Type filter.
+  static const List<String> propertyTypes = [
+    'Family', 'Bachelor', 'Office room', 'Sublet', 'Hostel',
+  ];
 
   String get division => _division;
   String get district => _district;
   String get thana => _thana;
   String get area => _area;
+  String get type => _type;
   String get sortBy => _sortBy;
 
   /// Human-readable breadcrumb of the current selection, most specific last.
@@ -58,6 +65,11 @@ class SearchFiltersProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void setType(String val) {
+    _type = val;
+    notifyListeners();
+  }
+
   void setSortBy(String val) {
     _sortBy = val;
     notifyListeners();
@@ -68,6 +80,7 @@ class SearchFiltersProvider with ChangeNotifier {
     _district = '';
     _thana = '';
     _area = '';
+    _type = '';
     _sortBy = 'Newest';
     notifyListeners();
   }

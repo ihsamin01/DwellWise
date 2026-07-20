@@ -584,5 +584,14 @@ class PropertyProvider with ChangeNotifier {
         createdAt: DateTime.now(),
       ),
     ];
+
+    // Stagger post dates so "Newest" sorting is meaningful and each card can
+    // show a realistic "posted X ago" time (index 0 = most recently posted).
+    final base = DateTime.now();
+    for (var i = 0; i < _properties.length; i++) {
+      _properties[i] = _properties[i].copyWith(
+        createdAt: base.subtract(Duration(hours: i * 9 + i * i)),
+      );
+    }
   }
 }

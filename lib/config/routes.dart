@@ -9,6 +9,7 @@ import '../screens/auth/login_screen.dart';
 import '../screens/auth/registration_screen.dart';
 import '../screens/auth/otp_screen.dart';
 import '../screens/tenant/listings_screen.dart';
+import '../screens/tenant/search_results_screen.dart';
 import '../screens/tenant/property_details_screen.dart';
 import '../screens/tenant/map_view_screen.dart';
 import '../screens/tenant/saved_screen.dart';
@@ -86,6 +87,10 @@ class AppRoutes {
       GoRoute(
         path: '/search',
         builder: (context, state) => const MainTabsShell(initialIndex: 1),
+      ),
+      GoRoute(
+        path: '/search-results',
+        builder: (context, state) => const SearchResultsScreen(),
       ),
       GoRoute(
         path: '/listings',

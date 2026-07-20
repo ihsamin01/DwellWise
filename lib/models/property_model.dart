@@ -64,6 +64,42 @@ class PropertyModel {
     required this.createdAt,
   });
 
+  /// Returns a copy with the given fields overridden (used e.g. to stagger
+  /// mock listing post dates).
+  PropertyModel copyWith({
+    double? price,
+    String? priceFor,
+    bool? isVerified,
+    DateTime? createdAt,
+  }) {
+    return PropertyModel(
+      id: id,
+      title: title,
+      description: description,
+      titleBn: titleBn,
+      addressBn: addressBn,
+      descriptionBn: descriptionBn,
+      price: price ?? this.price,
+      priceFor: priceFor ?? this.priceFor,
+      propertyType: propertyType,
+      area: area,
+      address: address,
+      latitude: latitude,
+      longitude: longitude,
+      beds: beds,
+      baths: baths,
+      balcony: balcony,
+      sizeSqFt: sizeSqFt,
+      availableFrom: availableFrom,
+      includedBills: includedBills,
+      imageUrls: imageUrls,
+      isVerified: isVerified ?? this.isVerified,
+      ownerId: ownerId,
+      facilities: facilities,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
   /// Returns the Bangla text when [bangla] is true and a Bangla variant
   /// exists; otherwise the default (English) text.
   String localizedTitle(bool bangla) => bangla && titleBn.isNotEmpty ? titleBn : title;

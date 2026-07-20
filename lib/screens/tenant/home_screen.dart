@@ -33,6 +33,31 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   final ScrollController _scrollController = ScrollController();
   int _displayedCount = 10;
   PriceFilter _priceFilter = PriceFilter.none;
+  String _sortBy = 'Newest';
+
+  /// Sort options shared with the search results screen. Value → label.
+  static const Map<String, String> kSortOptions = {
+    'Newest': 'Newest',
+    'Price Low-High': 'Price: Low to High',
+    'Price High-Low': 'Price: High to Low',
+  };
+
+  /// Orders the list by the active sort (newest post first by default).
+  List<PropertyModel> _applySort(List<PropertyModel> list) {
+    final result = List<PropertyModel>.from(list);
+    switch (_sortBy) {
+      case 'Price Low-High':
+        result.sort((a, b) => a.price.compareTo(b.price));
+        break;
+      case 'Price High-Low':
+        result.sort((a, b) => b.price.compareTo(a.price));
+        break;
+      case 'Newest':
+      default:
+        result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
+    return result;
+  }
 
   /// Applies the active price filter/sort to the recommended list.
   List<PropertyModel> _applyPriceFilter(List<PropertyModel> list) {
@@ -117,6 +142,64 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     );
   }
 
+  /// Sort trigger (Newest / Price) shown at the right of the "AI Recommended"
+  /// heading, next to the price Filter button.
+  Widget _buildSortButton(AppColors colors) {
+    return PopupMenuButton<String>(
+      tooltip: 'Sort listings',
+      offset: const Offset(0, 40),
+      color: colors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      onSelected: (value) => setState(() => _sortBy = value),
+      itemBuilder: (context) => kSortOptions.entries.map((e) {
+        final selected = _sortBy == e.key;
+        return PopupMenuItem<String>(
+          value: e.key,
+          child: Row(
+            children: [
+              Icon(
+                selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                size: 18,
+                color: selected ? colors.primary : colors.textSecondary,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                e.value,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: colors.textPrimary,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: colors.primaryTint,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.swap_vert, size: 16, color: colors.primary),
+            const SizedBox(width: 4),
+            Text(
+              'Sort',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: colors.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Filter/sort trigger shown at the right of the "AI Recommended" heading.
   Widget _buildFilterButton(AppColors colors) {
     final bool isActive = _priceFilter != PriceFilter.none;
@@ -189,7 +272,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     final recentlyViewedProvider = context.watch<RecentlyViewedProvider>();
 
     final allProperties = propertyProvider.properties;
-    final recommendedList = _applyPriceFilter(allProperties);
+    final recommendedList = _applySort(_applyPriceFilter(allProperties));
     final recentlyViewedIds = recentlyViewedProvider.recentlyViewedIds;
 
     // Map viewed IDs to actual properties (home feed + search results),
@@ -391,7 +474,9 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            '🚀 AI Recommended for You',
+                            '🚀 AI Recommended',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -399,6 +484,8 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                             ),
                           ),
                         ),
+                        _buildSortButton(colors),
+                        const SizedBox(width: 8),
                         _buildFilterButton(colors),
                       ],
                     ),
@@ -421,6 +508,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                         return PropertyCard(
                           property: property,
                           showDetails: true,
+                          showDate: _sortBy == 'Newest',
                           isSaved: isSaved,
                           onTap: () => _handlePropertyTap(context, property),
                           onSaveTap: () => _handleSaveToggle(

@@ -2,18 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_colors.dart';
-import '../../providers/property_provider.dart';
-import '../../providers/saved_properties_provider.dart';
-import '../../providers/recently_viewed_provider.dart';
 import '../../providers/search_filters_provider.dart';
-import '../../models/property_model.dart';
-import '../../services/mock_search_service.dart';
 import '../../widgets/bottom_navigation.dart';
-import '../../widgets/property_card.dart';
 
 /// Tenant Search Screen: hierarchical Division > District > Thana > Area
-/// selection (full Bangladesh dataset), selections shown inside the search
-/// box, and location-based results revealed only after pressing Search.
+/// selection plus a property Type filter. Pressing Search opens a dedicated
+/// results page — this screen only holds the compact filter inputs.
 class TenantSearchScreen extends StatefulWidget {
   final bool showBottomNavigation;
 
@@ -27,81 +21,15 @@ class TenantSearchScreen extends StatefulWidget {
 }
 
 class _TenantSearchScreenState extends State<TenantSearchScreen> {
-  bool _hasSearched = false;
-  List<PropertyModel> _results = [];
-
-  void _handlePropertyTap(BuildContext context, PropertyModel property) {
-    context.read<RecentlyViewedProvider>().addProperty(property.id);
-    context.push('/property/${property.id}');
-  }
-
-  void _handleSaveToggle(BuildContext context,
-      SavedPropertiesProvider savedProvider, PropertyModel property) {
-    final isSaved = savedProvider.isSaved(property.id);
-    savedProvider.toggleSave(property.id);
-
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content:
-            Text(isSaved ? 'Removed from favorites' : 'Added to favorites'),
-        backgroundColor:
-            isSaved ? const Color(0xff6B7280) : const Color(0xff10B981),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  /// Any filter change invalidates previous results until Search is pressed.
-  void _invalidateResults() {
-    setState(() {
-      _hasSearched = false;
-      _results = [];
-    });
-  }
-
   void _runSearch(BuildContext context, SearchFiltersProvider filterProvider) {
     if (!filterProvider.hasSelection) {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please select at least a Division first')),
+        const SnackBar(content: Text('Please select at least a Division first')),
       );
       return;
     }
-
-    final propertyProvider = context.read<PropertyProvider>();
-
-    // 1. Location-generated realistic listings.
-    final generated = MockSearchService.generate(
-      division: filterProvider.division,
-      district: filterProvider.district,
-      thana: filterProvider.thana,
-      area: filterProvider.area,
-    );
-
-    // 2. Any home-feed posts that genuinely match the most specific locality.
-    final locality = (filterProvider.area.isNotEmpty
-            ? filterProvider.area
-            : filterProvider.thana.isNotEmpty
-                ? filterProvider.thana
-                : filterProvider.district)
-        .toLowerCase();
-    final homeMatches = locality.isEmpty
-        ? <PropertyModel>[]
-        : propertyProvider.properties
-            .where((p) =>
-                p.area.toLowerCase().contains(locality) ||
-                p.address.toLowerCase().contains(locality))
-            .toList();
-
-    // Register generated posts so details/saved/recently screens resolve them.
-    propertyProvider.registerSearchResults(generated);
-
-    setState(() {
-      _results = [...homeMatches, ...generated];
-      _hasSearched = true;
-    });
+    context.push('/search-results');
   }
 
   void _showFilterModal(
@@ -124,8 +52,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
           );
           return;
         }
-        options =
-            filterProvider.getDistrictsForDivision(filterProvider.division);
+        options = filterProvider.getDistrictsForDivision(filterProvider.division);
         currentVal = filterProvider.district;
         onSelect = (val) => filterProvider.setDistrict(val);
         break;
@@ -150,6 +77,11 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
         options = filterProvider.getAreasForThana(filterProvider.thana);
         currentVal = filterProvider.area;
         onSelect = (val) => filterProvider.setArea(val);
+        break;
+      case 'Type':
+        options = SearchFiltersProvider.propertyTypes;
+        currentVal = filterProvider.type;
+        onSelect = (val) => filterProvider.setType(val);
         break;
       default:
         return;
@@ -273,7 +205,6 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                       onPressed: () {
                         if (localSelected.isNotEmpty) {
                           onSelect(localSelected);
-                          _invalidateResults();
                         }
                         Navigator.pop(context);
                       },
@@ -295,25 +226,8 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    final savedProvider = context.watch<SavedPropertiesProvider>();
     final filterProvider = context.watch<SearchFiltersProvider>();
-
-    // Apply sorting to the searched results.
-    final sortedResults = List<PropertyModel>.from(_results);
-    if (filterProvider.sortBy == 'Price Low-High') {
-      sortedResults.sort((a, b) => a.price.compareTo(b.price));
-    } else if (filterProvider.sortBy == 'Price High-Low') {
-      sortedResults.sort((a, b) => b.price.compareTo(a.price));
-    }
-
     final selectionPath = filterProvider.selectionPath;
-    final mostSpecific = filterProvider.area.isNotEmpty
-        ? filterProvider.area
-        : filterProvider.thana.isNotEmpty
-            ? filterProvider.thana
-            : filterProvider.district.isNotEmpty
-                ? filterProvider.district
-                : filterProvider.division;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -404,7 +318,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
             ),
           ),
 
-          // 2. FILTER BUTTONS SECTION (Division, District, Thana, Area)
+          // 2. FILTER BUTTONS SECTION (Division, District, Thana, Area, Type)
           Container(
             color: colors.surface,
             padding:
@@ -424,10 +338,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () {
-                        filterProvider.clearAll();
-                        _invalidateResults();
-                      },
+                      onTap: () => filterProvider.clearAll(),
                       child: Text(
                         'Clear All',
                         style: TextStyle(
@@ -483,6 +394,15 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                         onTap: () =>
                             _showFilterModal(context, filterProvider, 'Area'),
                       ),
+                      _buildFilterButton(
+                        colors: colors,
+                        label: filterProvider.type.isEmpty
+                            ? 'Type ▼'
+                            : '${filterProvider.type} ▼',
+                        isActive: filterProvider.type.isNotEmpty,
+                        onTap: () =>
+                            _showFilterModal(context, filterProvider, 'Type'),
+                      ),
                     ],
                   ),
                 ),
@@ -522,105 +442,31 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
           // Divider line
           Container(height: 1, color: colors.border),
 
-          // 4. RESULTS — only after pressing Search
-          if (_hasSearched) ...[
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // 4. INSTRUCTION AREA — results now open on a dedicated page
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(
-                    child: Text(
-                      'Showing ${sortedResults.length} results in $mostSpecific',
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colors.textSecondary,
-                      ),
+                  Icon(Icons.travel_explore, size: 56, color: colors.border),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Select location & type, then press Search',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: colors.textPrimary,
                     ),
                   ),
-                  DropdownButton<String>(
-                    value: filterProvider.sortBy,
-                    underline: const SizedBox.shrink(),
-                    icon: Icon(Icons.keyboard_arrow_down,
-                        size: 16, color: colors.primary),
-                    dropdownColor: colors.surface,
-                    style: TextStyle(
-                      color: colors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                    onChanged: (val) {
-                      if (val != null) filterProvider.setSortBy(val);
-                    },
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'Newest', child: Text('Sort: Newest')),
-                      DropdownMenuItem(
-                          value: 'Price Low-High',
-                          child: Text('Price: Low-High')),
-                      DropdownMenuItem(
-                          value: 'Price High-Low',
-                          child: Text('Price: High-Low')),
-                    ],
+                  const SizedBox(height: 6),
+                  Text(
+                    'Division > District > Thana > Area  ·  Type',
+                    style: TextStyle(fontSize: 12, color: colors.textSecondary),
                   ),
                 ],
               ),
             ),
-            Expanded(
-              child: sortedResults.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No properties found for this location.',
-                        style: TextStyle(color: colors.textSecondary),
-                      ),
-                    )
-                  : ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 120.0),
-                      itemCount: sortedResults.length,
-                      itemBuilder: (context, index) {
-                        final property = sortedResults[index];
-                        final isSaved = savedProvider.isSaved(property.id);
-
-                        return PropertyCard(
-                          property: property,
-                          showDetails: true,
-                          isSaved: isSaved,
-                          onTap: () => _handlePropertyTap(context, property),
-                          onSaveTap: () => _handleSaveToggle(
-                              context, savedProvider, property),
-                        );
-                      },
-                    ),
-            ),
-          ] else
-            // Pre-search empty state: clean, no images
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.travel_explore, size: 56, color: colors.border),
-                    const SizedBox(height: 14),
-                    Text(
-                      'Select your location and press Search',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: colors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Division > District > Thana > Area',
-                      style: TextStyle(fontSize: 12, color: colors.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          ),
         ],
       ),
       bottomNavigationBar: widget.showBottomNavigation

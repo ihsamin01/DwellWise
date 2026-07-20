@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../config/app_colors.dart';
 import '../models/property_model.dart';
+import '../utils/formatters.dart';
 
 /// Formats an integer amount with thousands separators, e.g. 85000 -> "85,000".
 String formatWithCommas(num value) {
@@ -24,6 +25,10 @@ class PropertyCard extends StatelessWidget {
   final bool isSaved;
   final bool showDetails;
 
+  /// When true, shows a "Posted <relative time>" line — used by the home feed
+  /// and search results where post recency matters (e.g. Newest sort).
+  final bool showDate;
+
   const PropertyCard({
     Key? key,
     required this.property,
@@ -31,6 +36,7 @@ class PropertyCard extends StatelessWidget {
     this.onSaveTap,
     this.isSaved = false,
     this.showDetails = true,
+    this.showDate = false,
   }) : super(key: key);
 
   @override
@@ -274,6 +280,19 @@ class PropertyCard extends StatelessWidget {
                       _specChip(colors, '${formatWithCommas(property.sizeSqFt)} sqft'),
                     ],
                   ),
+                  if (showDate) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Icon(Icons.schedule, size: 13, color: colors.textSecondary),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Posted ${Formatters.formatRelativeTime(property.createdAt)}',
+                          style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

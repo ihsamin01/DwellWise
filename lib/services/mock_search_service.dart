@@ -31,26 +31,34 @@ class MockSearchService {
   };
 
   /// Builds 5-8 listings for the selected location. [division] is required;
-  /// deeper selections narrow the naming used in titles/addresses.
+  /// deeper selections narrow the naming used in titles/addresses. When [type]
+  /// is one of the user-facing categories (Family, Bachelor, Office room,
+  /// Sublet, Hostel), only listings of that category are produced.
   static List<PropertyModel> generate({
     required String division,
     String district = '',
     String thana = '',
     String area = '',
+    String type = '',
   }) {
     final locality = area.isNotEmpty
         ? area
         : (thana.isNotEmpty ? thana : (district.isNotEmpty ? district : division));
     final parentLine = _addressLine(division, district, thana, area);
 
-    // Deterministic seed from the full location path.
-    final seed = '$division|$district|$thana|$area'.hashCode;
+    // Deterministic seed from the full location path (+ type).
+    final seed = '$division|$district|$thana|$area|$type'.hashCode;
     final rng = Random(seed);
 
     final (minRent, maxRent) = _rentBand(division, district, thana);
     final count = 5 + rng.nextInt(4); // 5..8 posts
 
-    final templates = _templates(locality, parentLine);
+    final all = _templates(locality, parentLine);
+    // Filter to the requested category; fall back to all if none match.
+    final filtered = type.isEmpty
+        ? all
+        : all.where((t) => t.category == type).toList();
+    final templates = filtered.isEmpty ? all : filtered;
     final results = <PropertyModel>[];
     for (var i = 0; i < count; i++) {
       final t = templates[i % templates.length];
@@ -72,7 +80,7 @@ class MockSearchService {
         title: '${t.title}, $locality',
         description: t.description,
         price: rent,
-        propertyType: t.type,
+        propertyType: t.category,
         area: locality,
         address: parentLine,
         latitude: 23.5 + rng.nextDouble(),
@@ -84,7 +92,8 @@ class MockSearchService {
         isVerified: rng.nextInt(3) != 0, // ~2/3 verified
         ownerId: 'so_${rng.nextInt(1000)}',
         facilities: t.facilities,
-        createdAt: DateTime.now(),
+        // Stagger post times so "Newest" ordering and card dates are realistic.
+        createdAt: DateTime.now().subtract(Duration(hours: i * 8 + rng.nextInt(10))),
       ));
     }
     return results;
@@ -119,7 +128,7 @@ class MockSearchService {
   static List<_ListingTemplate> _templates(String locality, String parentLine) => [
         _ListingTemplate(
           title: '2 Bed Family Flat',
-          type: 'Apartment',
+          category: 'Family',
           beds: 2,
           baths: 2,
           sqft: 800,
@@ -130,7 +139,7 @@ class MockSearchService {
         ),
         _ListingTemplate(
           title: 'Bachelor Sublet Room',
-          type: 'Sublet',
+          category: 'Bachelor',
           beds: 1,
           baths: 1,
           sqft: 180,
@@ -141,7 +150,7 @@ class MockSearchService {
         ),
         _ListingTemplate(
           title: '3 Bed Family Flat',
-          type: 'Apartment',
+          category: 'Family',
           beds: 3,
           baths: 2,
           sqft: 1100,
@@ -152,51 +161,51 @@ class MockSearchService {
         ),
         _ListingTemplate(
           title: 'Mess Seat for Students',
-          type: 'Seat Rent',
+          category: 'Hostel',
           beds: 1,
           baths: 1,
           sqft: 120,
           priceWeight: 0.15,
           facilities: const ['Wifi', 'Gas'],
           description:
-              'Seat rent in a clean student mess at $locality. Bed, table and almirah provided, khala available for cooking. Electricity and wifi bill included.',
+              'Seat rent in a clean student mess / hostel at $locality. Bed, table and almirah provided, khala available for cooking. Electricity and wifi bill included.',
         ),
         _ListingTemplate(
           title: 'Sublet for Small Family',
-          type: 'Sublet',
+          category: 'Sublet',
           beds: 1,
           baths: 1,
           sqft: 350,
           priceWeight: 0.35,
           facilities: const ['Gas', 'Security'],
           description:
-              'One room with attached bath and kitchen access in $locality, suitable for a small family or couple. Separate entrance, water and gas included.',
+              'One room sublet with attached bath and kitchen access in $locality, suitable for a small family or couple. Separate entrance, water and gas included.',
         ),
         _ListingTemplate(
-          title: '2 Bed Flat (Semi-Furnished)',
-          type: 'Apartment',
+          title: 'Office Space / Room',
+          category: 'Office room',
           beds: 2,
-          baths: 2,
-          sqft: 900,
-          priceWeight: 0.65,
-          facilities: const ['Gas', 'Lift', 'Backup', 'Security'],
+          baths: 1,
+          sqft: 700,
+          priceWeight: 0.6,
+          facilities: const ['Lift', 'Backup', 'Security'],
           description:
-              'Semi-furnished 2-bed flat in $locality with wardrobe and kitchen cabinets. Lift and generator backup. Near $parentLine main road. Advance negotiable.',
+              'Commercial office room in $locality, suitable for a startup or small office. Lift, generator backup and reception space. Near $parentLine main road.',
         ),
         _ListingTemplate(
-          title: 'Single Studio Room',
-          type: 'Studio',
+          title: 'Bachelor Studio Room',
+          category: 'Bachelor',
           beds: 1,
           baths: 1,
           sqft: 400,
           priceWeight: 0.45,
           facilities: const ['Wifi', 'Gas', 'Security'],
           description:
-              'Compact studio setup in $locality with attached bath and kitchenette. Ideal for a single professional. Wifi ready, night guard on duty.',
+              'Compact studio setup in $locality with attached bath and kitchenette. Ideal for a single professional bachelor. Wifi ready, night guard on duty.',
         ),
         _ListingTemplate(
-          title: '3 Bed Flat with Balcony',
-          type: 'Apartment',
+          title: '3 Bed Family Flat with Balcony',
+          category: 'Family',
           beds: 3,
           baths: 3,
           sqft: 1250,
@@ -205,12 +214,34 @@ class MockSearchService {
           description:
               'Bright corner-plot apartment in $locality with three balconies and tiled floors. Master bed with attached bath. Genuine owner post, no brokers.',
         ),
+        _ListingTemplate(
+          title: 'Girls Hostel Seat',
+          category: 'Hostel',
+          beds: 1,
+          baths: 1,
+          sqft: 130,
+          priceWeight: 0.2,
+          facilities: const ['Wifi', 'Gas', 'Security'],
+          description:
+              'Seat in a secure girls hostel at $locality. Three meals available, study desk and locker provided. CCTV and female warden on duty.',
+        ),
+        _ListingTemplate(
+          title: 'Office Floor (Semi-Furnished)',
+          category: 'Office room',
+          beds: 3,
+          baths: 2,
+          sqft: 1200,
+          priceWeight: 0.85,
+          facilities: const ['Lift', 'Backup', 'Parking', 'Security'],
+          description:
+              'Semi-furnished office floor in $locality with partitions and conference space. Lift, parking and generator backup. Ready for immediate move-in.',
+        ),
       ];
 }
 
 class _ListingTemplate {
   final String title;
-  final String type;
+  final String category; // one of: Family, Bachelor, Office room, Sublet, Hostel
   final int beds;
   final int baths;
   final int sqft;
@@ -220,7 +251,7 @@ class _ListingTemplate {
 
   const _ListingTemplate({
     required this.title,
-    required this.type,
+    required this.category,
     required this.beds,
     required this.baths,
     required this.sqft,
