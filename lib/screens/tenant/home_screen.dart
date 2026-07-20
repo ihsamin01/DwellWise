@@ -8,11 +8,10 @@ import '../../models/property_model.dart';
 import '../../widgets/bottom_navigation.dart';
 import '../../widgets/property_card.dart';
 
-/// Price-based filter/sort options for the AI recommended feed.
-enum PriceFilter { none, lowToHigh, highToLow, highPriced, lowPriced }
-
-/// Threshold (in BDT) separating "high" from "low" priced listings.
-const double kPriceThreshold = 20000;
+/// Price-based filter options for the AI recommended feed.
+/// [none] is the initial "no filter applied" state and is not shown as a
+/// selectable menu item — only the four price buckets are listed.
+enum PriceFilter { none, under10k, range10to20k, range20to30k, above30k }
 
 /// Tenant Home Screen containing search bar, horizontal recently viewed, and infinite scrolling AI recommended items.
 class TenantHomeScreen extends StatefulWidget {
@@ -31,16 +30,14 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   List<PropertyModel> _applyPriceFilter(List<PropertyModel> list) {
     final result = List<PropertyModel>.from(list);
     switch (_priceFilter) {
-      case PriceFilter.lowToHigh:
-        result.sort((a, b) => a.price.compareTo(b.price));
-        return result;
-      case PriceFilter.highToLow:
-        result.sort((a, b) => b.price.compareTo(a.price));
-        return result;
-      case PriceFilter.highPriced:
-        return result.where((p) => p.price > kPriceThreshold).toList();
-      case PriceFilter.lowPriced:
-        return result.where((p) => p.price <= kPriceThreshold).toList();
+      case PriceFilter.under10k:
+        return result.where((p) => p.price < 10000).toList();
+      case PriceFilter.range10to20k:
+        return result.where((p) => p.price >= 10000 && p.price < 20000).toList();
+      case PriceFilter.range20to30k:
+        return result.where((p) => p.price >= 20000 && p.price < 30000).toList();
+      case PriceFilter.above30k:
+        return result.where((p) => p.price >= 30000).toList();
       case PriceFilter.none:
         return result;
     }
@@ -50,14 +47,14 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     switch (filter) {
       case PriceFilter.none:
         return 'All properties';
-      case PriceFilter.lowToHigh:
-        return 'Price: Low to High';
-      case PriceFilter.highToLow:
-        return 'Price: High to Low';
-      case PriceFilter.highPriced:
-        return 'High priced (over ৳20,000)';
-      case PriceFilter.lowPriced:
-        return 'Low priced (৳20,000 & under)';
+      case PriceFilter.under10k:
+        return 'Under ৳10,000';
+      case PriceFilter.range10to20k:
+        return '৳10,000 – ৳20,000';
+      case PriceFilter.range20to30k:
+        return '৳20,000 – ৳30,000';
+      case PriceFilter.above30k:
+        return 'Above ৳30,000';
     }
   }
 
