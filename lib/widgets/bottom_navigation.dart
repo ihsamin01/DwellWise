@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../config/app_colors.dart';
+import '../config/app_strings.dart';
 import '../providers/chat_provider.dart';
 import '../providers/saved_properties_provider.dart';
 
@@ -46,9 +48,10 @@ class BottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = const Color(0xff1E40AF); // Primary Blue
-    final inactiveColor = const Color(0xff6B7280); // Text Secondary
-    final activeBgColor = const Color(0xffEFF6FF); // Light blue tint
+    final colors = AppColors.of(context);
+    final activeColor = colors.primary;
+    final inactiveColor = colors.textSecondary;
+    final activeBgColor = colors.primaryTint;
 
     final savedIds = context.watch<SavedPropertiesProvider>().savedIds;
     final savedCount = savedIds.length;
@@ -56,34 +59,34 @@ class BottomNavigation extends StatelessWidget {
         context.watch<ChatProvider>().unreadConversationCount;
 
     final items = [
-      _NavBtn(icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Home'),
+      _NavBtn(icon: Icons.home_outlined, activeIcon: Icons.home, label: AppStrings.t(context, 'home')),
       _NavBtn(
           icon: Icons.search_outlined,
           activeIcon: Icons.search,
-          label: 'Search'),
+          label: AppStrings.t(context, 'search')),
       _NavBtn(
           icon: Icons.favorite_border_outlined,
           activeIcon: Icons.favorite,
-          label: 'Saved',
+          label: AppStrings.t(context, 'saved'),
           showSavedCount: true),
       _NavBtn(
           icon: Icons.chat_bubble_outline,
           activeIcon: Icons.chat_bubble,
-          label: 'Messages'),
+          label: AppStrings.t(context, 'messages')),
       _NavBtn(
           icon: Icons.account_circle_outlined,
           activeIcon: Icons.account_circle,
-          label: 'Profile'),
+          label: AppStrings.t(context, 'profile')),
     ];
 
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
       height: 64.0 + bottomPadding,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: colors.surface,
         border: Border(
-          top: BorderSide(color: Color(0xffD1D5DB), width: 1.0),
+          top: BorderSide(color: colors.border, width: 1.0),
         ),
       ),
       padding: EdgeInsets.only(bottom: bottomPadding),
@@ -131,7 +134,7 @@ class BottomNavigation extends StatelessWidget {
             );
           }
 
-          if (item.label == 'Messages' && unreadMessages > 0) {
+          if (index == 3 && unreadMessages > 0) {
             iconWidget = Stack(
               clipBehavior: Clip.none,
               children: [

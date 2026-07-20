@@ -23,6 +23,17 @@ import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/admin/pending_listings_screen.dart';
 import '../screens/admin/reported_listings_screen.dart';
 import '../screens/chat/chat_screen.dart';
+import '../screens/profile/edit_profile_screen.dart';
+import '../screens/profile/change_password_screen.dart';
+import '../screens/profile/account_security_screen.dart';
+import '../screens/profile/notification_settings_screen.dart';
+import '../screens/profile/language_settings_screen.dart';
+import '../screens/profile/theme_settings_screen.dart';
+import '../screens/profile/terms_conditions_screen.dart';
+import '../screens/profile/privacy_policy_screen.dart';
+import '../screens/profile/help_support_screen.dart';
+import '../screens/profile/contact_us_screen.dart';
+import '../screens/profile/rate_app_screen.dart';
 
 /// GoRouter configuration for the DwellWise application.
 class AppRoutes {
@@ -161,6 +172,52 @@ class AppRoutes {
           final chatId = state.pathParameters['chatId'] ?? '';
           return ChatScreen(chatId: chatId);
         },
+      ),
+
+      // Profile menu routes
+      GoRoute(
+        path: '/profile/edit',
+        builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: '/profile/change-password',
+        builder: (context, state) => const ChangePasswordScreen(),
+      ),
+      GoRoute(
+        path: '/profile/security',
+        builder: (context, state) => const AccountSecurityScreen(),
+      ),
+      GoRoute(
+        path: '/profile/notifications',
+        builder: (context, state) => const NotificationSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/profile/language',
+        builder: (context, state) => const LanguageSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/profile/theme',
+        builder: (context, state) => const ThemeSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/profile/terms',
+        builder: (context, state) => const TermsConditionsScreen(),
+      ),
+      GoRoute(
+        path: '/profile/privacy',
+        builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+      GoRoute(
+        path: '/profile/support',
+        builder: (context, state) => const HelpSupportScreen(),
+      ),
+      GoRoute(
+        path: '/profile/contact',
+        builder: (context, state) => const ContactUsScreen(),
+      ),
+      GoRoute(
+        path: '/profile/rate',
+        builder: (context, state) => const RateAppScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

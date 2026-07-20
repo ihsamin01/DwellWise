@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../../config/app_colors.dart';
 import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
 import '../../models/property_model.dart';
+import '../../widgets/app_drawer.dart';
 import '../../widgets/bottom_navigation.dart';
 import '../../widgets/property_card.dart';
 
@@ -27,6 +29,7 @@ class TenantHomeScreen extends StatefulWidget {
 }
 
 class _TenantHomeScreenState extends State<TenantHomeScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final ScrollController _scrollController = ScrollController();
   int _displayedCount = 10;
   PriceFilter _priceFilter = PriceFilter.none;
@@ -115,11 +118,12 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   }
 
   /// Filter/sort trigger shown at the right of the "AI Recommended" heading.
-  Widget _buildFilterButton() {
+  Widget _buildFilterButton(AppColors colors) {
     final bool isActive = _priceFilter != PriceFilter.none;
     return PopupMenuButton<PriceFilter>(
       tooltip: 'Filter by price',
       offset: const Offset(0, 40),
+      color: colors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onSelected: (value) => setState(() => _priceFilter = value),
       itemBuilder: (context) => PriceFilter.values.map((filter) {
@@ -133,16 +137,14 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                     ? Icons.radio_button_checked
                     : Icons.radio_button_unchecked,
                 size: 18,
-                color: selected
-                    ? const Color(0xff1E40AF)
-                    : const Color(0xff9CA3AF),
+                color: selected ? colors.primary : colors.textSecondary,
               ),
               const SizedBox(width: 10),
               Text(
                 _filterLabel(filter),
                 style: TextStyle(
                   fontSize: 13,
-                  color: const Color(0xff1F2937),
+                  color: colors.textPrimary,
                   fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -153,7 +155,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xff1E40AF) : const Color(0xffEFF6FF),
+          color: isActive ? colors.primary : colors.primaryTint,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -162,7 +164,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
             Icon(
               Icons.tune,
               size: 16,
-              color: isActive ? Colors.white : const Color(0xff1E40AF),
+              color: isActive ? Colors.white : colors.primary,
             ),
             const SizedBox(width: 4),
             Text(
@@ -170,7 +172,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: isActive ? Colors.white : const Color(0xff1E40AF),
+                color: isActive ? Colors.white : colors.primary,
               ),
             ),
           ],
@@ -181,6 +183,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     final propertyProvider = context.watch<PropertyProvider>();
     final savedProvider = context.watch<SavedPropertiesProvider>();
     final recentlyViewedProvider = context.watch<RecentlyViewedProvider>();
@@ -197,29 +200,35 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
         .toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xffF3F4F6),
+      key: _scaffoldKey,
+      backgroundColor: colors.background,
+      drawer: const AppDrawer(),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60.0),
         child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: colors.surface,
             border: Border(
-              bottom: BorderSide(color: Color(0xffD1D5DB), width: 1.0),
+              bottom: BorderSide(color: colors.border, width: 1.0),
             ),
           ),
           child: AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: colors.surface,
             elevation: 0,
             automaticallyImplyLeading: false,
             titleSpacing: 16,
             title: Row(
-              children: const [
-                Icon(Icons.menu, color: Color(0xff1E40AF), size: 24),
-                SizedBox(width: 12),
+              children: [
+                GestureDetector(
+                  onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                  behavior: HitTestBehavior.opaque,
+                  child: Icon(Icons.menu, color: colors.primary, size: 24),
+                ),
+                const SizedBox(width: 12),
                 Text(
                   'DwellWise',
                   style: TextStyle(
-                    color: Color(0xff1E40AF),
+                    color: colors.primary,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -239,11 +248,11 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                   child: Stack(
                     alignment: Alignment.topRight,
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.all(4.0),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
                         child: Icon(
                           Icons.notifications_none,
-                          color: Color(0xff1E40AF),
+                          color: colors.primary,
                           size: 24,
                         ),
                       ),
@@ -281,9 +290,9 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
         ),
       ),
       body: propertyProvider.isLoading
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xff1E40AF)),
+                valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
               ),
             )
           : SingleChildScrollView(
@@ -298,21 +307,21 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                         horizontal: 24.0, vertical: 20.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           'Find Your Perfect Home',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xff1F2937),
+                            color: colors.textPrimary,
                           ),
                         ),
-                        SizedBox(height: 6),
+                        const SizedBox(height: 6),
                         Text(
                           'Explore amazing properties in your city',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Color(0xff6B7280),
+                            color: colors.textSecondary,
                           ),
                         ),
                       ],
@@ -326,21 +335,21 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'Recently Viewed',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xff1F2937),
+                              color: colors.textPrimary,
                             ),
                           ),
                           GestureDetector(
                             onTap: () => context.push('/recently-viewed'),
-                            child: const Text(
+                            child: Text(
                               'View All',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xff1E40AF),
+                                color: colors.primary,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -380,17 +389,17 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             '🚀 AI Recommended for You',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xff1F2937),
+                              color: colors.textPrimary,
                             ),
                           ),
                         ),
-                        _buildFilterButton(),
+                        _buildFilterButton(colors),
                       ],
                     ),
                   ),
@@ -420,14 +429,13 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                       },
                     )
                   else
-                    const Padding(
-                      padding: EdgeInsets.symmetric(
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
                           horizontal: 24.0, vertical: 40.0),
                       child: Center(
                         child: Text(
                           'No properties match this filter.',
-                          style:
-                              TextStyle(fontSize: 14, color: Color(0xff6B7280)),
+                          style: TextStyle(fontSize: 14, color: colors.textSecondary),
                         ),
                       ),
                     ),

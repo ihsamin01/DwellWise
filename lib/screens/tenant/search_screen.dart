@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../../config/app_colors.dart';
 import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
@@ -105,6 +106,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
 
   void _showFilterModal(
       BuildContext context, SearchFiltersProvider filterProvider, String type) {
+    final colors = AppColors.of(context);
     List<String> options = [];
     String currentVal = '';
     Function(String) onSelect;
@@ -155,7 +157,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
@@ -185,10 +187,10 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                   children: [
                     Text(
                       'Select $type',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xff1F2937)),
+                          color: colors.textPrimary),
                     ),
                     const SizedBox(height: 10),
                     // Quick search within long option lists (e.g. 64 districts)
@@ -198,22 +200,22 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          border: Border.all(color: const Color(0xffD1D5DB)),
+                          border: Border.all(color: colors.border),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.search,
-                                size: 18, color: Color(0xff9CA3AF)),
+                            Icon(Icons.search,
+                                size: 18, color: colors.textSecondary),
                             const SizedBox(width: 8),
                             Expanded(
                               child: TextField(
-                                style: const TextStyle(
-                                    fontSize: 14, color: Color(0xff1F2937)),
+                                style: TextStyle(
+                                    fontSize: 14, color: colors.textPrimary),
                                 decoration: InputDecoration(
                                   hintText: 'Type to filter $type list...',
-                                  hintStyle: const TextStyle(
-                                      fontSize: 13, color: Color(0xff9CA3AF)),
+                                  hintStyle: TextStyle(
+                                      fontSize: 13, color: colors.textSecondary),
                                   border: InputBorder.none,
                                   isDense: true,
                                 ),
@@ -226,10 +228,10 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                       ),
                     Flexible(
                       child: visible.isEmpty
-                          ? const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 20.0),
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 20.0),
                               child: Text('No options available.',
-                                  style: TextStyle(color: Color(0xff6B7280))),
+                                  style: TextStyle(color: colors.textSecondary)),
                             )
                           : ConstrainedBox(
                               constraints: BoxConstraints(
@@ -243,12 +245,12 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                                   final opt = visible[index];
                                   return RadioListTile<String>(
                                     title: Text(opt,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontSize: 14,
-                                            color: Color(0xff1F2937))),
+                                            color: colors.textPrimary)),
                                     value: opt,
                                     groupValue: localSelected,
-                                    activeColor: const Color(0xff1E40AF),
+                                    activeColor: colors.primary,
                                     dense: true,
                                     onChanged: (val) {
                                       setModalState(() {
@@ -292,6 +294,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     final savedProvider = context.watch<SavedPropertiesProvider>();
     final filterProvider = context.watch<SearchFiltersProvider>();
 
@@ -313,28 +316,27 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                 : filterProvider.division;
 
     return Scaffold(
-      backgroundColor: const Color(0xffF3F4F6),
+      backgroundColor: colors.background,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60.0),
         child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: colors.surface,
             border: Border(
-              bottom: BorderSide(color: Color(0xffD1D5DB), width: 1.0),
+              bottom: BorderSide(color: colors.border, width: 1.0),
             ),
           ),
           child: AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: colors.surface,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back,
-                  color: Color(0xff1E40AF), size: 24),
+              icon: Icon(Icons.arrow_back, color: colors.primary, size: 24),
               onPressed: () => context.go('/home'),
             ),
-            title: const Text(
+            title: Text(
               'DwellWise',
               style: TextStyle(
-                color: Color(0xff1E40AF),
+                color: colors.primary,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -342,8 +344,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
             centerTitle: true,
             actions: [
               IconButton(
-                icon: const Icon(Icons.share_outlined,
-                    color: Color(0xff1E40AF), size: 24),
+                icon: Icon(Icons.share_outlined, color: colors.primary, size: 24),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Share copy triggered.')),
@@ -359,39 +360,37 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
         children: [
           // 1. SEARCH BOX — displays the selected location path
           Container(
-            color: Colors.white,
+            color: colors.surface,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Container(
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: colors.surface,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: selectionPath.isEmpty
-                      ? const Color(0xffD1D5DB)
-                      : const Color(0xff1E40AF),
+                  color: selectionPath.isEmpty ? colors.border : colors.primary,
                   width: selectionPath.isEmpty ? 1.0 : 1.5,
                 ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  const Icon(Icons.search, color: Color(0xff6B7280)),
+                  Icon(Icons.search, color: colors.textSecondary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: selectionPath.isEmpty
-                        ? const Text(
+                        ? Text(
                             'Select your location below...',
                             style: TextStyle(
-                                color: Color(0xff9CA3AF), fontSize: 15),
+                                color: colors.textSecondary, fontSize: 15),
                             overflow: TextOverflow.ellipsis,
                           )
                         : SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: Text(
                               selectionPath,
-                              style: const TextStyle(
-                                color: Color(0xff1F2937),
+                              style: TextStyle(
+                                color: colors.textPrimary,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -399,7 +398,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                           ),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.location_on, color: Color(0xff6B7280)),
+                  Icon(Icons.location_on, color: colors.textSecondary),
                 ],
               ),
             ),
@@ -407,7 +406,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
 
           // 2. FILTER BUTTONS SECTION (Division, District, Thana, Area)
           Container(
-            color: Colors.white,
+            color: colors.surface,
             padding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
             child: Column(
@@ -416,12 +415,12 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'FILTERS',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xff6B7280),
+                        color: colors.textSecondary,
                       ),
                     ),
                     GestureDetector(
@@ -429,11 +428,11 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                         filterProvider.clearAll();
                         _invalidateResults();
                       },
-                      child: const Text(
+                      child: Text(
                         'Clear All',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xff1E40AF),
+                          color: colors.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -449,6 +448,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                     physics: const BouncingScrollPhysics(),
                     children: [
                       _buildFilterButton(
+                        colors: colors,
                         label: filterProvider.division.isEmpty
                             ? 'Division ▼'
                             : '${filterProvider.division} ▼',
@@ -457,6 +457,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                             context, filterProvider, 'Division'),
                       ),
                       _buildFilterButton(
+                        colors: colors,
                         label: filterProvider.district.isEmpty
                             ? 'District ▼'
                             : '${filterProvider.district} ▼',
@@ -465,6 +466,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                             context, filterProvider, 'District'),
                       ),
                       _buildFilterButton(
+                        colors: colors,
                         label: filterProvider.thana.isEmpty
                             ? 'Thana ▼'
                             : '${filterProvider.thana} ▼',
@@ -473,6 +475,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                             _showFilterModal(context, filterProvider, 'Thana'),
                       ),
                       _buildFilterButton(
+                        colors: colors,
                         label: filterProvider.area.isEmpty
                             ? 'Area ▼'
                             : '${filterProvider.area} ▼',
@@ -517,7 +520,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
           ),
 
           // Divider line
-          Container(height: 1, color: const Color(0xffD1D5DB)),
+          Container(height: 1, color: colors.border),
 
           // 4. RESULTS — only after pressing Search
           if (_hasSearched) ...[
@@ -531,19 +534,20 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                     child: Text(
                       'Showing ${sortedResults.length} results in $mostSpecific',
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xff6B7280),
+                        color: colors.textSecondary,
                       ),
                     ),
                   ),
                   DropdownButton<String>(
                     value: filterProvider.sortBy,
                     underline: const SizedBox.shrink(),
-                    icon: const Icon(Icons.keyboard_arrow_down,
-                        size: 16, color: Color(0xff1E40AF)),
-                    style: const TextStyle(
-                      color: Color(0xff1E40AF),
+                    icon: Icon(Icons.keyboard_arrow_down,
+                        size: 16, color: colors.primary),
+                    dropdownColor: colors.surface,
+                    style: TextStyle(
+                      color: colors.primary,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -566,10 +570,10 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
             ),
             Expanded(
               child: sortedResults.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
                         'No properties found for this location.',
-                        style: TextStyle(color: Color(0xff6B7280)),
+                        style: TextStyle(color: colors.textSecondary),
                       ),
                     )
                   : ListView.builder(
@@ -597,22 +601,21 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.travel_explore,
-                        size: 56, color: Color(0xffD1D5DB)),
-                    SizedBox(height: 14),
+                  children: [
+                    Icon(Icons.travel_explore, size: 56, color: colors.border),
+                    const SizedBox(height: 14),
                     Text(
                       'Select your location and press Search',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xff1F2937),
+                        color: colors.textPrimary,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
                       'Division > District > Thana > Area',
-                      style: TextStyle(fontSize: 12, color: Color(0xff6B7280)),
+                      style: TextStyle(fontSize: 12, color: colors.textSecondary),
                     ),
                   ],
                 ),
@@ -627,6 +630,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
   }
 
   Widget _buildFilterButton({
+    required AppColors colors,
     required String label,
     required bool isActive,
     required VoidCallback onTap,
@@ -638,11 +642,10 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: isActive ? const Color(0xffEFF6FF) : Colors.white,
+            color: isActive ? colors.primaryTint : colors.surface,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color:
-                  isActive ? const Color(0xff1E40AF) : const Color(0xffD1D5DB),
+              color: isActive ? colors.primary : colors.border,
               width: isActive ? 1.5 : 1.0,
             ),
           ),
@@ -650,8 +653,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
           child: Text(
             label,
             style: TextStyle(
-              color:
-                  isActive ? const Color(0xff1E40AF) : const Color(0xff1F2937),
+              color: isActive ? colors.primary : colors.textPrimary,
               fontSize: 12,
               fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
             ),
