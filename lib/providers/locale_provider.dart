@@ -17,4 +17,8 @@ class LocaleProvider with ChangeNotifier {
     _language = language;
     notifyListeners();
   }
+
+  /// Resets to the default language (English). Called on logout so the next
+  /// session always starts in English regardless of the previous choice.
+  void reset() => setLanguage(AppLanguage.english);
 }

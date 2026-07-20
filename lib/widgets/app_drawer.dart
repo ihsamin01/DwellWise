@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../config/app_strings.dart';
 import '../providers/auth_provider.dart';
 import '../providers/user_provider.dart';
+import '../providers/locale_provider.dart';
 
 /// App-wide navigation drawer opened from the hamburger icon, listing
 /// account/profile/settings destinations.
@@ -158,6 +159,7 @@ class AppDrawer extends StatelessWidget {
                       );
 
                       if (confirmed == true && context.mounted) {
+                        context.read<LocaleProvider>().reset();
                         await context.read<AuthProvider>().logout();
                         if (context.mounted) {
                           context.go('/login');

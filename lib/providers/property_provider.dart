@@ -128,13 +128,17 @@ class PropertyProvider with ChangeNotifier {
       PropertyModel(
         id: 'me1',
         title: 'My Family Flat, Mirpur DOHS',
+        titleBn: 'আমার ফ্যামিলি ফ্ল্যাট, মিরপুর ডিওএইচএস',
         description:
             'Well-maintained 3-bed apartment inside Mirpur DOHS. Gas line, lift, reserved parking and 24/7 security. Posted by me for rent.',
+        descriptionBn:
+            'মিরপুর ডিওএইচএস-এর ভেতরে সুসজ্জিত ৩ বেডের অ্যাপার্টমেন্ট। গ্যাস লাইন, লিফট, সংরক্ষিত পার্কিং ও ২৪/৭ নিরাপত্তা। আমার পক্ষ থেকে ভাড়ার জন্য পোস্ট করা।',
         price: 28000,
         priceFor: 'Monthly',
         propertyType: 'Family',
         area: 'Mirpur DOHS',
         address: 'Road 6, Avenue 9, Mirpur DOHS, Dhaka',
+        addressBn: 'রোড ৬, এভিনিউ ৯, মিরপুর ডিওএইচএস, ঢাকা',
         latitude: 23.8226,
         longitude: 90.3688,
         beds: 3,
@@ -155,13 +159,17 @@ class PropertyProvider with ChangeNotifier {
       PropertyModel(
         id: 'me2',
         title: 'My Bachelor Sublet, Uttara Sector 4',
+        titleBn: 'আমার ব্যাচেলর সাবলেট, উত্তরা সেক্টর ৪',
         description:
             'Single furnished room for a working bachelor. Attached bath, shared kitchen. Near Uttara metro station. Posted by me.',
+        descriptionBn:
+            'চাকরিজীবী ব্যাচেলরের জন্য একক সাজানো রুম। অ্যাটাচড বাথ, শেয়ার্ড কিচেন। উত্তরা মেট্রো স্টেশনের কাছে। আমার পক্ষ থেকে পোস্ট করা।',
         price: 8500,
         priceFor: 'Monthly',
         propertyType: 'Sublet',
         area: 'Sector 4',
         address: 'Road 3, Sector 4, Uttara, Dhaka',
+        addressBn: 'রোড ৩, সেক্টর ৪, উত্তরা, ঢাকা',
         latitude: 23.8722,
         longitude: 90.3842,
         beds: 1,

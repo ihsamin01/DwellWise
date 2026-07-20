@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../config/app_colors.dart';
+import '../../config/app_strings.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/property_card.dart';
 
 /// A property the user has rented through DwellWise.
 class _RentedProperty {
   final String title;
-  final String type;
+  final String titleBn;
+  final String type; // canonical English, translated via 'type_<type>'
   final String location;
+  final String locationBn;
   final double price;
   final String priceFor;
   final DateTime rentedOn;
@@ -17,8 +20,10 @@ class _RentedProperty {
 
   const _RentedProperty({
     required this.title,
+    required this.titleBn,
     required this.type,
     required this.location,
+    required this.locationBn,
     required this.price,
     required this.priceFor,
     required this.rentedOn,
@@ -39,8 +44,10 @@ class PurchaseHistoryScreen extends StatelessWidget {
     final rentals = <_RentedProperty>[
       _RentedProperty(
         title: 'Bachelor Sublet Room, Farmgate',
+        titleBn: 'ব্যাচেলর সাবলেট রুম, ফার্মগেট',
         type: 'Sublet',
         location: 'Indira Road, Farmgate, Dhaka',
+        locationBn: 'ইন্দিরা রোড, ফার্মগেট, ঢাকা',
         price: 6500,
         priceFor: 'Monthly',
         rentedOn: DateTime.now().subtract(const Duration(days: 5)),
@@ -50,8 +57,10 @@ class PurchaseHistoryScreen extends StatelessWidget {
       ),
       _RentedProperty(
         title: 'Family Flat, Mirpur 11',
+        titleBn: 'ফ্যামিলি ফ্ল্যাট, মিরপুর ১১',
         type: 'Flat',
         location: 'Road 3, Mirpur 11, Dhaka',
+        locationBn: 'রোড ৩, মিরপুর ১১, ঢাকা',
         price: 16000,
         priceFor: 'Monthly',
         rentedOn: DateTime.now().subtract(const Duration(days: 63)),
@@ -62,13 +71,16 @@ class PurchaseHistoryScreen extends StatelessWidget {
     ];
 
     final total = rentals.fold<double>(0, (sum, r) => sum + r.price);
+    final countLabel = rentals.length == 1
+        ? AppStrings.t(context, 'ph_one_rented')
+        : AppStrings.t(context, 'ph_many_rented');
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(title: const Text('Purchase history')),
+      appBar: AppBar(title: Text(AppStrings.t(context, 'p_purchase_history'))),
       body: rentals.isEmpty
           ? Center(
-              child: Text('No rentals yet',
+              child: Text(AppStrings.t(context, 'ph_no_rentals'),
                   style: TextStyle(color: colors.textSecondary)),
             )
           : ListView(
@@ -86,10 +98,10 @@ class PurchaseHistoryScreen extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Total rent paid',
+                          Text(AppStrings.t(context, 'ph_total'),
                               style: TextStyle(fontSize: 15, color: colors.textSecondary)),
                           const SizedBox(height: 2),
-                          Text('${rentals.length} propert${rentals.length == 1 ? 'y' : 'ies'} rented',
+                          Text('${AppStrings.digits(context, '${rentals.length}')}$countLabel',
                               style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                         ],
                       ),
@@ -118,6 +130,10 @@ class _RentalTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bangla = AppStrings.isBangla(context);
+    final title = bangla ? rental.titleBn : rental.title;
+    final location = bangla ? rental.locationBn : rental.location;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
@@ -159,7 +175,7 @@ class _RentalTile extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              rental.title,
+                              title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -168,7 +184,7 @@ class _RentalTile extends StatelessWidget {
                                   color: colors.textPrimary),
                             ),
                           ),
-                          _typePill(rental.type),
+                          _typePill(context, rental.type),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -179,7 +195,7 @@ class _RentalTile extends StatelessWidget {
                           const SizedBox(width: 3),
                           Expanded(
                             child: Text(
-                              rental.location,
+                              location,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(fontSize: 12.5, color: colors.textSecondary),
@@ -192,13 +208,13 @@ class _RentalTile extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '৳${formatWithCommas(rental.price)}',
+                            '৳${AppStrings.digits(context, formatWithCommas(rental.price))}',
                             style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: colors.primary),
                           ),
-                          Text(' / ${rental.priceFor.toLowerCase()}',
+                          Text(' / ${AppStrings.t(context, 'period_${rental.priceFor}')}',
                               style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                         ],
                       ),
@@ -221,7 +237,8 @@ class _RentalTile extends StatelessWidget {
                   children: [
                     const Icon(Icons.check_circle, size: 15, color: Color(0xff10B981)),
                     const SizedBox(width: 5),
-                    Text('Rented · ${Formatters.formatDate(rental.rentedOn)}',
+                    Text(
+                        '${AppStrings.t(context, 'ph_rented')} · ${Formatters.formatDate(rental.rentedOn)}',
                         style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                   ],
                 ),
@@ -235,7 +252,7 @@ class _RentalTile extends StatelessWidget {
     );
   }
 
-  Widget _typePill(String type) {
+  Widget _typePill(BuildContext context, String type) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
@@ -243,7 +260,7 @@ class _RentalTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        type,
+        AppStrings.t(context, 'type_$type'),
         style: TextStyle(
             fontSize: 10.5, fontWeight: FontWeight.w700, color: colors.primary),
       ),

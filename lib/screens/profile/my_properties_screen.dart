@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../config/app_colors.dart';
+import '../../config/app_strings.dart';
 import '../../models/property_model.dart';
 import '../../providers/property_provider.dart';
 import '../../providers/user_provider.dart';
@@ -26,11 +27,11 @@ class MyPropertiesScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(title: const Text('My properties')),
+      appBar: AppBar(title: Text(AppStrings.t(context, 'p_my_properties'))),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/profile/add-property'),
         icon: const Icon(Icons.add),
-        label: const Text('Add property'),
+        label: Text(AppStrings.t(context, 'p_add_property')),
       ),
       body: listings.isEmpty
           ? _EmptyState(colors: colors)
@@ -56,26 +57,31 @@ class MyPropertiesScreen extends StatelessWidget {
   Future<void> _confirmDelete(BuildContext context, PropertyModel property) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete listing'),
-        content: Text('Remove "${property.title}" from your properties?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xffDC2626)),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      builder: (dialogContext) {
+        final bangla = AppStrings.isBangla(dialogContext);
+        final title = property.localizedTitle(bangla);
+        return AlertDialog(
+          title: Text(AppStrings.t(dialogContext, 'mp_delete_title')),
+          content: Text(
+              '${AppStrings.t(dialogContext, 'mp_delete_prefix')} "$title" ${AppStrings.t(dialogContext, 'mp_delete_suffix')}'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(AppStrings.t(dialogContext, 'cancel')),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: TextButton.styleFrom(foregroundColor: const Color(0xffDC2626)),
+              child: Text(AppStrings.t(dialogContext, 'delete')),
+            ),
+          ],
+        );
+      },
     );
     if (confirmed == true && context.mounted) {
       context.read<PropertyProvider>().removeMyListing(property.id);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Listing removed.')),
+        SnackBar(content: Text(AppStrings.tr(context, 'mp_removed'))),
       );
     }
   }
@@ -100,6 +106,7 @@ class _MyPropertyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bangla = AppStrings.isBangla(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -142,7 +149,7 @@ class _MyPropertyCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          property.title,
+                          property.localizedTitle(bangla),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -161,7 +168,7 @@ class _MyPropertyCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          property.address,
+                          property.localizedAddress(bangla),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontSize: 13, color: colors.textSecondary),
@@ -173,13 +180,13 @@ class _MyPropertyCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '৳${formatWithCommas(property.price)}',
+                        '৳${AppStrings.digits(context, formatWithCommas(property.price))}',
                         style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: colors.primary),
                       ),
-                      Text(' / ${property.priceFor.toLowerCase()}',
+                      Text(' / ${AppStrings.t(context, 'period_${property.priceFor}')}',
                           style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                       const Spacer(),
                       IconButton(
@@ -194,18 +201,21 @@ class _MyPropertyCard extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _spec(colors, Icons.bed_outlined, '${property.beds} Bed'),
-                      _spec(colors, Icons.bathtub_outlined, '${property.baths} Bath'),
-                      _spec(colors, Icons.balcony_outlined, '${property.balcony} Balcony'),
+                      _spec(colors, Icons.bed_outlined,
+                          '${AppStrings.digits(context, '${property.beds}')} ${AppStrings.t(context, 'spec_bed')}'),
+                      _spec(colors, Icons.bathtub_outlined,
+                          '${AppStrings.digits(context, '${property.baths}')} ${AppStrings.t(context, 'spec_bath')}'),
+                      _spec(colors, Icons.balcony_outlined,
+                          '${AppStrings.digits(context, '${property.balcony}')} ${AppStrings.t(context, 'spec_balcony')}'),
                       if (property.availableFrom.isNotEmpty)
                         _spec(colors, Icons.event_available_outlined,
-                            'From ${property.availableFrom}'),
+                            '${AppStrings.t(context, 'spec_from')} ${AppStrings.t(context, 'month_${property.availableFrom}')}'),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Divider(height: 1, color: colors.border.withOpacity(0.6)),
                   const SizedBox(height: 12),
-                  _ownerRow(colors),
+                  _ownerRow(context, colors),
                 ],
               ),
             ),
@@ -216,7 +226,7 @@ class _MyPropertyCard extends StatelessWidget {
   }
 
   /// Owner (the current user) shown on each listing: name + phone from profile.
-  Widget _ownerRow(AppColors colors) {
+  Widget _ownerRow(BuildContext context, AppColors colors) {
     return Row(
       children: [
         CircleAvatar(
@@ -244,7 +254,9 @@ class _MyPropertyCard extends StatelessWidget {
                   Icon(Icons.phone_outlined, size: 13, color: colors.textSecondary),
                   const SizedBox(width: 4),
                   Text(
-                    ownerPhone.isNotEmpty ? ownerPhone : 'No phone added',
+                    ownerPhone.isNotEmpty
+                        ? AppStrings.digits(context, ownerPhone)
+                        : AppStrings.t(context, 'mp_no_phone'),
                     style: TextStyle(fontSize: 12.5, color: colors.textSecondary),
                   ),
                 ],
@@ -259,7 +271,7 @@ class _MyPropertyCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
-            'Owner',
+            AppStrings.t(context, 'mp_owner_badge'),
             style: TextStyle(
                 fontSize: 11, fontWeight: FontWeight.w600, color: colors.primary),
           ),
@@ -307,7 +319,7 @@ class _StatusPill extends StatelessWidget {
         children: [
           Icon(isVerified ? Icons.verified : Icons.hourglass_top, size: 13, color: color),
           const SizedBox(width: 4),
-          Text(isVerified ? 'Verified' : 'Pending',
+          Text(AppStrings.t(context, isVerified ? 'status_verified' : 'status_pending'),
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
         ],
       ),
@@ -329,11 +341,11 @@ class _EmptyState extends StatelessWidget {
           children: [
             Icon(Icons.apartment_outlined, size: 72, color: colors.textSecondary),
             const SizedBox(height: 16),
-            Text('No properties yet',
+            Text(AppStrings.t(context, 'mp_empty_title'),
                 style: TextStyle(
                     fontSize: 18, fontWeight: FontWeight.bold, color: colors.textPrimary)),
             const SizedBox(height: 8),
-            Text('Post your first property and it will show up here.',
+            Text(AppStrings.t(context, 'mp_empty_desc'),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: colors.textSecondary)),
           ],

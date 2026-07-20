@@ -3,6 +3,13 @@ class PropertyModel {
   final String id;
   final String title;
   final String description;
+
+  /// Optional Bangla variants for demo/mock content so listings can render in
+  /// Bangla when the app language is set to Bangla. Empty means "no Bangla
+  /// copy provided" and the screens fall back to the English text.
+  final String titleBn;
+  final String addressBn;
+  final String descriptionBn;
   final double price;
 
   /// Billing period the [price] applies to: 'Monthly', 'Weekly' or 'Daily'.
@@ -34,6 +41,9 @@ class PropertyModel {
     required this.id,
     required this.title,
     required this.description,
+    this.titleBn = '',
+    this.addressBn = '',
+    this.descriptionBn = '',
     required this.price,
     this.priceFor = 'Monthly',
     this.propertyType = 'Apartment',
@@ -53,6 +63,13 @@ class PropertyModel {
     required this.facilities,
     required this.createdAt,
   });
+
+  /// Returns the Bangla text when [bangla] is true and a Bangla variant
+  /// exists; otherwise the default (English) text.
+  String localizedTitle(bool bangla) => bangla && titleBn.isNotEmpty ? titleBn : title;
+  String localizedAddress(bool bangla) => bangla && addressBn.isNotEmpty ? addressBn : address;
+  String localizedDescription(bool bangla) =>
+      bangla && descriptionBn.isNotEmpty ? descriptionBn : description;
 
   /// Factory constructor to parse PropertyModel from JSON.
   factory PropertyModel.fromJson(Map<String, dynamic> json) {

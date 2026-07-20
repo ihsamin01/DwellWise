@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_colors.dart';
+import '../../config/app_strings.dart';
 import '../../models/user_model.dart';
 import '../../providers/user_provider.dart';
 
@@ -59,7 +60,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (!_frontUploaded || !_backUploaded) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please attach both sides of your NID.')),
+        SnackBar(content: Text(AppStrings.tr(context, 'av_attach_both'))),
       );
       return;
     }
@@ -74,9 +75,9 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Payment received. Your request is pending admin approval.'),
-          backgroundColor: Color(0xff10B981),
+        SnackBar(
+          content: Text(AppStrings.tr(context, 'av_payment_received')),
+          backgroundColor: const Color(0xff10B981),
         ),
       );
     }
@@ -94,11 +95,11 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Verification fee',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(AppStrings.t(sheetContext, 'av_fee_title'),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               Text(
-                'A one-time fee of ৳500 is paid to the admin to review and verify your account.',
+                AppStrings.t(sheetContext, 'av_fee_desc'),
                 style: TextStyle(color: colors.textSecondary),
               ),
               const SizedBox(height: 16),
@@ -111,9 +112,9 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Amount payable',
+                    Text(AppStrings.t(sheetContext, 'av_amount_payable'),
                         style: TextStyle(color: colors.textSecondary)),
-                    Text('৳500',
+                    Text('৳${AppStrings.digits(sheetContext, '500')}',
                         style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -128,12 +129,12 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => Navigator.of(sheetContext).pop(true),
                   icon: const Icon(Icons.lock_outline, size: 18),
-                  label: const Text('Pay ৳500 now'),
+                  label: Text(AppStrings.t(sheetContext, 'av_pay_now')),
                 ),
               ),
               const SizedBox(height: 6),
               Center(
-                child: Text('Mock payment — no real charge',
+                child: Text(AppStrings.t(sheetContext, 'av_mock_payment'),
                     style: TextStyle(fontSize: 11, color: colors.textSecondary)),
               ),
             ],
@@ -150,7 +151,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(title: const Text('Account Verification')),
+      appBar: AppBar(title: Text(AppStrings.t(context, 'p_acc_verif'))),
       body: status == VerificationStatus.unverified
           ? _buildForm(colors)
           : _buildStatusView(colors, status),
@@ -169,15 +170,13 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             Icon(verified ? Icons.verified : Icons.hourglass_top, size: 72, color: color),
             const SizedBox(height: 16),
             Text(
-              verified ? 'Your account is verified' : 'Verification pending',
+              AppStrings.t(context, verified ? 'av_verified_title' : 'av_pending_title'),
               style: TextStyle(
                   fontSize: 20, fontWeight: FontWeight.bold, color: colors.textPrimary),
             ),
             const SizedBox(height: 8),
             Text(
-              verified
-                  ? 'You now have the green verified badge across DwellWise.'
-                  : 'We received your details and ৳500 fee. An admin will review and approve your account shortly.',
+              AppStrings.t(context, verified ? 'av_verified_desc' : 'av_pending_desc'),
               textAlign: TextAlign.center,
               style: TextStyle(color: colors.textSecondary),
             ),
@@ -187,7 +186,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
               OutlinedButton.icon(
                 onPressed: () => context.read<UserProvider>().approveVerification(),
                 icon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
-                label: const Text('Simulate admin approval'),
+                label: Text(AppStrings.t(context, 'av_simulate')),
               ),
             ],
           ],
@@ -214,7 +213,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Verify your identity to earn a green badge and unlock more trust from renters. A ৳500 fee applies.',
+                    AppStrings.t(context, 'av_info'),
                     style: TextStyle(fontSize: 13, color: colors.textSecondary),
                   ),
                 ),
@@ -222,28 +221,30 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          _RequiredLabel('Full name (as per NID)', colors),
-          _field(_fullNameController, 'e.g. Isbat Samin', Icons.person_outline),
+          _RequiredLabel(AppStrings.t(context, 'av_fullname'), colors),
+          _field(_fullNameController, AppStrings.t(context, 'av_fullname_hint'),
+              Icons.person_outline),
           const SizedBox(height: 16),
-          _RequiredLabel('NID / Passport number', colors),
-          _field(_nidController, 'e.g. 1990123456789', Icons.badge_outlined,
+          _RequiredLabel(AppStrings.t(context, 'av_nid'), colors),
+          _field(_nidController, AppStrings.t(context, 'av_nid_hint'), Icons.badge_outlined,
               keyboardType: TextInputType.number),
           const SizedBox(height: 16),
-          _RequiredLabel('Date of birth', colors),
+          _RequiredLabel(AppStrings.t(context, 'av_dob'), colors),
           _field(_dobController, 'DD/MM/YYYY', Icons.calendar_today_outlined,
               readOnly: true, onTap: _pickDob),
           const SizedBox(height: 16),
-          _RequiredLabel('Present address', colors),
-          _field(_addressController, 'House, road, area, city', Icons.location_on_outlined,
-              maxLines: 2),
+          _RequiredLabel(AppStrings.t(context, 'av_address'), colors),
+          _field(_addressController, AppStrings.t(context, 'av_address_hint'),
+              Icons.location_on_outlined, maxLines: 2),
           const SizedBox(height: 20),
-          _RequiredLabel('NID photo', colors),
+          _RequiredLabel(AppStrings.t(context, 'av_nid_photo'), colors),
           const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
                 child: _UploadBox(
-                  label: 'Front side',
+                  label: AppStrings.t(context, 'av_front'),
+                  addedSuffix: AppStrings.t(context, 'av_added_suffix'),
                   uploaded: _frontUploaded,
                   colors: colors,
                   onTap: () => setState(() => _frontUploaded = true),
@@ -252,7 +253,8 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _UploadBox(
-                  label: 'Back side',
+                  label: AppStrings.t(context, 'av_back'),
+                  addedSuffix: AppStrings.t(context, 'av_added_suffix'),
                   uploaded: _backUploaded,
                   colors: colors,
                   onTap: () => setState(() => _backUploaded = true),
@@ -271,7 +273,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
                       height: 22,
                       child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                     )
-                  : const Text('Pay ৳500 & Submit for verification'),
+                  : Text(AppStrings.t(context, 'av_submit')),
             ),
           ),
         ],
@@ -295,8 +297,9 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
       readOnly: readOnly,
       onTap: onTap,
       decoration: InputDecoration(hintText: hint, prefixIcon: Icon(icon)),
-      validator: (value) =>
-          (value == null || value.trim().isEmpty) ? 'This field is required' : null,
+      validator: (value) => (value == null || value.trim().isEmpty)
+          ? AppStrings.tr(context, 'field_required')
+          : null,
     );
   }
 }
@@ -328,12 +331,14 @@ class _RequiredLabel extends StatelessWidget {
 /// Tappable dashed-style upload placeholder that flips to a "done" state.
 class _UploadBox extends StatelessWidget {
   final String label;
+  final String addedSuffix;
   final bool uploaded;
   final AppColors colors;
   final VoidCallback onTap;
 
   const _UploadBox({
     required this.label,
+    required this.addedSuffix,
     required this.uploaded,
     required this.colors,
     required this.onTap,
@@ -358,7 +363,7 @@ class _UploadBox extends StatelessWidget {
             Icon(uploaded ? Icons.check_circle : Icons.add_a_photo_outlined,
                 color: accent, size: 28),
             const SizedBox(height: 8),
-            Text(uploaded ? '$label added' : label,
+            Text(uploaded ? '$label $addedSuffix' : label,
                 style: TextStyle(fontSize: 13, color: accent, fontWeight: FontWeight.w600)),
           ],
         ),

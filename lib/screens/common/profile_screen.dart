@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_colors.dart';
+import '../../config/app_strings.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../models/user_model.dart';
 
@@ -20,7 +22,7 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(AppStrings.t(context, 'profile')),
         centerTitle: true,
       ),
       body: ListView(
@@ -34,50 +36,50 @@ class ProfileScreen extends StatelessWidget {
           _MenuTile(
             colors: colors,
             icon: Icons.verified_user_outlined,
-            title: 'Account Verification',
-            subtitle: 'Verify your account to get more benefits',
+            title: AppStrings.t(context, 'p_acc_verif'),
+            subtitle: AppStrings.t(context, 'p_acc_verif_sub'),
             onTap: () => context.push('/profile/verification'),
           ),
           _MenuTile(
             colors: colors,
             icon: Icons.add_home_outlined,
-            title: 'Add property',
-            subtitle: 'Add a property for rent',
+            title: AppStrings.t(context, 'p_add_property'),
+            subtitle: AppStrings.t(context, 'p_add_property_sub'),
             onTap: () => context.push('/profile/add-property'),
           ),
           _MenuTile(
             colors: colors,
             icon: Icons.apartment_outlined,
-            title: 'My properties',
-            subtitle: 'View and manage your added properties',
+            title: AppStrings.t(context, 'p_my_properties'),
+            subtitle: AppStrings.t(context, 'p_my_properties_sub'),
             onTap: () => context.push('/profile/my-properties'),
           ),
           _MenuTile(
             colors: colors,
             icon: Icons.receipt_long_outlined,
-            title: 'Purchase history',
-            subtitle: 'View your purchase history',
+            title: AppStrings.t(context, 'p_purchase_history'),
+            subtitle: AppStrings.t(context, 'p_purchase_history_sub'),
             onTap: () => context.push('/profile/purchase-history'),
           ),
           _MenuTile(
             colors: colors,
             icon: Icons.edit_outlined,
-            title: 'Edit profile',
-            subtitle: 'Edit your profile information',
+            title: AppStrings.t(context, 'p_edit_profile'),
+            subtitle: AppStrings.t(context, 'p_edit_profile_sub'),
             onTap: () => context.push('/profile/edit'),
           ),
           _MenuTile(
             colors: colors,
             icon: Icons.lock_outline,
-            title: 'Change password',
-            subtitle: 'Change your login password',
+            title: AppStrings.t(context, 'p_change_password'),
+            subtitle: AppStrings.t(context, 'p_change_password_sub'),
             onTap: () => context.push('/profile/change-password'),
           ),
           _MenuTile(
             colors: colors,
             icon: Icons.logout,
-            title: 'Logout',
-            subtitle: 'Logout your account',
+            title: AppStrings.t(context, 'p_logout'),
+            subtitle: AppStrings.t(context, 'p_logout_sub'),
             isDestructive: true,
             onTap: () => _confirmLogout(context),
           ),
@@ -93,23 +95,24 @@ class ProfileScreen extends StatelessWidget {
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        title: Text(AppStrings.t(dialogContext, 'logout_confirm_title')),
+        content: Text(AppStrings.t(dialogContext, 'logout_confirm_message')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppStrings.t(dialogContext, 'cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: TextButton.styleFrom(foregroundColor: const Color(0xffDC2626)),
-            child: const Text('Logout'),
+            child: Text(AppStrings.t(dialogContext, 'p_logout')),
           ),
         ],
       ),
     );
 
     if (shouldLogout == true && context.mounted) {
+      context.read<LocaleProvider>().reset();
       await context.read<AuthProvider>().logout();
       if (context.mounted) context.go('/login');
     }
@@ -180,7 +183,7 @@ class _ProfileHeader extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  user?.name ?? 'Guest User',
+                  user?.name ?? AppStrings.t(context, 'guest_user'),
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -221,17 +224,17 @@ class _VerificationChip extends StatelessWidget {
       case VerificationStatus.verified:
         color = const Color(0xff10B981);
         icon = Icons.verified;
-        label = 'Verified account';
+        label = AppStrings.t(context, 'verif_verified');
         break;
       case VerificationStatus.pending:
         color = const Color(0xffF59E0B);
         icon = Icons.hourglass_top;
-        label = 'Verification pending';
+        label = AppStrings.t(context, 'verif_pending');
         break;
       case VerificationStatus.unverified:
         color = const Color(0xff6B7280);
         icon = Icons.gpp_maybe_outlined;
-        label = 'Not verified';
+        label = AppStrings.t(context, 'verif_none');
         break;
     }
 
