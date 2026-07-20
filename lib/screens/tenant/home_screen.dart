@@ -16,7 +16,12 @@ const double kPriceThreshold = 20000;
 
 /// Tenant Home Screen containing search bar, horizontal recently viewed, and infinite scrolling AI recommended items.
 class TenantHomeScreen extends StatefulWidget {
-  const TenantHomeScreen({Key? key}) : super(key: key);
+  final bool showBottomNavigation;
+
+  const TenantHomeScreen({
+    super.key,
+    this.showBottomNavigation = true,
+  });
 
   @override
   State<TenantHomeScreen> createState() => _TenantHomeScreenState();
@@ -78,7 +83,8 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   }
 
   void _scrollListener() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       // Trigger infinite scroll load more
       setState(() {
         _displayedCount += 5;
@@ -93,15 +99,19 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     context.push('/property/${property.id}');
   }
 
-  void _handleSaveToggle(BuildContext context, SavedPropertiesProvider savedProvider, PropertyModel property) {
+  void _handleSaveToggle(BuildContext context,
+      SavedPropertiesProvider savedProvider, PropertyModel property) {
     final isSaved = savedProvider.isSaved(property.id);
     savedProvider.toggleSave(property.id);
 
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(isSaved ? 'Removed from favorites' : 'Added to favorites'),
-        backgroundColor: isSaved ? const Color(0xff6B7280) : const Color(0xff10B981), // Emerald Green on save
+        content:
+            Text(isSaved ? 'Removed from favorites' : 'Added to favorites'),
+        backgroundColor: isSaved
+            ? const Color(0xff6B7280)
+            : const Color(0xff10B981), // Emerald Green on save
         duration: const Duration(seconds: 2),
       ),
     );
@@ -122,9 +132,13 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
           child: Row(
             children: [
               Icon(
-                selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
                 size: 18,
-                color: selected ? const Color(0xff1E40AF) : const Color(0xff9CA3AF),
+                color: selected
+                    ? const Color(0xff1E40AF)
+                    : const Color(0xff9CA3AF),
               ),
               const SizedBox(width: 10),
               Text(
@@ -221,7 +235,8 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                 child: GestureDetector(
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Notifications panel coming soon.')),
+                      const SnackBar(
+                          content: Text('Notifications panel coming soon.')),
                     );
                   },
                   child: Stack(
@@ -282,7 +297,8 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                 children: [
                   // HEADER SECTION
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0, vertical: 20.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
@@ -352,7 +368,8 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                             showDetails: false,
                             isSaved: isSaved,
                             onTap: () => _handlePropertyTap(context, property),
-                            onSaveTap: () => _handleSaveToggle(context, savedProvider, property),
+                            onSaveTap: () => _handleSaveToggle(
+                                context, savedProvider, property),
                           );
                         },
                       ),
@@ -391,7 +408,8 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                       itemCount: _displayedCount,
                       itemBuilder: (context, index) {
                         // Loop indices to support infinite list scrolling simulation
-                        final property = recommendedList[index % recommendedList.length];
+                        final property =
+                            recommendedList[index % recommendedList.length];
                         final isSaved = savedProvider.isSaved(property.id);
 
                         return PropertyCard(
@@ -399,26 +417,32 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                           showDetails: true,
                           isSaved: isSaved,
                           onTap: () => _handlePropertyTap(context, property),
-                          onSaveTap: () => _handleSaveToggle(context, savedProvider, property),
+                          onSaveTap: () => _handleSaveToggle(
+                              context, savedProvider, property),
                         );
                       },
                     )
                   else
                     const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 24.0, vertical: 40.0),
                       child: Center(
                         child: Text(
                           'No properties match this filter.',
-                          style: TextStyle(fontSize: 14, color: Color(0xff6B7280)),
+                          style:
+                              TextStyle(fontSize: 14, color: Color(0xff6B7280)),
                         ),
                       ),
                     ),
 
-                  const SizedBox(height: 120), // Bottom padding to avoid nav overlap
+                  const SizedBox(
+                      height: 120), // Bottom padding to avoid nav overlap
                 ],
               ),
             ),
-      bottomNavigationBar: const BottomNavigation(currentIndex: 0),
+      bottomNavigationBar: widget.showBottomNavigation
+          ? const BottomNavigation(currentIndex: 0)
+          : null,
     );
   }
 }
