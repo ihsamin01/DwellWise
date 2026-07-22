@@ -1,17 +1,134 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../config/app_strings.dart';
+import '../../providers/locale_provider.dart';
+
+/// A single preset FAQ entry with English and Bangla copy.
+class _FaqEntry {
+  final String questionEn;
+  final String questionBn;
+  final String answerEn;
+  final String answerBn;
+
+  const _FaqEntry({
+    required this.questionEn,
+    required this.questionBn,
+    required this.answerEn,
+    required this.answerBn,
+  });
+
+  String question(bool isBangla) => isBangla ? questionBn : questionEn;
+  String answer(bool isBangla) => isBangla ? answerBn : answerEn;
+}
+
+/// A category of FAQ entries (e.g. House Rent, House Listing).
+class _FaqCategory {
+  final String titleEn;
+  final String titleBn;
+  final List<_FaqEntry> entries;
+
+  const _FaqCategory({
+    required this.titleEn,
+    required this.titleBn,
+    required this.entries,
+  });
+
+  String title(bool isBangla) => isBangla ? titleBn : titleEn;
+}
+
+const _faqCategories = <_FaqCategory>[
+  _FaqCategory(
+    titleEn: 'House Rent',
+    titleBn: 'বাসা ভাড়া',
+    entries: [
+      _FaqEntry(
+        questionEn: 'How do I rent a property?',
+        questionBn: 'আমি কীভাবে একটি বাসা ভাড়া নেব?',
+        answerEn:
+            'Go to the Search tab, select your Division, District, Thana and Area, then tap Search. Open any listing you like and tap Message or Contact Owner to arrange a viewing.',
+        answerBn:
+            'সার্চ ট্যাবে গিয়ে আপনার বিভাগ, জেলা, থানা ও এলাকা নির্বাচন করে Search চাপুন। পছন্দের লিস্টিং খুলে Message অথবা Contact Owner চেপে বাড়িওয়ালার সাথে যোগাযোগ করুন।',
+      ),
+      _FaqEntry(
+        questionEn: 'How do I contact a property owner?',
+        questionBn: 'আমি কীভাবে বাড়িওয়ালার সাথে যোগাযোগ করব?',
+        answerEn:
+            'Open the property\'s details page and tap the Message button — this starts a direct chat with that listing\'s owner inside the app.',
+        answerBn:
+            'লিস্টিং-এর বিস্তারিত পেজে গিয়ে Message বাটনে চাপুন — এতে ওই বাড়ির মালিকের সাথে সরাসরি চ্যাট শুরু হবে।',
+      ),
+      _FaqEntry(
+        questionEn: 'What should I check before renting?',
+        questionBn: 'ভাড়া নেওয়ার আগে কী কী যাচাই করা উচিত?',
+        answerEn:
+            'Verify the owner\'s identity, visit the property in person if possible, check the "Verified" badge on the listing, and confirm rent, advance, and utility terms in writing before paying anything.',
+        answerBn:
+            'বাড়িওয়ালার পরিচয় যাচাই করুন, সম্ভব হলে সরাসরি বাসা দেখে আসুন, লিস্টিং-এ "Verified" ব্যাজ আছে কিনা দেখুন, এবং টাকা দেওয়ার আগে ভাড়া, অগ্রিম ও ইউটিলিটি বিল সংক্রান্ত শর্তাবলী লিখিতভাবে নিশ্চিত করুন।',
+      ),
+      _FaqEntry(
+        questionEn: 'How does the advance/deposit work?',
+        questionBn: 'অগ্রিম/জামানত কীভাবে কাজ করে?',
+        answerEn:
+            'DwellWise does not collect or hold any advance or deposit. Any advance payment is arranged and paid directly between you and the property owner — always get a receipt.',
+        answerBn:
+            'DwellWise কোনো অগ্রিম বা জামানত সংগ্রহ করে না বা নিজের কাছে রাখে না। যেকোনো অগ্রিম পেমেন্ট সরাসরি আপনার ও বাড়িওয়ালার মধ্যে হয় — সবসময় রসিদ নিয়ে রাখুন।',
+      ),
+    ],
+  ),
+  _FaqCategory(
+    titleEn: 'House Listing',
+    titleBn: 'বাড়ি লিস্টিং',
+    entries: [
+      _FaqEntry(
+        questionEn: 'How do I list my property?',
+        questionBn: 'আমি কীভাবে আমার বাড়ি লিস্ট করব?',
+        answerEn:
+            'Switch to Landlord view from your profile, then tap "Add Property" and fill in the details, photos, and rent amount to publish your listing.',
+        answerBn:
+            'প্রোফাইল থেকে Landlord ভিউতে সুইচ করুন, এরপর "Add Property"-তে চেপে বিবরণ, ছবি ও ভাড়ার পরিমাণ দিয়ে আপনার লিস্টিং প্রকাশ করুন।',
+      ),
+      _FaqEntry(
+        questionEn: 'How do I edit or remove my listing?',
+        questionBn: 'আমি কীভাবে আমার লিস্টিং এডিট বা মুছে ফেলব?',
+        answerEn:
+            'Go to My Properties from your Landlord dashboard, open the listing you want to change, and use the Edit or Remove option there.',
+        answerBn:
+            'Landlord ড্যাশবোর্ড থেকে My Properties-এ যান, যে লিস্টিংটি পরিবর্তন করতে চান সেটি খুলুন, এবং সেখান থেকে Edit বা Remove অপশন ব্যবহার করুন।',
+      ),
+      _FaqEntry(
+        questionEn: 'How do I get my listing verified?',
+        questionBn: 'আমার লিস্টিং কীভাবে ভেরিফাই করাবো?',
+        answerEn:
+            'Submit clear property photos and accurate address details when creating your listing. Our team reviews new listings and adds the "Verified" badge once confirmed.',
+        answerBn:
+            'লিস্টিং তৈরি করার সময় স্পষ্ট ছবি ও সঠিক ঠিকানা দিন। আমাদের টিম নতুন লিস্টিং পর্যালোচনা করে নিশ্চিত হলে "Verified" ব্যাজ যুক্ত করে দেয়।',
+      ),
+      _FaqEntry(
+        questionEn: 'How do I report a fake listing?',
+        questionBn: 'আমি কীভাবে ভুয়া লিস্টিং রিপোর্ট করব?',
+        answerEn:
+            'Open the listing and use the Contact Us page to report it with the reason. Our moderation team reviews all reports within 24 hours.',
+        answerBn:
+            'লিস্টিংটি খুলে Contact Us পেজ থেকে কারণসহ রিপোর্ট করুন। আমাদের মডারেশন টিম ২৪ ঘণ্টার মধ্যে সব রিপোর্ট পর্যালোচনা করে।',
+      ),
+    ],
+  ),
+];
 
 /// A single message bubble in the support chat.
 class _SupportMessage {
   final String text;
   final bool isUser;
-  final DateTime time;
 
-  _SupportMessage({required this.text, required this.isUser, required this.time});
+  _SupportMessage({required this.text, required this.isUser});
 }
 
-/// FAQ-driven, chatbot-styled support center. Bot replies are canned locally
-/// today via [_SupportBot.reply]; swapping that method for a real API/AI
-/// call is the only change needed for live support later.
+/// Chatbot-styled support center — same conversation-thread look as before,
+/// but every message comes from a fixed House Rent / House Listing preset;
+/// there is no free-text input, so users can only pick from the allowed
+/// questions. Content switches to Bangla automatically when that's the
+/// selected app language.
 class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
 
@@ -19,59 +136,26 @@ class HelpSupportScreen extends StatefulWidget {
   State<HelpSupportScreen> createState() => _HelpSupportScreenState();
 }
 
-/// Canned response lookup — isolated so it can be swapped for a real
-/// AI/API-backed implementation without touching the UI layer.
-class _SupportBot {
-  static const _responses = <String, String>{
-    'rent a property':
-        'Browse listings from the Search tab, tap a property you like to view its details, then use the Message or Contact Owner button to arrange a viewing.',
-    'contact an owner':
-        'Open any property\'s details page and tap the Message button — this starts a direct chat with that listing\'s owner.',
-    'report a listing':
-        'Open the listing and use Contact Us to flag it to our team with the reason. Our moderators review reports within 24 hours.',
-    'payment':
-        'DwellWise does not process rent payments directly — deposits and rent are arranged between you and the owner. For billing questions, reach out via Contact Us.',
-    'account':
-        'For login, verification, or profile issues, check Account & Security in your profile menu first. Still stuck? Email support@dwellwise.com.',
-  };
-
-  static String reply(String question) {
-    final lower = question.toLowerCase();
-    for (final entry in _responses.entries) {
-      if (lower.contains(entry.key)) return entry.value;
-    }
-    return 'Thanks for reaching out! Our support team will get back to you shortly. For urgent matters, please use the Contact Us page.';
-  }
-}
-
 class _HelpSupportScreenState extends State<HelpSupportScreen> {
-  final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<_SupportMessage> _messages = [];
-
-  static const _quickQuestions = [
-    'How do I rent a property?',
-    'How do I contact an owner?',
-    'How do I report a listing?',
-    'Payment issues',
-    'Account issues',
-  ];
 
   @override
   void initState() {
     super.initState();
+    final isBangla = context.read<LocaleProvider>().language == AppLanguage.bangla;
     _messages.add(
       _SupportMessage(
-        text: 'Hi! I\'m the DwellWise support bot. Ask a question below or tap one of the quick topics.',
+        text: isBangla
+            ? 'হাই! আমি DwellWise সাপোর্ট বট। নিচের যেকোনো প্রিসেট প্রশ্নে চাপুন উত্তর দেখতে।'
+            : 'Hi! I\'m the DwellWise support bot. Tap a preset question below to see the answer.',
         isUser: false,
-        time: DateTime.now(),
       ),
     );
   }
 
   @override
   void dispose() {
-    _inputController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -87,20 +171,16 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     });
   }
 
-  void _sendMessage(String text) {
-    final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
-
+  void _askPreset(_FaqEntry faq, bool isBangla) {
     setState(() {
-      _messages.add(_SupportMessage(text: trimmed, isUser: true, time: DateTime.now()));
+      _messages.add(_SupportMessage(text: faq.question(isBangla), isUser: true));
     });
-    _inputController.clear();
     _scrollToBottom();
 
     Future.delayed(const Duration(milliseconds: 500), () {
       if (!mounted) return;
       setState(() {
-        _messages.add(_SupportMessage(text: _SupportBot.reply(trimmed), isUser: false, time: DateTime.now()));
+        _messages.add(_SupportMessage(text: faq.answer(isBangla), isUser: false));
       });
       _scrollToBottom();
     });
@@ -108,8 +188,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isBangla = context.watch<LocaleProvider>().language == AppLanguage.bangla;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Help & Support')),
+      appBar: AppBar(title: Text(AppStrings.t(context, 'menu_help'))),
       body: SafeArea(
         child: Column(
           children: [
@@ -118,27 +200,47 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Frequently Asked Questions',
+                  isBangla ? 'সচরাচর জিজ্ঞাসিত প্রশ্ন' : 'Frequently Asked Questions',
                   style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
                 ),
               ),
             ),
-            SizedBox(
-              height: 40,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _quickQuestions.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final question = _quickQuestions[index];
-                  return ActionChip(
-                    label: Text(question),
-                    onPressed: () => _sendMessage(question),
-                  );
-                },
+            for (final category in _faqCategories)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                      child: Text(
+                        category.title(isBangla),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 40,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: category.entries.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (context, index) {
+                          final faq = category.entries[index];
+                          return ActionChip(
+                            label: Text(faq.question(isBangla)),
+                            onPressed: () => _askPreset(faq, isBangla),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
             const Divider(height: 20),
             Expanded(
               child: ListView.builder(
@@ -168,33 +270,6 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                     ),
                   );
                 },
-              ),
-            ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _inputController,
-                        decoration: InputDecoration(
-                          hintText: 'Type your question...',
-                          filled: true,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        ),
-                        onSubmitted: _sendMessage,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton.filled(
-                      onPressed: () => _sendMessage(_inputController.text),
-                      icon: const Icon(Icons.send),
-                    ),
-                  ],
-                ),
               ),
             ),
           ],
