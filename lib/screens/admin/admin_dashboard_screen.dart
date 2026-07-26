@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../widgets/exit_confirmation.dart';
+
 /// Screen representing administrative statistics dashboard.
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ExitConfirmationScope(
+      child: Scaffold(
       appBar: AppBar(title: const Text('Admin Dashboard')),
       body: ListView(
         padding: const EdgeInsets.all(24.0),
@@ -38,7 +41,7 @@ class AdminDashboardScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildControlTile(

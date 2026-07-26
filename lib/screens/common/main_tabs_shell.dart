@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/chat_provider.dart';
 import '../../widgets/bottom_navigation.dart';
+import '../../widgets/exit_confirmation.dart';
 import '../chat/chats_screen.dart';
 import '../common/profile_screen.dart';
 import '../tenant/home_screen.dart';
@@ -35,25 +37,41 @@ class _MainTabsShellState extends State<MainTabsShell> {
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
 
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: const [
-          TenantHomeScreen(showBottomNavigation: false),
-          TenantSearchScreen(showBottomNavigation: false),
-          TenantSavedScreen(showBottomNavigation: false),
-          ChatsScreen(),
-          ProfileScreen(),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigation(
-        currentIndex: _currentIndex,
-        messagesUnreadCount: chatProvider.unreadConversationCount,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        // From a non-home tab, back returns to the Home tab first.
+        if (_currentIndex != 0) {
+          setState(() => _currentIndex = 0);
+          return;
+        }
+        // On the Home tab, back asks to exit the app.
+        final shouldExit = await showExitConfirmationDialog(context);
+        if (shouldExit) {
+          await SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: const [
+            TenantHomeScreen(showBottomNavigation: false),
+            TenantSearchScreen(showBottomNavigation: false),
+            TenantSavedScreen(showBottomNavigation: false),
+            ChatsScreen(),
+            ProfileScreen(),
+          ],
+        ),
+        bottomNavigationBar: BottomNavigation(
+          currentIndex: _currentIndex,
+          messagesUnreadCount: chatProvider.unreadConversationCount,
+          onDestinationSelected: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+        ),
       ),
     );
   }

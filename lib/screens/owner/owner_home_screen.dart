@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/user_provider.dart';
 import '../../models/user_model.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/exit_confirmation.dart';
 
 /// Landing screen for landlords displaying metrics dashboard and quick shortcuts.
 class OwnerHomeScreen extends StatelessWidget {
@@ -13,7 +14,8 @@ class OwnerHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final userProvider = context.watch<UserProvider>();
 
-    return Scaffold(
+    return ExitConfirmationScope(
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('DwellWise Landlord'),
         actions: [
@@ -88,7 +90,7 @@ class OwnerHomeScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildMetricCard(String title, String val, IconData icon) {
