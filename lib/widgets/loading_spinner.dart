@@ -13,7 +13,7 @@ class LoadingSpinner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeColor = color ?? const Color(0xff1E40AF);
+    final themeColor = color ?? const Color(0xff1877F2);
     
     return Center(
       child: SizedBox(

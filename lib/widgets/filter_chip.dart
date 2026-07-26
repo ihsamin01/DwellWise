@@ -20,7 +20,7 @@ class DwellFilterChip extends StatelessWidget {
       label: Text(label),
       selected: isSelected,
       onSelected: onSelected,
-      selectedColor: const Color(0xff1E40AF),
+      selectedColor: const Color(0xff1877F2),
       backgroundColor: colorScheme.surfaceContainerHighest,
       checkmarkColor: Colors.white,
       labelStyle: TextStyle(
@@ -31,7 +31,7 @@ class DwellFilterChip extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(
-          color: isSelected ? const Color(0xff1E40AF) : colorScheme.outlineVariant,
+          color: isSelected ? const Color(0xff1877F2) : colorScheme.outlineVariant,
         ),
       ),
     );

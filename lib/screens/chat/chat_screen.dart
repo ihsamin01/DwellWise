@@ -398,6 +398,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -410,22 +411,22 @@ class _ChatScreenState extends State<ChatScreen> {
                           shape: BoxShape.circle,
                           color: chat?.isOnline == true
                               ? const Color(0xff22C55E)
-                              : theme.colorScheme.outline,
+                              : Colors.white54,
                         ),
                       ),
                       const SizedBox(width: 6),
                       Text(
                         chat?.isOnline == true ? 'Active now' : 'Offline',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                          color: Colors.white70,
                         ),
                       ),
                       if (chat?.isMuted == true) ...[
                         const SizedBox(width: 8),
-                        Icon(
+                        const Icon(
                           Icons.notifications_off_outlined,
                           size: 16,
-                          color: theme.colorScheme.onSurfaceVariant,
+                          color: Colors.white70,
                         ),
                       ],
                     ],

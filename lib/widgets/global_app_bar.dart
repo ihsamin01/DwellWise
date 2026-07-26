@@ -42,7 +42,7 @@ class GlobalAppBar extends StatelessWidget implements PreferredSizeWidget {
               Text(
                 'DwellWise',
                 style: TextStyle(
-                  color: Color(0xff1E40AF), // Primary Blue
+                  color: Color(0xff1877F2), // Primary Blue
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.5,

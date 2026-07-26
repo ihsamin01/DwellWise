@@ -44,7 +44,7 @@ class _TenantMapViewScreenState extends State<TenantMapViewScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.map_outlined, size: 64, color: Color(0xff1E40AF)),
+                        const Icon(Icons.map_outlined, size: 64, color: Color(0xff1877F2)),
                         const SizedBox(height: 16),
                         const Text(
                           'Map preview is disabled',
@@ -86,7 +86,7 @@ class _TenantMapViewScreenState extends State<TenantMapViewScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Color(0xff1E40AF)),
+                    Icon(Icons.info_outline, color: Color(0xff1877F2)),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(

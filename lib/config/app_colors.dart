@@ -36,7 +36,7 @@ class AppColors {
     textPrimary: Color(0xff1F2937),
     textSecondary: Color(0xff6B7280),
     placeholder: Color(0xffE5E7EB),
-    primary: Color(0xff1E40AF),
+    primary: Color(0xff1877F2),
     primaryTint: Color(0xffEFF6FF),
   );
 

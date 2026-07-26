@@ -5,8 +5,8 @@ class AppTheme {
   AppTheme._();
 
   // Colors specified in the requirements
-  static const Color primaryColor = Color(0xff1E40AF); // Brand Blue (logo)
-  static const Color primaryDark = Color(0xff1E3A8A);  // Deeper blue for gradients
+  static const Color primaryColor = Color(0xff1877F2); // Brand Blue (logo)
+  static const Color primaryDark = Color(0xff0C5AD1);  // Deeper blue for gradients
   static const Color accentColor = Color(0xffF59E0B);  // Warm Amber
   static const Color successColor = Color(0xff10B981); // Emerald
   static const Color errorColor = Color(0xffEF4444);   // Soft Red

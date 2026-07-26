@@ -128,8 +128,8 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const gradientTop = Color(0xff1E40AF);
-    const gradientBottom = Color(0xff1E3A8A);
+    const gradientTop = Color(0xff1877F2);
+    const gradientBottom = Color(0xff0C5AD1);
 
     return Container(
       width: double.infinity,
