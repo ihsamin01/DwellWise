@@ -727,52 +727,86 @@ class GridItemFacilities extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    // Standard list to draw grid items
     final list = facilities.isEmpty ? ['WiFi', 'Parking', 'Gym', 'Security'] : facilities;
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 3.5,
-      ),
-      itemCount: list.length,
-      itemBuilder: (context, index) {
-        final fac = list[index];
-        IconData facIcon = Icons.star;
-        if (fac.toLowerCase() == 'wifi') facIcon = Icons.wifi;
-        if (fac.toLowerCase() == 'parking') facIcon = Icons.local_parking;
-        if (fac.toLowerCase() == 'gym') facIcon = Icons.fitness_center;
-        if (fac.toLowerCase() == 'lift') facIcon = Icons.elevator;
-        if (fac.toLowerCase() == 'backup') facIcon = Icons.power;
-        if (fac.toLowerCase() == 'security') facIcon = Icons.security;
-        if (fac.toLowerCase() == 'gas') facIcon = Icons.local_fire_department;
+    // Render facilities as rows of two so the card wraps its content exactly
+    // (a shrink-wrapped GridView reserves extra vertical space).
+    final rows = <Widget>[];
+    for (var i = 0; i < list.length; i += 2) {
+      final hasSecond = i + 1 < list.length;
+      rows.add(
+        Padding(
+          padding: EdgeInsets.only(bottom: i + 2 < list.length ? 14 : 0),
+          child: Row(
+            children: [
+              Expanded(child: _tile(colors, list[i])),
+              const SizedBox(width: 12),
+              Expanded(
+                child: hasSecond ? _tile(colors, list[i + 1]) : const SizedBox(),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
-        return Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: colors.primaryTint,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(facIcon, color: colors.primary, size: 20),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: rows,
+    );
+  }
+
+  Widget _tile(AppColors colors, String fac) {
+    IconData facIcon = Icons.star;
+    switch (fac.toLowerCase()) {
+      case 'wifi':
+        facIcon = Icons.wifi;
+        break;
+      case 'parking':
+      case 'garage':
+        facIcon = Icons.local_parking;
+        break;
+      case 'gym':
+        facIcon = Icons.fitness_center;
+        break;
+      case 'lift':
+        facIcon = Icons.elevator;
+        break;
+      case 'backup':
+        facIcon = Icons.power;
+        break;
+      case 'security':
+      case 'cctv':
+        facIcon = Icons.security;
+        break;
+      case 'gas':
+        facIcon = Icons.local_fire_department;
+        break;
+    }
+
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: colors.primaryTint,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(facIcon, color: colors.primary, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            fac,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              color: colors.textPrimary,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(width: 12),
-            Text(
-              fac,
-              style: TextStyle(
-                fontSize: 12,
-                color: colors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        );
-      },
+          ),
+        ),
+      ],
     );
   }
 }
