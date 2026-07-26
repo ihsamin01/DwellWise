@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_colors.dart';
@@ -467,32 +468,41 @@ class _GoogleSignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 48,
+        height: 52,
         decoration: BoxDecoration(
-          color: colors.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: colors.border),
+          border: Border.all(color: const Color(0xffDADCE0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
         alignment: Alignment.center,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.g_mobiledata_rounded,
-              color: colors.primary,
-              size: 32,
+            SvgPicture.asset(
+              'assets/icons/google_g.svg',
+              width: 20,
+              height: 20,
             ),
-            const SizedBox(width: 8),
-            Text(
-              'Google',
+            const SizedBox(width: 12),
+            const Text(
+              'Continue with Google',
               style: TextStyle(
-                color: colors.primary,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+                // Google brand guideline text colour (dark grey), fixed
+                // regardless of app theme so the button reads as official.
+                color: Color(0xff3C4043),
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                fontFamily: 'Roboto',
               ),
             ),
           ],
