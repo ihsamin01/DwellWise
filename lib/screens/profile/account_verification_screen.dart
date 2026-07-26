@@ -164,7 +164,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
   Widget _buildStatusView(AppColors colors, VerificationStatus status) {
     final verified = status == VerificationStatus.verified;
-    final color = verified ? const Color(0xff10B981) : const Color(0xffF59E0B);
+    final color = verified ? const Color(0xff10B981) : const Color(0xff1877F2);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(28),

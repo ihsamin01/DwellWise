@@ -40,7 +40,7 @@ class OwnerInquiriesScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(tenantName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const Text('Pending', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+                const Text('Pending', style: TextStyle(color: Color(0xff1877F2), fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 4),

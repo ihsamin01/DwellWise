@@ -197,7 +197,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                     const SizedBox(height: 12),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xffF59E0B), // CTA Orange
+                        backgroundColor: const Color(0xff1877F2), // CTA Orange
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -411,7 +411,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                 // 3. SEARCH BUTTON
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xffF59E0B), // CTA Orange
+                    backgroundColor: const Color(0xff1877F2), // CTA Orange
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8)),
                     padding: const EdgeInsets.symmetric(vertical: 13),

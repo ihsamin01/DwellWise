@@ -417,7 +417,7 @@ class _CTAButtonState extends State<_CTAButton> {
 
   @override
   Widget build(BuildContext context) {
-    Color bg = const Color(0xffF59E0B); // CTA Orange
+    Color bg = const Color(0xff1877F2); // CTA Orange
     if (_isPressed) {
       bg = const Color(0xffE59E0B); // Pressed Darker Orange
     }

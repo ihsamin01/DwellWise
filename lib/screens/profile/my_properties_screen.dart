@@ -307,7 +307,7 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isVerified ? const Color(0xff10B981) : const Color(0xffF59E0B);
+    final color = isVerified ? const Color(0xff10B981) : const Color(0xff1877F2);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

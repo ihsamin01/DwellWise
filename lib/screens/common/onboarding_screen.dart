@@ -93,7 +93,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   width: _currentIndex == index ? 24 : 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: _currentIndex == index ? const Color(0xffF59E0B) : colors.border,
+                    color: _currentIndex == index ? const Color(0xff1877F2) : colors.border,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 );

@@ -384,7 +384,7 @@ class _ImageCarouselState extends State<_ImageCarousel> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: _currentIndex == index
-                        ? const Color(0xffF59E0B)
+                        ? const Color(0xff1877F2)
                         : Colors.white.withOpacity(0.5),
                   ),
                 );

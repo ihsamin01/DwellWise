@@ -179,7 +179,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
                 height: 48,
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 decoration: BoxDecoration(
-                  color: const Color(0xffF59E0B), // CTA Orange
+                  color: const Color(0xff1877F2), // CTA Orange
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,

@@ -17,7 +17,7 @@ class TenantInquiriesScreen extends StatelessWidget {
             area: 'Gulshan 2',
             price: '1,20,000 BDT',
             status: 'Pending Review',
-            statusColor: Colors.amber,
+            statusColor: Color(0xff1877F2),
           ),
           const SizedBox(height: 16),
           _buildInquiryCard(

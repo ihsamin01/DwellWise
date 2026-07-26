@@ -16,7 +16,7 @@ class RatingWidget extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.star, color: const Color(0xffF59E0B), size: iconSize),
+        Icon(Icons.star, color: const Color(0xff1877F2), size: iconSize),
         const SizedBox(width: 4),
         Text(
           rating.toStringAsFixed(1),

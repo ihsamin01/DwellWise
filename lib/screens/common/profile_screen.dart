@@ -227,7 +227,7 @@ class _VerificationChip extends StatelessWidget {
         label = AppStrings.t(context, 'verif_verified');
         break;
       case VerificationStatus.pending:
-        color = const Color(0xffF59E0B);
+        color = const Color(0xff1877F2);
         icon = Icons.hourglass_top;
         label = AppStrings.t(context, 'verif_pending');
         break;

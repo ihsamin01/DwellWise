@@ -141,7 +141,7 @@ class TenantRecentlyViewedScreen extends StatelessWidget {
                 height: 48,
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 decoration: BoxDecoration(
-                  color: const Color(0xffF59E0B),
+                  color: const Color(0xff1877F2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,

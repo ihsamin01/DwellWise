@@ -38,7 +38,7 @@ class OwnerListingDetailsScreen extends StatelessWidget {
                 Text(
                   'STATUS: ${property.isVerified ? "VERIFIED" : "PENDING AUDIT"}',
                   style: TextStyle(
-                    color: property.isVerified ? const Color(0xff10B981) : Colors.amber,
+                    color: property.isVerified ? const Color(0xff10B981) : Color(0xff1877F2),
                     fontWeight: FontWeight.bold,
                   ),
                 ),

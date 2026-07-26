@@ -538,7 +538,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                       child: Container(
                         height: 48,
                         decoration: BoxDecoration(
-                          color: const Color(0xffF59E0B), // CTA Orange
+                          color: const Color(0xff1877F2), // CTA Orange
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -581,7 +581,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
       } else {
         icon = Icons.star_border;
       }
-      return Icon(icon, color: Colors.amber, size: 14);
+      return Icon(icon, color: Color(0xff1877F2), size: 14);
     });
   }
 
@@ -680,7 +680,7 @@ class _DetailsCarouselState extends State<_DetailsCarousel> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: _currentIndex == index
-                        ? const Color(0xffF59E0B)
+                        ? const Color(0xff1877F2)
                         : Colors.white.withOpacity(0.5),
                   ),
                 );

@@ -79,10 +79,10 @@ class AccountSecurityScreen extends StatelessWidget {
         avatar: Icon(
           verified ? Icons.check_circle : Icons.hourglass_bottom,
           size: 16,
-          color: verified ? const Color(0xff10B981) : const Color(0xffF59E0B),
+          color: verified ? const Color(0xff10B981) : const Color(0xff1877F2),
         ),
-        backgroundColor: (verified ? const Color(0xff10B981) : const Color(0xffF59E0B)).withOpacity(0.1),
-        labelStyle: TextStyle(color: verified ? const Color(0xff10B981) : const Color(0xffF59E0B)),
+        backgroundColor: (verified ? const Color(0xff10B981) : const Color(0xff1877F2)).withOpacity(0.1),
+        labelStyle: TextStyle(color: verified ? const Color(0xff10B981) : const Color(0xff1877F2)),
         side: BorderSide.none,
       ),
     );

@@ -69,7 +69,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
                 onPressed: () => setState(() => _selectedRating = starIndex),
                 icon: Icon(
                   starIndex <= _selectedRating ? Icons.star : Icons.star_border,
-                  color: Colors.amber,
+                  color: Color(0xff1877F2),
                 ),
               );
             }),
@@ -117,7 +117,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
                         (i) => Icon(
                           i < review.rating ? Icons.star : Icons.star_border,
                           size: 16,
-                          color: Colors.amber,
+                          color: Color(0xff1877F2),
                         ),
                       ),
                     ),
