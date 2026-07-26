@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_colors.dart';
 import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
@@ -51,6 +52,17 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
       sharePositionOrigin:
           box == null ? null : box.localToGlobal(Offset.zero) & box.size,
     );
+  }
+
+  /// Opens the phone's default dialer with the owner's number pre-filled.
+  Future<void> _callOwner(BuildContext context, String phone) async {
+    final uri = Uri(scheme: 'tel', path: phone.replaceAll(' ', ''));
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the dialer.')),
+      );
+    }
   }
 
   Future<void> _openInMaps(BuildContext context, PropertyModel property) async {
@@ -546,15 +558,11 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                   // Contact Owner Phone Button
                   Expanded(
                     child: GestureDetector(
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Calling Owner: ${owner.phone}')),
-                        );
-                      },
+                      onTap: () => _callOwner(context, owner.phone),
                       child: Container(
                         height: 48,
                         decoration: BoxDecoration(
-                          color: const Color(0xff1877F2), // CTA Orange
+                          color: const Color(0xff1877F2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
