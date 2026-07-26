@@ -18,7 +18,8 @@
     <application
         android:label="dwell_wise"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="false">
 
         <!-- Google Maps API key.
              The in-app embedded google_maps_flutter map needs a real key to
