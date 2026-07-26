@@ -38,11 +38,29 @@ dependencies:
   intl: ^0.19.0
   cached_network_image: ^3.3.0
   image_picker: ^1.0.0
+  file_picker: ^10.0.0
+  record: ^7.1.1
+  audioplayers: ^6.8.1
+  geolocator: ^14.0.3
+  emoji_picker_flutter: ^4.5.3
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
 
+# file_picker's Windows code needs win32 ^5 while geolocator (via the unused
+# geolocator_linux -> package_info_plus 10 chain) pulls win32 ^6. Both packages'
+# Windows Dart gets type-checked even for an Android build, and no single win32
+# satisfies both. We force win32 5 + an older win32-5-compatible package_info_plus
+# so everything compiles for Android. These are desktop-only plugins we don't
+# ship, so this only matters if we ever target Windows/Linux desktop.
+dependency_overrides:
+  win32: ^5.13.0
+  package_info_plus: ^8.0.0
+
 flutter:
   uses-material-design: true
+  assets:
+    - assets/gifs/

@@ -1,10 +1,17 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/chat_message_model.dart';
 import '../../models/chat_model.dart';
 import '../../providers/chat_provider.dart';
+import '../../services/chat_attachment_service.dart';
+import '../../widgets/emoji_sticker_picker.dart';
+import '../../widgets/voice_message_bubble.dart';
 
 /// Messenger-style conversation screen for a single chat thread.
 class ChatScreen extends StatefulWidget {
@@ -24,11 +31,26 @@ class _ChatScreenState extends State<ChatScreen> {
 
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _inputFocus = FocusNode();
+  final ChatAttachmentService _attachments = ChatAttachmentService();
+
   int _lastRenderedMessageCount = -1;
+  bool _showEmojiPicker = false;
+
+  // Voice recording state.
+  bool _isRecording = false;
+  Duration _recordDuration = Duration.zero;
+  Timer? _recordTimer;
 
   @override
   void initState() {
     super.initState();
+
+    _inputFocus.addListener(() {
+      if (_inputFocus.hasFocus && _showEmojiPicker) {
+        setState(() => _showEmojiPicker = false);
+      }
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
@@ -42,10 +64,15 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _recordTimer?.cancel();
+    _attachments.dispose();
     _messageController.dispose();
     _scrollController.dispose();
+    _inputFocus.dispose();
     super.dispose();
   }
+
+  ChatProvider get _provider => context.read<ChatProvider>();
 
   void _sendTextMessage() {
     final text = _messageController.text.trim();
@@ -53,21 +80,8 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    context
-        .read<ChatProvider>()
-        .sendMessage(widget.chatId, _currentUserId, text);
+    _provider.sendMessage(widget.chatId, _currentUserId, text);
     _messageController.clear();
-    _scrollToBottom();
-  }
-
-  void _sendAttachmentMessage(
-      {required String label, required String attachmentUrl}) {
-    context.read<ChatProvider>().sendMessage(
-          widget.chatId,
-          _currentUserId,
-          label,
-          attachmentUrl: attachmentUrl,
-        );
     _scrollToBottom();
   }
 
@@ -85,8 +99,88 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  // ── Emoji / stickers ────────────────────────────────────────────────────
+  void _toggleEmojiPicker() {
+    if (_showEmojiPicker) {
+      setState(() => _showEmojiPicker = false);
+      _inputFocus.requestFocus();
+    } else {
+      FocusScope.of(context).unfocus();
+      setState(() => _showEmojiPicker = true);
+    }
+  }
+
+  void _onStickerSelected(StickerItem sticker) {
+    _provider.sendSticker(
+      widget.chatId,
+      _currentUserId,
+      assetPath: sticker.assetPath,
+      emoji: sticker.emoji,
+    );
+    _scrollToBottom();
+  }
+
+  // ── Attachments ─────────────────────────────────────────────────────────
+  Future<void> _pickCamera() async {
+    try {
+      final photo = await _attachments.pickCameraPhoto();
+      if (photo == null) return;
+      _provider.sendAttachment(widget.chatId, _currentUserId,
+          path: photo.path, fileName: photo.name, type: MessageType.image);
+      _scrollToBottom();
+    } catch (e) {
+      _snack('Could not open camera: $e');
+    }
+  }
+
+  Future<void> _pickGallery() async {
+    try {
+      final image = await _attachments.pickGalleryImage();
+      if (image == null) return;
+      _provider.sendAttachment(widget.chatId, _currentUserId,
+          path: image.path, fileName: image.name, type: MessageType.image);
+      _scrollToBottom();
+    } catch (e) {
+      _snack('Could not open gallery: $e');
+    }
+  }
+
+  Future<void> _pickDocument() async {
+    try {
+      final doc = await _attachments.pickDocument();
+      if (doc == null) return;
+      final type =
+          doc.name.toLowerCase().endsWith('.pdf') ? MessageType.pdf : MessageType.file;
+      _provider.sendAttachment(widget.chatId, _currentUserId,
+          path: doc.path, fileName: doc.name, type: type);
+      _scrollToBottom();
+    } catch (e) {
+      _snack('Could not pick document: $e');
+    }
+  }
+
+  Future<void> _shareLocation() async {
+    _snack('Getting your location…');
+    try {
+      final pos = await _attachments.getCurrentLocation();
+      _provider.sendLocation(widget.chatId, _currentUserId,
+          latitude: pos.latitude, longitude: pos.longitude);
+      _scrollToBottom();
+    } on LocationException catch (e) {
+      _snack(e.message);
+    } catch (e) {
+      _snack('Could not get location: $e');
+    }
+  }
+
   void _showAttachmentSheet() {
-    final provider = context.read<ChatProvider>();
+    FocusScope.of(context).unfocus();
     final theme = Theme.of(context);
 
     showModalBottomSheet<void>(
@@ -95,62 +189,112 @@ class _ChatScreenState extends State<ChatScreen> {
       backgroundColor: theme.colorScheme.surface,
       builder: (sheetContext) {
         return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.image_outlined),
-                title: const Text('Send image'),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  provider.sendMessage(widget.chatId, _currentUserId, 'Photo',
-                      attachmentUrl: 'photo.jpg');
-                  _scrollToBottom();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.picture_as_pdf_outlined),
-                title: const Text('Send PDF'),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  provider.sendMessage(
-                      widget.chatId, _currentUserId, 'Document',
-                      attachmentUrl: 'document.pdf');
-                  _scrollToBottom();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt_outlined),
-                title: const Text('Open camera'),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  provider.sendMessage(
-                      widget.chatId, _currentUserId, 'Camera photo',
-                      attachmentUrl: 'camera.jpg');
-                  _scrollToBottom();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Open gallery'),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  provider.sendMessage(
-                      widget.chatId, _currentUserId, 'Gallery image',
-                      attachmentUrl: 'gallery.jpg');
-                  _scrollToBottom();
-                },
-              ),
-              const SizedBox(height: 12),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Share',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 20,
+                  runSpacing: 18,
+                  children: [
+                    _AttachOption(
+                      icon: Icons.camera_alt_rounded,
+                      label: 'Camera',
+                      color: const Color(0xffEF4444),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        _pickCamera();
+                      },
+                    ),
+                    _AttachOption(
+                      icon: Icons.photo_library_rounded,
+                      label: 'Gallery',
+                      color: const Color(0xff8B5CF6),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        _pickGallery();
+                      },
+                    ),
+                    _AttachOption(
+                      icon: Icons.picture_as_pdf_rounded,
+                      label: 'Document',
+                      color: const Color(0xff0EA5E9),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        _pickDocument();
+                      },
+                    ),
+                    _AttachOption(
+                      icon: Icons.location_on_rounded,
+                      label: 'Location',
+                      color: const Color(0xff22C55E),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        _shareLocation();
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
+  // ── Voice recording ───────────────────────────────────────────────────────
+  Future<void> _startRecording() async {
+    FocusScope.of(context).unfocus();
+    setState(() => _showEmojiPicker = false);
+    try {
+      final ok = await _attachments.startVoiceRecording();
+      if (!ok) {
+        _snack('Microphone permission is required for voice messages.');
+        return;
+      }
+      setState(() {
+        _isRecording = true;
+        _recordDuration = Duration.zero;
+      });
+      _recordTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) {
+          setState(() =>
+              _recordDuration += const Duration(seconds: 1));
+        }
+      });
+    } catch (e) {
+      _snack('Could not start recording: $e');
+    }
+  }
+
+  Future<void> _stopAndSendRecording() async {
+    _recordTimer?.cancel();
+    final recording = await _attachments.stopVoiceRecording();
+    setState(() => _isRecording = false);
+    if (recording == null) {
+      _snack('Recording too short.');
+      return;
+    }
+    _provider.sendVoiceMessage(widget.chatId, _currentUserId,
+        path: recording.path, durationMs: recording.durationMs);
+    _scrollToBottom();
+  }
+
+  Future<void> _cancelRecording() async {
+    _recordTimer?.cancel();
+    await _attachments.cancelVoiceRecording();
+    setState(() => _isRecording = false);
+  }
+
+  // ── Conversation actions ──────────────────────────────────────────────────
   void _showMoreMenu(ChatModel? chat) {
-    final provider = context.read<ChatProvider>();
     final theme = Theme.of(context);
 
     showModalBottomSheet<void>(
@@ -171,7 +315,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     : 'Mute conversation'),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
-                  provider.muteConversation(
+                  _provider.muteConversation(
                       widget.chatId, !(chat?.isMuted ?? false));
                 },
               ),
@@ -180,7 +324,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 title: const Text('Mark as read'),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
-                  provider.markConversationRead(widget.chatId);
+                  _provider.markConversationRead(widget.chatId);
                 },
               ),
               ListTile(
@@ -192,7 +336,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     : 'Mark as priority'),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
-                  provider.togglePriorityConversation(widget.chatId);
+                  _provider.togglePriorityConversation(widget.chatId);
                 },
               ),
               ListTile(
@@ -200,7 +344,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 title: const Text('Delete conversation'),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
-                  provider.deleteConversation(widget.chatId);
+                  _provider.deleteConversation(widget.chatId);
                   context.pop();
                 },
               ),
@@ -213,9 +357,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _showCallPlaceholder(String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$label is not connected yet.')),
-    );
+    _snack('$label is not connected yet.');
   }
 
   @override
@@ -305,16 +447,7 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: () => _showCallPlaceholder('Video call'),
           ),
           PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'mute':
-                case 'read':
-                case 'priority':
-                case 'delete':
-                  _showMoreMenu(chat);
-                  break;
-              }
-            },
+            onSelected: (_) => _showMoreMenu(chat),
             itemBuilder: (context) => const [
               PopupMenuItem(value: 'mute', child: Text('Conversation actions')),
               PopupMenuItem(value: 'read', child: Text('Mark as read')),
@@ -367,22 +500,24 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           _ComposerBar(
             controller: _messageController,
+            focusNode: _inputFocus,
+            isRecording: _isRecording,
+            recordDuration: _recordDuration,
+            emojiActive: _showEmojiPicker,
             onSend: _sendTextMessage,
-            onEmojiTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('Emoji picker is not connected yet.')),
-            ),
+            onEmojiTap: _toggleEmojiPicker,
             onAttachmentTap: _showAttachmentSheet,
-            onCameraTap: () => _sendAttachmentMessage(
-                label: 'Camera photo', attachmentUrl: 'camera.jpg'),
-            onGalleryTap: () => _sendAttachmentMessage(
-                label: 'Gallery image', attachmentUrl: 'gallery.jpg'),
-            onMicTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content:
-                      Text('Voice message recording is not connected yet.')),
-            ),
+            onCameraTap: _pickCamera,
+            onLocationTap: _shareLocation,
+            onStartRecording: _startRecording,
+            onStopRecording: _stopAndSendRecording,
+            onCancelRecording: _cancelRecording,
           ),
+          if (_showEmojiPicker)
+            EmojiStickerPicker(
+              controller: _messageController,
+              onStickerSelected: _onStickerSelected,
+            ),
         ],
       ),
     );
@@ -468,6 +603,23 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // Stickers render without a bubble background.
+    if (message.type == MessageType.sticker) {
+      return Align(
+        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment:
+              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            _StickerContent(message: message),
+            const SizedBox(height: 4),
+            _MetaRow(message: message, isMe: isMe, muted: true),
+          ],
+        ),
+      );
+    }
+
     final bubbleColor =
         isMe ? theme.colorScheme.primary : theme.colorScheme.surfaceVariant;
     final textColor =
@@ -492,52 +644,9 @@ class _MessageBubble extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (message.attachmentUrl != null) ...[
-                _AttachmentPreview(
-                  attachmentUrl: message.attachmentUrl!,
-                  isMe: isMe,
-                ),
-                if (message.message.isNotEmpty) const SizedBox(height: 8),
-              ],
-              if (message.message.isNotEmpty)
-                Text(
-                  message.message,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: textColor,
-                    fontWeight: FontWeight.w500,
-                    height: 1.35,
-                  ),
-                ),
+              _MessageContent(message: message, isMe: isMe, textColor: textColor),
               const SizedBox(height: 6),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _formatTime(message.createdAt),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: textColor.withOpacity(0.72),
-                    ),
-                  ),
-                  if (isMe) ...[
-                    const SizedBox(width: 6),
-                    Icon(
-                      message.isRead ? Icons.done_all : Icons.done,
-                      size: 15,
-                      color: message.isRead
-                          ? const Color(0xff60A5FA)
-                          : textColor.withOpacity(0.72),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      message.isRead ? 'Seen' : 'Sent',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: textColor.withOpacity(0.72),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+              _MetaRow(message: message, isMe: isMe, color: textColor),
             ],
           ),
         ),
@@ -546,76 +655,307 @@ class _MessageBubble extends StatelessWidget {
   }
 }
 
-class _AttachmentPreview extends StatelessWidget {
-  const _AttachmentPreview({
-    required this.attachmentUrl,
+/// Renders the body of a message according to its [MessageType].
+class _MessageContent extends StatelessWidget {
+  const _MessageContent({
+    required this.message,
     required this.isMe,
+    required this.textColor,
   });
 
-  final String attachmentUrl;
+  final ChatMessageModel message;
   final bool isMe;
+  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isImage = _isImageAttachment(attachmentUrl);
-    final attachmentColor =
-        isMe ? theme.colorScheme.onPrimary : theme.colorScheme.primary;
 
-    if (isImage) {
-      return Container(
-        width: 220,
-        height: 150,
-        decoration: BoxDecoration(
-          color: attachmentColor.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(16),
+    switch (message.type) {
+      case MessageType.image:
+        return _ImageContent(path: message.attachmentUrl ?? '', tint: textColor);
+      case MessageType.voice:
+        return VoiceMessageBubble(
+          path: message.attachmentUrl ?? '',
+          durationMs: message.durationMs ?? 0,
+          color: textColor,
+        );
+      case MessageType.location:
+        return _LocationContent(
+          latitude: message.latitude ?? 0,
+          longitude: message.longitude ?? 0,
+          tint: textColor,
+        );
+      case MessageType.pdf:
+      case MessageType.file:
+        return _DocContent(name: message.message, tint: textColor, type: message.type);
+      case MessageType.sticker:
+      case MessageType.text:
+        return Text(
+          message.message,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: textColor,
+            fontWeight: FontWeight.w500,
+            height: 1.35,
+          ),
+        );
+    }
+  }
+}
+
+class _MetaRow extends StatelessWidget {
+  const _MetaRow({
+    required this.message,
+    required this.isMe,
+    this.color,
+    this.muted = false,
+  });
+
+  final ChatMessageModel message;
+  final bool isMe;
+  final Color? color;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final c = color ??
+        (muted ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          _formatTime(message.createdAt),
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: c.withOpacity(0.72),
+          ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.image_outlined, color: attachmentColor, size: 36),
-            const SizedBox(height: 8),
-            Text(
-              attachmentUrl,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: attachmentColor,
-                fontWeight: FontWeight.w600,
+        if (isMe) ...[
+          const SizedBox(width: 6),
+          Icon(
+            message.isRead ? Icons.done_all : Icons.done,
+            size: 15,
+            color: message.isRead ? const Color(0xff60A5FA) : c.withOpacity(0.72),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            message.isRead ? 'Seen' : 'Sent',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: c.withOpacity(0.72),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ImageContent extends StatelessWidget {
+  const _ImageContent({required this.path, required this.tint});
+
+  final String path;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    final file = File(path);
+    final exists = path.isNotEmpty && file.existsSync();
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: exists
+          ? ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 240, maxWidth: 240),
+              child: Image.file(file, fit: BoxFit.cover),
+            )
+          : Container(
+              width: 220,
+              height: 150,
+              color: tint.withOpacity(0.12),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.image_outlined, color: tint, size: 36),
+                  const SizedBox(height: 6),
+                  Text('Photo',
+                      style: TextStyle(color: tint, fontWeight: FontWeight.w600)),
+                ],
               ),
             ),
-          ],
-        ),
-      );
-    }
+    );
+  }
+}
 
+class _DocContent extends StatelessWidget {
+  const _DocContent({required this.name, required this.tint, required this.type});
+
+  final String name;
+  final Color tint;
+  final MessageType type;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: attachmentColor.withOpacity(0.1),
+        color: tint.withOpacity(0.1),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: attachmentColor.withOpacity(0.2)),
+        border: Border.all(color: tint.withOpacity(0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            attachmentUrl.toLowerCase().endsWith('.pdf')
-                ? Icons.picture_as_pdf_outlined
-                : Icons.attach_file,
-            color: attachmentColor,
+            type == MessageType.pdf
+                ? Icons.picture_as_pdf_rounded
+                : Icons.insert_drive_file_rounded,
+            color: tint,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Flexible(
             child: Text(
-              attachmentUrl,
+              name.isEmpty ? 'Document' : name,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: attachmentColor,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(color: tint, fontWeight: FontWeight.w600),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LocationContent extends StatelessWidget {
+  const _LocationContent({
+    required this.latitude,
+    required this.longitude,
+    required this.tint,
+  });
+
+  final double latitude;
+  final double longitude;
+  final Color tint;
+
+  Future<void> _openMaps() async {
+    final uri = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: _openMaps,
+      borderRadius: BorderRadius.circular(14),
+      child: SizedBox(
+        width: 220,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 110,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: LinearGradient(
+                  colors: [
+                    tint.withOpacity(0.18),
+                    tint.withOpacity(0.06),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Center(
+                child: Icon(Icons.location_on, color: tint, size: 44),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text('Shared location',
+                style: TextStyle(color: tint, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(
+              '${latitude.toStringAsFixed(5)}, ${longitude.toStringAsFixed(5)}',
+              style: TextStyle(color: tint.withOpacity(0.8), fontSize: 11),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.map_outlined, size: 14, color: tint),
+                const SizedBox(width: 4),
+                Text('Open in Google Maps',
+                    style: TextStyle(
+                        color: tint,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StickerContent extends StatelessWidget {
+  const _StickerContent({required this.message});
+
+  final ChatMessageModel message;
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = message.attachmentUrl;
+    if (asset != null && asset.isNotEmpty) {
+      return SizedBox(
+        width: 120,
+        height: 120,
+        child: Image.asset(asset, fit: BoxFit.contain),
+      );
+    }
+    return Text(message.message, style: const TextStyle(fontSize: 64));
+  }
+}
+
+class _AttachOption extends StatelessWidget {
+  const _AttachOption({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: SizedBox(
+        width: 64,
+        child: Column(
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.14),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 26),
+            ),
+            const SizedBox(height: 6),
+            Text(label,
+                style: theme.textTheme.labelSmall
+                    ?.copyWith(fontWeight: FontWeight.w600)),
+          ],
+        ),
       ),
     );
   }
@@ -735,21 +1075,33 @@ class _EmptyThreadState extends StatelessWidget {
 class _ComposerBar extends StatelessWidget {
   const _ComposerBar({
     required this.controller,
+    required this.focusNode,
+    required this.isRecording,
+    required this.recordDuration,
+    required this.emojiActive,
     required this.onSend,
     required this.onEmojiTap,
     required this.onAttachmentTap,
     required this.onCameraTap,
-    required this.onGalleryTap,
-    required this.onMicTap,
+    required this.onLocationTap,
+    required this.onStartRecording,
+    required this.onStopRecording,
+    required this.onCancelRecording,
   });
 
   final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool isRecording;
+  final Duration recordDuration;
+  final bool emojiActive;
   final VoidCallback onSend;
   final VoidCallback onEmojiTap;
   final VoidCallback onAttachmentTap;
   final VoidCallback onCameraTap;
-  final VoidCallback onGalleryTap;
-  final VoidCallback onMicTap;
+  final VoidCallback onLocationTap;
+  final VoidCallback onStartRecording;
+  final VoidCallback onStopRecording;
+  final VoidCallback onCancelRecording;
 
   @override
   Widget build(BuildContext context) {
@@ -764,75 +1116,160 @@ class _ComposerBar extends StatelessWidget {
               top: BorderSide(color: theme.dividerColor.withOpacity(0.25))),
         ),
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  tooltip: 'Emoji',
-                  onPressed: onEmojiTap,
-                  icon: const Icon(Icons.emoji_emotions_outlined),
-                ),
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceVariant.withOpacity(0.55),
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                    child: TextField(
-                      controller: controller,
-                      minLines: 1,
-                      maxLines: 4,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => onSend(),
-                      decoration: const InputDecoration(
-                        hintText: 'Write a message...',
-                        border: InputBorder.none,
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: isRecording
+            ? _RecordingBar(
+                duration: recordDuration,
+                onCancel: onCancelRecording,
+                onSend: onStopRecording,
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        tooltip: 'Emoji & stickers',
+                        onPressed: onEmojiTap,
+                        icon: Icon(emojiActive
+                            ? Icons.keyboard_outlined
+                            : Icons.emoji_emotions_outlined),
                       ),
-                    ),
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceVariant
+                                .withOpacity(0.55),
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                          child: TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            minLines: 1,
+                            maxLines: 4,
+                            textInputAction: TextInputAction.newline,
+                            decoration: const InputDecoration(
+                              hintText: 'Write a message...',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 14),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: onSend,
+                        style: FilledButton.styleFrom(
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(14),
+                        ),
+                        child: const Icon(Icons.send_rounded, size: 18),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: onSend,
-                  style: FilledButton.styleFrom(
-                    shape: const CircleBorder(),
-                    padding: const EdgeInsets.all(14),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _ComposerActionButton(
+                        icon: Icons.attach_file,
+                        label: 'Attachment',
+                        onTap: onAttachmentTap,
+                      ),
+                      _ComposerActionButton(
+                        icon: Icons.camera_alt_outlined,
+                        label: 'Camera',
+                        onTap: onCameraTap,
+                      ),
+                      _ComposerActionButton(
+                        icon: Icons.location_on_outlined,
+                        label: 'Location',
+                        onTap: onLocationTap,
+                      ),
+                      _ComposerActionButton(
+                        icon: Icons.mic_none,
+                        label: 'Voice',
+                        onTap: onStartRecording,
+                      ),
+                    ],
                   ),
-                  child: const Icon(Icons.send_rounded, size: 18),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _ComposerActionButton(
-                  icon: Icons.attach_file,
-                  label: 'Attachment',
-                  onTap: onAttachmentTap,
-                ),
-                _ComposerActionButton(
-                  icon: Icons.camera_alt_outlined,
-                  label: 'Camera',
-                  onTap: onCameraTap,
-                ),
-                _ComposerActionButton(
-                  icon: Icons.photo_library_outlined,
-                  label: 'Gallery',
-                  onTap: onGalleryTap,
-                ),
-                _ComposerActionButton(
-                  icon: Icons.mic_none,
-                  label: 'Voice',
-                  onTap: onMicTap,
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _RecordingBar extends StatelessWidget {
+  const _RecordingBar({
+    required this.duration,
+    required this.onCancel,
+    required this.onSend,
+  });
+
+  final Duration duration;
+  final VoidCallback onCancel;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final m = duration.inMinutes.remainder(60).toString();
+    final s = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+
+    return Row(
+      children: [
+        IconButton(
+          tooltip: 'Cancel',
+          onPressed: onCancel,
+          icon: const Icon(Icons.delete_outline, color: Color(0xffEF4444)),
+        ),
+        const _PulsingDot(),
+        const SizedBox(width: 10),
+        Text('Recording…  $m:$s',
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w600)),
+        const Spacer(),
+        FilledButton.icon(
+          onPressed: onSend,
+          icon: const Icon(Icons.send_rounded, size: 18),
+          label: const Text('Send'),
+        ),
+      ],
+    );
+  }
+}
+
+class _PulsingDot extends StatefulWidget {
+  const _PulsingDot();
+
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 800),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: Tween(begin: 0.3, end: 1.0).animate(_controller),
+      child: Container(
+        width: 12,
+        height: 12,
+        decoration: const BoxDecoration(
+          color: Color(0xffEF4444),
+          shape: BoxShape.circle,
         ),
       ),
     );
@@ -896,13 +1333,4 @@ String _formatTime(DateTime dateTime) {
   final minute = dateTime.minute.toString().padLeft(2, '0');
   final period = dateTime.hour >= 12 ? 'PM' : 'AM';
   return '$hour:$minute $period';
-}
-
-bool _isImageAttachment(String attachmentUrl) {
-  final lower = attachmentUrl.toLowerCase();
-  return lower.endsWith('.jpg') ||
-      lower.endsWith('.jpeg') ||
-      lower.endsWith('.png') ||
-      lower.endsWith('.webp') ||
-      lower.endsWith('.gif');
 }

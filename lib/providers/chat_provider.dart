@@ -253,15 +253,7 @@ class ChatProvider with ChangeNotifier {
     for (var index = 0; index < messages.length; index += 1) {
       final message = messages[index];
       if (message.senderId != _currentUserId && !message.isRead) {
-        messages[index] = ChatMessageModel(
-          id: message.id,
-          chatId: message.chatId,
-          senderId: message.senderId,
-          message: message.message,
-          attachmentUrl: message.attachmentUrl,
-          isRead: true,
-          createdAt: message.createdAt,
-        );
+        messages[index] = message.copyWith(isRead: true);
       }
     }
 
@@ -300,12 +292,16 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Appends user message.
+  /// Appends a message of any [type] to the thread.
   void sendMessage(
     String chatId,
     String senderId,
     String text, {
     String? attachmentUrl,
+    MessageType type = MessageType.text,
+    int? durationMs,
+    double? latitude,
+    double? longitude,
   }) {
     final message = ChatMessageModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -313,6 +309,10 @@ class ChatProvider with ChangeNotifier {
       senderId: senderId,
       message: text,
       attachmentUrl: attachmentUrl,
+      type: type,
+      durationMs: durationMs,
+      latitude: latitude,
+      longitude: longitude,
       isRead: false,
       createdAt: DateTime.now(),
     );
@@ -325,6 +325,74 @@ class ChatProvider with ChangeNotifier {
 
     // Trigger typing suggestion response simulation
     _simulateOwnerResponse(chatId);
+  }
+
+  /// Sends an image / pdf / document attachment picked from the device.
+  void sendAttachment(
+    String chatId,
+    String senderId, {
+    required String path,
+    required String fileName,
+    required MessageType type,
+  }) {
+    sendMessage(
+      chatId,
+      senderId,
+      fileName,
+      attachmentUrl: path,
+      type: type,
+    );
+  }
+
+  /// Sends a recorded voice note.
+  void sendVoiceMessage(
+    String chatId,
+    String senderId, {
+    required String path,
+    required int durationMs,
+  }) {
+    sendMessage(
+      chatId,
+      senderId,
+      '',
+      attachmentUrl: path,
+      type: MessageType.voice,
+      durationMs: durationMs,
+    );
+  }
+
+  /// Shares the user's current location.
+  void sendLocation(
+    String chatId,
+    String senderId, {
+    required double latitude,
+    required double longitude,
+  }) {
+    sendMessage(
+      chatId,
+      senderId,
+      'Shared location',
+      type: MessageType.location,
+      latitude: latitude,
+      longitude: longitude,
+    );
+  }
+
+  /// Sends a sticker — either a bundled gif asset ([assetPath]) or an
+  /// emoji-based sticker ([emoji]).
+  void sendSticker(
+    String chatId,
+    String senderId, {
+    String? assetPath,
+    String? emoji,
+  }) {
+    sendMessage(
+      chatId,
+      senderId,
+      emoji ?? '',
+      attachmentUrl: assetPath,
+      type: MessageType.sticker,
+    );
   }
 
   Future<void> _simulateOwnerResponse(String chatId) async {
@@ -342,6 +410,7 @@ class ChatProvider with ChangeNotifier {
       senderId: _otherUserId,
       message: 'Sure, I have attached the flat outline map below.',
       attachmentUrl: 'Gulshan_Penthouse_FloorPlan.pdf',
+      type: MessageType.pdf,
       isRead: false,
       createdAt: DateTime.now(),
     );
@@ -417,16 +486,33 @@ class ChatProvider with ChangeNotifier {
         : existingChat.unreadCount + 1;
 
     _chats[index] = existingChat.copyWith(
-      lastMessage: message.attachmentUrl != null && message.message.isEmpty
-          ? 'Attachment'
-          : message.message,
+      lastMessage: _previewFor(message),
       lastMessageTime: message.createdAt,
       unreadCount: updatedUnreadCount,
       isTyping: false,
       lastMessageSenderId: message.senderId,
-      lastMessageType: message.attachmentUrl != null ? 'attachment' : 'text',
+      lastMessageType: message.type.name,
       messageCount: existingChat.messageCount + 1,
     );
+  }
+
+  /// Short inbox preview text for a message based on its type.
+  String _previewFor(ChatMessageModel message) {
+    switch (message.type) {
+      case MessageType.image:
+        return '📷 Photo';
+      case MessageType.pdf:
+      case MessageType.file:
+        return '📄 ${message.message.isEmpty ? 'Document' : message.message}';
+      case MessageType.voice:
+        return '🎤 Voice message';
+      case MessageType.location:
+        return '📍 Location';
+      case MessageType.sticker:
+        return message.message.isEmpty ? 'Sticker' : message.message;
+      case MessageType.text:
+        return message.message;
+    }
   }
 
   void _syncActiveMessages(String chatId) {
