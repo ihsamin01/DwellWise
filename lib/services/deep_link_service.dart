@@ -26,23 +26,40 @@ class DeepLinkService {
   }
 
   void _handleUri(Uri uri) {
-    if (uri.scheme != 'dwellwise') {
-      return;
-    }
-
-    // Supports dwellwise://property/<id> (host = property) and
-    // dwellwise:///property/<id> (first path segment = property).
-    String? id;
-    if (uri.host == 'property' && uri.pathSegments.isNotEmpty) {
-      id = uri.pathSegments.first;
-    } else if (uri.pathSegments.length >= 2 &&
-        uri.pathSegments.first == 'property') {
-      id = uri.pathSegments[1];
-    }
-
+    final id = _propertyIdFrom(uri);
     if (id != null && id.isNotEmpty) {
       AppRoutes.router.go('/property-details/$id');
     }
+  }
+
+  /// Extracts the property id from any supported link shape:
+  ///  - dwellwise://property/<id>          (custom scheme)
+  ///  - https://ihsamin01.github.io/DwellWise/?id=<id>  (verified App Link)
+  String? _propertyIdFrom(Uri uri) {
+    if (uri.scheme == 'dwellwise') {
+      if (uri.host == 'property' && uri.pathSegments.isNotEmpty) {
+        return uri.pathSegments.first;
+      }
+      if (uri.pathSegments.length >= 2 && uri.pathSegments.first == 'property') {
+        return uri.pathSegments[1];
+      }
+      return null;
+    }
+
+    if (uri.scheme == 'https' && uri.host == 'ihsamin01.github.io') {
+      // https://ihsamin01.github.io/DwellWise/?id=<id>
+      final queryId = uri.queryParameters['id'];
+      if (queryId != null && queryId.isNotEmpty) {
+        return queryId;
+      }
+      // Fallback: .../DwellWise/property/<id>
+      final segs = uri.pathSegments;
+      final idx = segs.indexOf('property');
+      if (idx != -1 && idx + 1 < segs.length) {
+        return segs[idx + 1];
+      }
+    }
+    return null;
   }
 
   void dispose() {

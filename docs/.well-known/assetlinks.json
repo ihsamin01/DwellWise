@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.example.dwell_wise",
+      "sha256_cert_fingerprints": [
+        "95:73:E9:5F:6D:68:5C:87:A3:FD:0B:B7:53:B6:57:4E:55:D2:53:4D:1C:8D:8C:AA:97:1D:0F:5F:39:75:49:A1"
+      ]
+    }
+  }
+]

@@ -60,6 +60,18 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="dwellwise" android:host="property" />
             </intent-filter>
+            <!-- App Link: a verified https link opens the app DIRECTLY (no
+                 browser). Verified against
+                 https://ihsamin01.github.io/.well-known/assetlinks.json -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="ihsamin01.github.io"
+                    android:pathPrefix="/DwellWise" />
+            </intent-filter>
         </activity>
 
         <!-- We route deep links ourselves via app_links, so disable Flutter's
