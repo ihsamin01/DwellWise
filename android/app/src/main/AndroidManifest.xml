@@ -52,7 +52,21 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Deep link: dwellwise://property/<id> opens a shared rental
+                 straight in the app (handled by app_links). -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="dwellwise" android:host="property" />
+            </intent-filter>
         </activity>
+
+        <!-- We route deep links ourselves via app_links, so disable Flutter's
+             built-in deep-link handling to avoid double navigation. -->
+        <meta-data
+            android:name="flutter_deeplinking_enabled"
+            android:value="false" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

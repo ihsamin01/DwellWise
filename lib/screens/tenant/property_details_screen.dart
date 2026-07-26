@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../config/app_colors.dart';
 import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
@@ -27,6 +28,30 @@ class TenantPropertyDetailsScreen extends StatefulWidget {
 
 class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScreen> {
   bool _isDescriptionExpanded = false;
+
+  /// Opens the native Android share sheet (WhatsApp, Messenger, Bluetooth,
+  /// Instagram, etc.) with a description and a deep link that reopens this
+  /// exact property inside the app.
+  Future<void> _shareProperty(BuildContext context, PropertyModel property) async {
+    // Clickable https link (works in WhatsApp/Messenger/etc). The hosted page
+    // redirects to the dwellwise://property/<id> deep link and opens the app.
+    final link = 'https://ihsamin01.github.io/DwellWise/?id=${property.id}';
+    final price =
+        '৳${property.price.toInt()}${property.priceFor.isNotEmpty ? ' / ${property.priceFor}' : ''}';
+    final message = '🏠 ${property.title}\n'
+        '📍 ${property.address}\n'
+        '💰 $price\n\n'
+        'View this rental on DwellWise:\n$link';
+
+    final box = context.findRenderObject() as RenderBox?;
+    await Share.share(
+      message,
+      subject: property.title,
+      // Required on iPad; harmless elsewhere.
+      sharePositionOrigin:
+          box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+    );
+  }
 
   Future<void> _openInMaps(BuildContext context, PropertyModel property) async {
     final ok = (property.latitude != 0 || property.longitude != 0)
@@ -119,11 +144,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
             actions: [
               IconButton(
                 icon: Icon(Icons.share_outlined, color: colors.primary, size: 24),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Link copied to clipboard.')),
-                  );
-                },
+                onPressed: () => _shareProperty(context, property),
               ),
               IconButton(
                 icon: Icon(

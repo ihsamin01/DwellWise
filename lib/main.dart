@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'config/theme.dart';
 import 'config/routes.dart';
+import 'services/deep_link_service.dart';
 
 // Providers imports
 import 'providers/auth_provider.dart';
@@ -25,8 +26,28 @@ void main() {
 }
 
 /// Root widget initializing state management and route handlers.
-class DwellWiseApp extends StatelessWidget {
+class DwellWiseApp extends StatefulWidget {
   const DwellWiseApp({Key? key}) : super(key: key);
+
+  @override
+  State<DwellWiseApp> createState() => _DwellWiseAppState();
+}
+
+class _DwellWiseAppState extends State<DwellWiseApp> {
+  final DeepLinkService _deepLinks = DeepLinkService();
+
+  @override
+  void initState() {
+    super.initState();
+    // Handle dwellwise://property/<id> shared links.
+    _deepLinks.init();
+  }
+
+  @override
+  void dispose() {
+    _deepLinks.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
