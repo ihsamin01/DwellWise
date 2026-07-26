@@ -9,6 +9,8 @@ import '../../providers/saved_properties_provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../models/property_model.dart';
 import '../../data/owner_directory.dart';
+import '../../utils/map_launcher.dart';
+import '../../widgets/property_location_map.dart';
 
 /// Detailed view of a rental property.
 class TenantPropertyDetailsScreen extends StatefulWidget {
@@ -25,6 +27,19 @@ class TenantPropertyDetailsScreen extends StatefulWidget {
 
 class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScreen> {
   bool _isDescriptionExpanded = false;
+
+  Future<void> _openInMaps(BuildContext context, PropertyModel property) async {
+    final ok = (property.latitude != 0 || property.longitude != 0)
+        ? await MapLauncher.openCoordinates(
+            property.latitude, property.longitude,
+            label: property.title)
+        : await MapLauncher.openAddress(property.address);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open Google Maps.')),
+      );
+    }
+  }
 
   void _handleSaveToggle(BuildContext context, SavedPropertiesProvider savedProvider, PropertyModel property) {
     final isSaved = savedProvider.isSaved(property.id);
@@ -357,11 +372,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                         ),
                       ),
                       GestureDetector(
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Opening Google Maps preview.')),
-                          );
-                        },
+                        onTap: () => _openInMaps(context, property),
                         child: Text(
                           'Open Maps',
                           style: TextStyle(
@@ -374,29 +385,13 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                     ],
                   ),
                   const SizedBox(height: 12),
-                  // Map placeholder
-                  Container(
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: colors.placeholder,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Map vector lines look design
-                        CustomPaint(
-                          size: const Size(double.infinity, 200),
-                          painter: _MapPainter(lineColor: colors.border),
-                        ),
-                        // Green Pin indicator
-                        const Icon(
-                          Icons.location_pin,
-                          color: Color(0xff10B981), // Success green pin
-                          size: 40,
-                        ),
-                      ],
-                    ),
+                  // Live map preview (OpenStreetMap — no API key needed).
+                  PropertyLocationMap(
+                    latitude: property.latitude,
+                    longitude: property.longitude,
+                    address: property.address,
+                    label: property.title,
+                    pinColor: colors.primary,
                   ),
                 ],
               ),
@@ -751,27 +746,4 @@ class GridItemFacilities extends StatelessWidget {
       },
     );
   }
-}
-
-class _MapPainter extends CustomPainter {
-  final Color lineColor;
-
-  _MapPainter({required this.lineColor});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = lineColor
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    // Draw some simple placeholder map road lines
-    canvas.drawLine(Offset(0, size.height * 0.3), Offset(size.width, size.height * 0.3), paint);
-    canvas.drawLine(Offset(0, size.height * 0.7), Offset(size.width, size.height * 0.7), paint);
-    canvas.drawLine(Offset(size.width * 0.3, 0), Offset(size.width * 0.3, size.height), paint);
-    canvas.drawLine(Offset(size.width * 0.7, 0), Offset(size.width * 0.7, size.height), paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _MapPainter oldDelegate) => oldDelegate.lineColor != lineColor;
 }
