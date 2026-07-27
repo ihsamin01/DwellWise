@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_colors.dart';
+import '../../providers/notification_provider.dart';
 import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
@@ -267,6 +268,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final unreadNotifications = context.watch<NotificationProvider>().unreadCount;
     final propertyProvider = context.watch<PropertyProvider>();
     final savedProvider = context.watch<SavedPropertiesProvider>();
     final recentlyViewedProvider = context.watch<RecentlyViewedProvider>();
@@ -322,12 +324,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
               Padding(
                 padding: const EdgeInsets.only(right: 16.0),
                 child: GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Notifications panel coming soon.')),
-                    );
-                  },
+                  onTap: () => context.push('/notifications'),
                   child: Stack(
                     alignment: Alignment.topRight,
                     children: [
@@ -339,31 +336,32 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                           size: 24,
                         ),
                       ),
-                      // Notification badge "94"
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: const BoxDecoration(
-                            color: Color(0xffDC2626),
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 14,
-                            minHeight: 14,
-                          ),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            '94',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 7,
-                              fontWeight: FontWeight.bold,
+                      // Unread notification badge — hidden at zero.
+                      if (unreadNotifications > 0)
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: Color(0xffDC2626),
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 14,
+                              minHeight: 14,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '$unreadNotifications',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 7,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),

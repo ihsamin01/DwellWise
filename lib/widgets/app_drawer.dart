@@ -133,15 +133,48 @@ class AppDrawer extends StatelessWidget {
                       final confirmed = await showDialog<bool>(
                         context: context,
                         builder: (dialogContext) => AlertDialog(
-                          title: Text(AppStrings.t(dialogContext, 'logout_confirm_title')),
-                          content: Text(AppStrings.t(dialogContext, 'logout_confirm_message')),
+                          backgroundColor: Colors.white,
+                          elevation: 8,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          icon: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xffDC2626).withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.logout, color: Color(0xffDC2626), size: 28),
+                          ),
+                          title: Text(
+                            AppStrings.t(dialogContext, 'logout_confirm_title'),
+                            textAlign: TextAlign.center,
+                          ),
+                          content: Text(
+                            AppStrings.t(dialogContext, 'logout_confirm_message'),
+                            textAlign: TextAlign.center,
+                          ),
+                          actionsAlignment: MainAxisAlignment.center,
+                          actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
                           actions: [
-                            TextButton(
+                            OutlinedButton(
                               onPressed: () => Navigator.of(dialogContext).pop(false),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xff6B7280),
+                                side: const BorderSide(color: Color(0xffD1D5DB)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              ),
                               child: Text(AppStrings.t(dialogContext, 'no')),
                             ),
-                            TextButton(
+                            ElevatedButton(
                               onPressed: () => Navigator.of(dialogContext).pop(true),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xffDC2626),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              ),
                               child: Text(AppStrings.t(dialogContext, 'yes')),
                             ),
                           ],
