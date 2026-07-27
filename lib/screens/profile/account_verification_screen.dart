@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_colors.dart';
 import '../../config/app_strings.dart';
@@ -69,7 +70,9 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     if (confirmed != true || !mounted) return;
 
     setState(() => _submitting = true);
-    final ok = await context.read<UserProvider>().submitVerification();
+    final ok = await context
+        .read<UserProvider>()
+        .submitVerification(governmentId: _nidController.text.trim());
     if (!mounted) return;
     setState(() => _submitting = false);
 
@@ -80,6 +83,10 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
           backgroundColor: const Color(0xff10B981),
         ),
       );
+      // Frontend-only demo: submission simulates an immediate successful
+      // verification, so we return straight to Account & Security to show
+      // the updated badge.
+      context.go('/profile/security');
     }
   }
 

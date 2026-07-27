@@ -13,14 +13,12 @@ class SecurityLogEntry {
 class SecurityProvider with ChangeNotifier {
   bool _isEmailVerified = true;
   bool _isPhoneVerified = true;
-  bool _isGovIdVerified = false;
 
   bool _twoFactorEnabled = false;
   bool _biometricEnabled = false;
 
   bool get isEmailVerified => _isEmailVerified;
   bool get isPhoneVerified => _isPhoneVerified;
-  bool get isGovIdVerified => _isGovIdVerified;
 
   bool get twoFactorEnabled => _twoFactorEnabled;
   bool get biometricEnabled => _biometricEnabled;
@@ -28,11 +26,6 @@ class SecurityProvider with ChangeNotifier {
   final List<SecurityLogEntry> activeSessions = const [
     SecurityLogEntry(title: 'Chrome on Windows', subtitle: 'Dhaka, Bangladesh · Active now'),
     SecurityLogEntry(title: 'DwellWise App on Android', subtitle: 'Dhaka, Bangladesh · 2 hours ago'),
-  ];
-
-  final List<SecurityLogEntry> trustedDevices = const [
-    SecurityLogEntry(title: 'Samin\'s Laptop', subtitle: 'Added on 12 Jun 2026'),
-    SecurityLogEntry(title: 'Samin\'s Phone', subtitle: 'Added on 03 Feb 2026'),
   ];
 
   final List<SecurityLogEntry> loginHistory = const [
@@ -66,7 +59,6 @@ class SecurityProvider with ChangeNotifier {
     await Future<void>.delayed(const Duration(milliseconds: 400));
     _isEmailVerified = false;
     _isPhoneVerified = false;
-    _isGovIdVerified = false;
     notifyListeners();
   }
 }

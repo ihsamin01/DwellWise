@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/security_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../providers/user_provider.dart';
 
 /// Account status, security controls, and account deletion.
 class AccountSecurityScreen extends StatelessWidget {
@@ -70,27 +72,55 @@ class AccountSecurityScreen extends StatelessWidget {
     context.go('/login');
   }
 
-  Widget _statusTile(String label, bool verified) {
+  /// [value] shows the verified data point (email/phone/masked ID) as a
+  /// subtitle. [onBadgeTap] makes the status badge itself tappable — used
+  /// only for the "Pending" Government ID badge, which opens the
+  /// verification form. Verified badges are always display-only.
+  Widget _statusTile({
+    required String label,
+    required bool verified,
+    String? value,
+    VoidCallback? onBadgeTap,
+  }) {
+    final color = verified ? const Color(0xff10B981) : const Color(0xff1877F2);
+    final badge = Chip(
+      label: Text(verified ? 'Verified' : 'Pending'),
+      avatar: Icon(
+        verified ? Icons.check_circle : Icons.hourglass_bottom,
+        size: 16,
+        color: color,
+      ),
+      backgroundColor: color.withOpacity(0.1),
+      labelStyle: TextStyle(color: color),
+      side: BorderSide.none,
+    );
+
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(label),
-      trailing: Chip(
-        label: Text(verified ? 'Verified' : 'Pending'),
-        avatar: Icon(
-          verified ? Icons.check_circle : Icons.hourglass_bottom,
-          size: 16,
-          color: verified ? const Color(0xff10B981) : const Color(0xff1877F2),
-        ),
-        backgroundColor: (verified ? const Color(0xff10B981) : const Color(0xff1877F2)).withOpacity(0.1),
-        labelStyle: TextStyle(color: verified ? const Color(0xff10B981) : const Color(0xff1877F2)),
-        side: BorderSide.none,
-      ),
+      subtitle: value != null ? Text(value) : null,
+      trailing: onBadgeTap != null
+          ? InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: onBadgeTap,
+              child: badge,
+            )
+          : badge,
     );
+  }
+
+  /// Masks a submitted NID/passport number down to its last 4 digits,
+  /// e.g. "1990123456789" -> "************6789".
+  String _maskGovernmentId(String id) {
+    if (id.length <= 4) return id;
+    return '${'*' * 12}${id.substring(id.length - 4)}';
   }
 
   @override
   Widget build(BuildContext context) {
     final security = context.watch<SecurityProvider>();
+    final user = context.watch<UserProvider>().userModel;
+    final isGovIdVerified = user?.verificationStatus == VerificationStatus.verified;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Account & Security')),
@@ -103,11 +133,26 @@ class AccountSecurityScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Column(
                 children: [
-                  _statusTile('Email Verified', security.isEmailVerified),
+                  _statusTile(
+                    label: 'Email Verification',
+                    verified: security.isEmailVerified,
+                    value: user?.email,
+                  ),
                   const Divider(height: 1),
-                  _statusTile('Phone Verified', security.isPhoneVerified),
+                  _statusTile(
+                    label: 'Phone Verification',
+                    verified: security.isPhoneVerified,
+                    value: user?.phoneNumber,
+                  ),
                   const Divider(height: 1),
-                  _statusTile('Government ID Verification', security.isGovIdVerified),
+                  _statusTile(
+                    label: 'Government ID Verification',
+                    verified: isGovIdVerified,
+                    value: isGovIdVerified && user?.governmentId != null
+                        ? _maskGovernmentId(user!.governmentId!)
+                        : null,
+                    onBadgeTap: isGovIdVerified ? null : () => context.push('/profile/verification'),
+                  ),
                 ],
               ),
             ),
@@ -129,13 +174,6 @@ class AccountSecurityScreen extends StatelessWidget {
                   title: const Text('Active Login Sessions'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _showLogEntries(context, 'Active Login Sessions', security.activeSessions),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.verified_user_outlined),
-                  title: const Text('Trusted Devices'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _showLogEntries(context, 'Trusted Devices', security.trustedDevices),
                 ),
                 const Divider(height: 1),
                 ListTile(
