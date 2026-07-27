@@ -63,14 +63,19 @@ class UserProvider with ChangeNotifier {
       _userModel?.verificationStatus ?? VerificationStatus.unverified;
 
   /// Submits the account-verification request (form + mock ৳500 fee paid).
-  /// Moves the account into [VerificationStatus.pending] awaiting admin review.
-  Future<bool> submitVerification() async {
+  /// This is a frontend-only demo: it simulates a brief processing delay and
+  /// then marks the account [VerificationStatus.verified] directly — there is
+  /// no backend or real admin review.
+  Future<bool> submitVerification({required String governmentId}) async {
     if (_userModel == null) return false;
     _isLoading = true;
     notifyListeners();
-    // Simulate the request reaching the admin queue.
+    // Simulate the mock payment + verification round-trip.
     await Future.delayed(const Duration(milliseconds: 600));
-    _userModel = _userModel!.copyWith(verificationStatus: VerificationStatus.pending);
+    _userModel = _userModel!.copyWith(
+      verificationStatus: VerificationStatus.verified,
+      governmentId: governmentId,
+    );
     _isLoading = false;
     notifyListeners();
     return true;

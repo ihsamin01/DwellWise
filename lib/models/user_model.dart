@@ -16,6 +16,10 @@ class UserModel {
   final String? avatarUrl;
   final String? address;
   final VerificationStatus verificationStatus;
+
+  /// NID / passport number submitted during account verification. Only the
+  /// last 4 characters are ever shown in the UI (masked).
+  final String? governmentId;
   final DateTime createdAt;
 
   UserModel({
@@ -27,6 +31,7 @@ class UserModel {
     this.avatarUrl,
     this.address,
     this.verificationStatus = VerificationStatus.unverified,
+    this.governmentId,
     required this.createdAt,
   });
 
@@ -43,6 +48,7 @@ class UserModel {
       avatarUrl: json['avatar_url'] as String?,
       address: json['address'] as String?,
       verificationStatus: _parseVerification(json['verification_status'] as String?),
+      governmentId: json['government_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -58,6 +64,7 @@ class UserModel {
       'avatar_url': avatarUrl,
       'address': address,
       'verification_status': verificationStatus.name,
+      'government_id': governmentId,
       'created_at': createdAt.toIso8601String(),
     };
   }
@@ -70,6 +77,7 @@ class UserModel {
     String? address,
     UserRole? role,
     VerificationStatus? verificationStatus,
+    String? governmentId,
   }) {
     return UserModel(
       id: id,
@@ -80,6 +88,7 @@ class UserModel {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       address: address ?? this.address,
       verificationStatus: verificationStatus ?? this.verificationStatus,
+      governmentId: governmentId ?? this.governmentId,
       createdAt: createdAt,
     );
   }

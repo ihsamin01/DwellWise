@@ -78,16 +78,6 @@ class AppDrawer extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 children: [
                   _DrawerTile(
-                    icon: Icons.edit_outlined,
-                    label: AppStrings.t(context, 'menu_edit_profile'),
-                    onTap: () => navigateTo('/profile/edit'),
-                  ),
-                  _DrawerTile(
-                    icon: Icons.lock_outline,
-                    label: AppStrings.t(context, 'menu_change_password'),
-                    onTap: () => navigateTo('/profile/change-password'),
-                  ),
-                  _DrawerTile(
                     icon: Icons.security_outlined,
                     label: AppStrings.t(context, 'menu_account_security'),
                     onTap: () => navigateTo('/profile/security'),
