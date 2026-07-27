@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../screens/common/splash_screen.dart';
 import '../screens/common/onboarding_screen.dart';
 import '../screens/common/main_tabs_shell.dart';
+import '../screens/common/notifications_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/registration_screen.dart';
 import '../screens/auth/otp_screen.dart';
@@ -60,6 +61,10 @@ class AppRoutes {
       GoRoute(
         path: '/profile',
         builder: (context, state) => const MainTabsShell(initialIndex: 4),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
 
       // Auth routes

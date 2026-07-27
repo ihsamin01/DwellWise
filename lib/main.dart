@@ -21,6 +21,7 @@ import 'providers/locale_provider.dart';
 import 'providers/notification_settings_provider.dart';
 import 'providers/security_provider.dart';
 import 'providers/app_review_provider.dart';
+import 'providers/notification_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -76,6 +77,7 @@ class _DwellWiseAppState extends State<DwellWiseApp> {
         ChangeNotifierProvider(create: (_) => NotificationSettingsProvider()),
         ChangeNotifierProvider(create: (_) => SecurityProvider()),
         ChangeNotifierProvider(create: (_) => AppReviewProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
