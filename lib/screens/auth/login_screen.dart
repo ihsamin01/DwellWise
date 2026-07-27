@@ -292,11 +292,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     GestureDetector(
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Forgot Password flow initialized.')),
-                        );
-                      },
+                      onTap: () => context.push('/forgot-password'),
                       child: Text(
                         'Forgot Password?',
                         style: TextStyle(

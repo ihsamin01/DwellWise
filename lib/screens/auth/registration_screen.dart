@@ -17,6 +17,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _addressController = TextEditingController();
 
@@ -26,6 +27,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     _addressController.dispose();
     super.dispose();
@@ -53,6 +55,17 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     return null;
   }
 
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Email is required';
+    }
+    final emailRegex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
+    if (!emailRegex.hasMatch(value.trim())) {
+      return 'Enter a valid email address';
+    }
+    return null;
+  }
+
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'Password is required';
@@ -74,10 +87,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (_formKey.currentState!.validate()) {
       final authProvider = context.read<AuthProvider>();
 
-      // Call auth register stub
       final success = await authProvider.register(
-        '+880${_phoneController.text.trim()}',
-        _passwordController.text,
+        name: _nameController.text.trim(),
+        phone: '+880${_phoneController.text.trim()}',
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        address: _addressController.text.trim(),
       );
 
       if (success && mounted) {
@@ -323,6 +338,45 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   validator: _validatePhone,
                 ),
                 const SizedBox(height: 20), // Form vertical gap
+
+                // Email Input (used for password recovery)
+                _buildInputLabel(colors, 'EMAIL *', true),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  style: TextStyle(color: colors.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: 'you@example.com',
+                    hintStyle: TextStyle(color: colors.textSecondary),
+                    fillColor: colors.surface,
+                    filled: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    prefixIcon: Icon(Icons.email_outlined, color: colors.textSecondary),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: colors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: colors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: colors.primary, width: 1.5),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xffDC2626)),
+                    ),
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xffDC2626), width: 1.5),
+                    ),
+                  ),
+                  validator: _validateEmail,
+                ),
+                const SizedBox(height: 20),
 
                 // Password Input
                 _buildInputLabel(colors, 'PASSWORD *', true),

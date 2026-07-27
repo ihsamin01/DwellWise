@@ -8,6 +8,7 @@ import '../screens/common/main_tabs_shell.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/registration_screen.dart';
 import '../screens/auth/otp_screen.dart';
+import '../screens/auth/forgot_password_screen.dart';
 import '../screens/tenant/listings_screen.dart';
 import '../screens/tenant/search_results_screen.dart';
 import '../screens/tenant/property_details_screen.dart';
@@ -73,6 +74,10 @@ class AppRoutes {
       GoRoute(
         path: '/otp',
         builder: (context, state) => const OtpScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
       ),
 
       // Tenant routes
