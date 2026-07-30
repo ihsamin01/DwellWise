@@ -85,6 +85,26 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// "Continue with Google". Returns the raw result so the screen can decide:
+  /// success → go home; notRegistered → go to the register page.
+  Future<GoogleSignInResult> signInWithGoogle() async {
+    _setLoading(true);
+    _clearError();
+    try {
+      final result = await _authService.signInWithGoogle();
+      if (result.outcome == GoogleSignInOutcome.success) {
+        final user = _authService.currentUser;
+        _currentUser = AppAuthUser(email: user?.email ?? result.email ?? '');
+        notifyListeners();
+      } else if (result.outcome == GoogleSignInOutcome.failed) {
+        _setError(result.errorMessage ?? 'Google sign-in failed.');
+      }
+      return result;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   /// Forgot-password step 1: email a recovery code to [email].
   Future<bool> sendPasswordResetCode(String email) async {
     _setLoading(true);
