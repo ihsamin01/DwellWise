@@ -6,7 +6,10 @@ import '../../providers/notification_provider.dart';
 import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
+import '../../providers/user_provider.dart';
 import '../../models/property_model.dart';
+import '../../services/gemini_service.dart';
+import '../../utils/location_recommender.dart';
 import '../../widgets/app_drawer.dart';
 import '../../widgets/bottom_navigation.dart';
 import '../../widgets/property_card.dart';
@@ -35,6 +38,43 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   int _displayedCount = 10;
   PriceFilter _priceFilter = PriceFilter.none;
   String _sortBy = 'Newest';
+
+  // AI Recommended (Gemini) — refines the local location ranking in the
+  // background; falls back to the local ranking on any error.
+  final GeminiService _gemini = GeminiService();
+  List<String>? _aiOrderedIds;
+  String? _aiRankedFor;
+
+  /// Kicks off a Gemini ranking for [userAddress] (once per address). Resets the
+  /// previous order when the address changes.
+  Future<void> _requestAiRanking(
+      String userAddress, List<PropertyModel> candidates) async {
+    if (_aiRankedFor == userAddress) return;
+    _aiRankedFor = userAddress;
+    _aiOrderedIds = null; // drop stale order for the new location
+    final ids = await _gemini.recommendPropertyIds(
+      userLocation: userAddress,
+      candidates: candidates,
+    );
+    if (mounted && _aiRankedFor == userAddress) {
+      setState(() => _aiOrderedIds = ids.isNotEmpty ? ids : null);
+    }
+  }
+
+  /// Reorders [list] to put Gemini's recommended ids first (in its order),
+  /// keeping the rest in their existing order.
+  List<PropertyModel> _applyAiOrder(List<PropertyModel> list) {
+    final ids = _aiOrderedIds;
+    if (ids == null || ids.isEmpty) return list;
+    final byId = {for (final p in list) p.id: p};
+    final ordered = <PropertyModel>[];
+    for (final id in ids) {
+      final p = byId.remove(id);
+      if (p != null) ordered.add(p);
+    }
+    ordered.addAll(list.where((p) => byId.containsKey(p.id)));
+    return ordered;
+  }
 
   /// Sort options shared with the search results screen. Value → label.
   static const Map<String, String> kSortOptions = {
@@ -273,8 +313,34 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     final savedProvider = context.watch<SavedPropertiesProvider>();
     final recentlyViewedProvider = context.watch<RecentlyViewedProvider>();
 
+    final userAddress = context.watch<UserProvider>().userModel?.address;
+    // The last two parts of the address, e.g. "Banani, Dhaka" — everything
+    // (feed generation, ranking, Gemini) keys off this.
+    final userArea = PropertyProvider.deriveArea(userAddress);
+
+    // Make sure ~12 dummy listings exist around the user's area (regenerates
+    // only when the area changes). Runs post-frame since it notifies listeners.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      propertyProvider.syncAreaFeed(userAddress);
+    });
+
     final allProperties = propertyProvider.properties;
-    final recommendedList = _applySort(_applyPriceFilter(allProperties));
+
+    // Offline location ranking from the user's area, then let Gemini refine the
+    // order in the background (falls back to the local ranking).
+    final sorted = _applySort(_applyPriceFilter(allProperties));
+    final locationRanked = recommendByLocation(sorted, userArea);
+
+    // Only ask Gemini once the generated area feed is present, so it ranks the
+    // nearby posts too (keeps them on top).
+    final feedReady = allProperties.any((p) => p.id.startsWith('ai-'));
+    if (feedReady && userArea != null && userArea.trim().isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _requestAiRanking(userArea, locationRanked);
+      });
+    }
+    final recommendedList = _applyAiOrder(locationRanked);
+
     final recentlyViewedIds = recentlyViewedProvider.recentlyViewedIds;
 
     // Map viewed IDs to actual properties (home feed + search results),

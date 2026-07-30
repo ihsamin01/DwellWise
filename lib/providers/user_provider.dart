@@ -56,13 +56,16 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-  /// Updates profile metadata in database.
+  /// Updates profile metadata in the database.
+  ///
+  /// The local model is updated first so dependent screens (e.g. the
+  /// location-based home feed) react immediately; the DB write follows.
   Future<bool> updateProfile(UserModel updatedUser) async {
     _isLoading = true;
+    _userModel = updatedUser;
     notifyListeners();
     try {
       await _dbService.updateUserProfile(updatedUser);
-      _userModel = updatedUser;
       return true;
     } catch (e) {
       debugPrint('Error updating profile: $e');

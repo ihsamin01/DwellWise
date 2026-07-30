@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../data/area_feed_generator.dart';
 import '../models/property_model.dart';
 import '../services/supabase_service.dart';
 
@@ -45,6 +46,45 @@ class PropertyProvider with ChangeNotifier {
       _searchGenerated[p.id] = p;
     }
     // No notifyListeners: called during search flow; screens already rebuild.
+  }
+
+  /// The area the current AI-Recommended feed was generated for.
+  String? _feedArea;
+
+  /// Ensures ~[count] dummy listings exist around the user's area (derived from
+  /// their profile [userAddress]), so the AI Recommended feed always has enough
+  /// nearby posts. Regenerates only when the area changes.
+  void syncAreaFeed(String? userAddress, {int count = 12}) {
+    final area = deriveArea(userAddress);
+    if (area == null || area.isEmpty) return;
+    if (area.toLowerCase() == _feedArea) return;
+    _feedArea = area.toLowerCase();
+
+    // Replace the previous generated feed.
+    _properties.removeWhere((p) => p.id.startsWith('ai-'));
+    final generated = generateAreaProperties(area, count: count);
+    for (final p in generated) {
+      _searchGenerated[p.id] = p; // resolvable by details/saved/recently-viewed
+    }
+    _properties.insertAll(0, generated);
+    notifyListeners();
+  }
+
+  /// Extracts the area from a free-text address by taking its **last two**
+  /// comma-separated parts, e.g.
+  /// "Block B, Road 11, Banani, Dhaka" -> "Banani, Dhaka".
+  ///
+  /// Falls back to the single remaining part for shorter addresses.
+  static String? deriveArea(String? address) {
+    if (address == null || address.trim().isEmpty) return null;
+    final parts = address
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return null;
+    if (parts.length == 1) return parts.first;
+    return '${parts[parts.length - 2]}, ${parts.last}';
   }
 
   List<PropertyModel> get savedProperties =>
