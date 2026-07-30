@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_colors.dart';
@@ -7,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../models/user_model.dart';
+import '../../utils/avatar_helper.dart';
 
 /// Profile hub: a scrollable menu of account actions, matching the app's
 /// list-style layout. Each tile routes to a fully functional sub-screen.
@@ -190,7 +192,14 @@ class _ProfileHeader extends StatelessWidget {
                   backgroundImage:
                       user?.avatarUrl != null ? NetworkImage(user!.avatarUrl!) : null,
                   child: user?.avatarUrl == null
-                      ? const Icon(Icons.person, size: 52, color: gradientTop)
+                      ? ClipOval(
+                          child: SvgPicture.asset(
+                            genderAvatarAsset(user?.gender, user?.name ?? ''),
+                            width: 92,
+                            height: 92,
+                            fit: BoxFit.cover,
+                          ),
+                        )
                       : null,
                 ),
               ),
@@ -234,6 +243,29 @@ class _ProfileHeader extends StatelessWidget {
             user?.phoneNumber ?? user?.email ?? '',
             style: TextStyle(fontSize: 15, color: Colors.white.withOpacity(0.85)),
           ),
+          if ((user?.address ?? '').isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.location_on_outlined,
+                      size: 15, color: Colors.white70),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      user!.address!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 13, color: Colors.white.withOpacity(0.85)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           _VerificationChip(status: user?.verificationStatus ?? VerificationStatus.unverified),
         ],

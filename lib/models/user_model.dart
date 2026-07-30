@@ -15,6 +15,9 @@ class UserModel {
   final UserRole role;
   final String? avatarUrl;
   final String? address;
+
+  /// 'male' or 'female' (chosen at registration). Drives the default avatar.
+  final String? gender;
   final VerificationStatus verificationStatus;
 
   /// NID / passport number submitted during account verification. Only the
@@ -30,6 +33,7 @@ class UserModel {
     required this.role,
     this.avatarUrl,
     this.address,
+    this.gender,
     this.verificationStatus = VerificationStatus.unverified,
     this.governmentId,
     required this.createdAt,
@@ -47,6 +51,7 @@ class UserModel {
       role: _parseRole(json['role'] as String?),
       avatarUrl: json['avatar_url'] as String?,
       address: json['address'] as String?,
+      gender: json['gender'] as String?,
       verificationStatus: _parseVerification(json['verification_status'] as String?),
       governmentId: json['government_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -63,6 +68,7 @@ class UserModel {
       'role': role.name,
       'avatar_url': avatarUrl,
       'address': address,
+      'gender': gender,
       'verification_status': verificationStatus.name,
       'government_id': governmentId,
       'created_at': createdAt.toIso8601String(),
@@ -75,6 +81,7 @@ class UserModel {
     String? email,
     String? avatarUrl,
     String? address,
+    String? gender,
     UserRole? role,
     VerificationStatus? verificationStatus,
     String? governmentId,
@@ -87,6 +94,7 @@ class UserModel {
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       address: address ?? this.address,
+      gender: gender ?? this.gender,
       verificationStatus: verificationStatus ?? this.verificationStatus,
       governmentId: governmentId ?? this.governmentId,
       createdAt: createdAt,

@@ -1,4 +1,5 @@
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
@@ -36,8 +37,26 @@ class AuthService {
     scopes: const ['email', 'profile'],
   );
 
+  static const String _keepSignedInKey = 'dw_keep_signed_in';
+
   /// The currently signed-in Supabase user, or null.
   User? get currentUser => _client.auth.currentUser;
+
+  /// Remembers whether the user opted to stay signed in across app restarts.
+  Future<void> setKeepSignedIn(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keepSignedInKey, value);
+  }
+
+  /// Called on startup: if the user did NOT choose "keep me signed in", clear
+  /// the restored session so they must log in again after leaving the app.
+  Future<void> applySessionPersistencePolicy() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keep = prefs.getBool(_keepSignedInKey) ?? false;
+    if (!keep && currentUser != null) {
+      await _client.auth.signOut();
+    }
+  }
 
   /// Signs in with phone + password (resolves the phone to its email first).
   Future<User?> signIn({
@@ -73,6 +92,7 @@ class AuthService {
     required String email,
     required String password,
     String? address,
+    String? gender,
     String role = 'tenant',
   }) async {
     final response = await _client.auth.signUp(
@@ -83,9 +103,26 @@ class AuthService {
         'phone_number': phone,
         'role': role,
         if (address != null && address.isNotEmpty) 'address': address,
+        if (gender != null && gender.isNotEmpty) 'gender': gender,
       },
     );
-    return response.user;
+
+    // The DB trigger creates the profile from name/phone/role only, so persist
+    // the address + gender onto the freshly-created profile row here.
+    final user = response.user;
+    if (user != null) {
+      final updates = <String, dynamic>{};
+      if (address != null && address.isNotEmpty) updates['address'] = address;
+      if (gender != null && gender.isNotEmpty) updates['gender'] = gender;
+      if (updates.isNotEmpty) {
+        try {
+          await _client.from('profiles').update(updates).eq('id', user.id);
+        } catch (_) {
+          // Non-fatal: the account is still created.
+        }
+      }
+    }
+    return user;
   }
 
   /// "Continue with Google": shows the native account picker, then only logs

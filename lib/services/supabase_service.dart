@@ -34,23 +34,34 @@ class SupabaseService {
     }
   }
 
-  /// Fetches profile of a user.
+  /// Fetches the profile row for [userId] from the `profiles` table.
   Future<UserModel?> getUserProfile(String userId) async {
-    // Stub: Fetch user profile
+    final client = _client;
+    if (client == null) return null;
     try {
-      // final response = await _client.from('users').select().eq('id', userId).maybeSingle();
-      // return response != null ? UserModel.fromJson(response) : null;
-      return null;
+      final response = await client
+          .from('profiles')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+      return response != null ? UserModel.fromJson(response) : null;
     } catch (e) {
       rethrow;
     }
   }
 
-  /// Updates profile details in DB.
+  /// Updates the editable profile fields for [user] in the DB.
   Future<void> updateUserProfile(UserModel user) async {
-    // Stub: Update user details
+    final client = _client;
+    if (client == null) return;
     try {
-      // await _client.from('users').update(user.toJson()).eq('id', user.id);
+      await client.from('profiles').update({
+        'name': user.name,
+        'phone_number': user.phoneNumber,
+        'address': user.address,
+        'avatar_url': user.avatarUrl,
+        'gender': user.gender,
+      }).eq('id', user.id);
     } catch (e) {
       rethrow;
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
 import '../services/supabase_service.dart';
 
@@ -6,18 +7,40 @@ import '../services/supabase_service.dart';
 class UserProvider with ChangeNotifier {
   final SupabaseService _dbService = SupabaseService();
 
-  UserModel? _userModel = UserModel(
-    id: 'tenant1',
-    email: 'samin@dwellwise.com',
-    name: 'Samin Azhan',
-    phoneNumber: '+8801700000000',
-    role: UserRole.tenant,
-    createdAt: DateTime(2025, 11, 4),
-  );
+  UserModel? _userModel;
   bool _isLoading = false;
 
   UserModel? get userModel => _userModel;
   bool get isLoading => _isLoading;
+
+  /// Loads the profile of the currently signed-in Supabase user.
+  Future<void> loadCurrentUserProfile() async {
+    final authUser = Supabase.instance.client.auth.currentUser;
+    if (authUser == null) {
+      _userModel = null;
+      notifyListeners();
+      return;
+    }
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final profile = await _dbService.getUserProfile(authUser.id);
+      if (profile != null) {
+        _userModel = profile;
+      }
+    } catch (e) {
+      debugPrint('Error loading profile: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Clears the cached profile (e.g. on logout).
+  void clear() {
+    _userModel = null;
+    notifyListeners();
+  }
 
   /// Loads detailed profile record for authenticated user ID.
   Future<void> fetchUserProfile(String userId) async {

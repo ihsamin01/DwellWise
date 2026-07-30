@@ -54,6 +54,7 @@ class AuthProvider with ChangeNotifier {
     required String email,
     required String password,
     String? address,
+    String? gender,
     String role = 'tenant',
   }) async {
     _setLoading(true);
@@ -65,6 +66,7 @@ class AuthProvider with ChangeNotifier {
         email: email,
         password: password,
         address: address,
+        gender: gender,
         role: role,
       );
       if (user == null) {
@@ -84,6 +86,10 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
     }
   }
+
+  /// Persists whether the user wants to stay signed in across app restarts.
+  Future<void> setKeepSignedIn(bool value) =>
+      _authService.setKeepSignedIn(value);
 
   /// "Continue with Google". Returns the raw result so the screen can decide:
   /// success → go home; notRegistered → go to the register page.
