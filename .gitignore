@@ -37,6 +37,9 @@ migrate_working_dir/
 /android/build/
 /coverage/
 
+# Local secrets injected via --dart-define-from-file (see env.example.json)
+env.json
+
 # Symbolication related
 app.*.symbols
 
