@@ -37,6 +37,12 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   final ScrollController _scrollController = ScrollController();
   int _displayedCount = 10;
   PriceFilter _priceFilter = PriceFilter.none;
+
+  /// Menu value for the "Verified only" toggle (it sits alongside the price
+  /// options but behaves as an independent checkbox).
+  static const String _kVerifiedFilter = 'verified-only';
+  bool _verifiedOnly = false;
+
   String _sortBy = 'Newest';
 
   // AI Recommended (Gemini) — refines the local location ranking in the
@@ -115,6 +121,12 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
       case PriceFilter.none:
         return result;
     }
+  }
+
+  /// Keeps only listings posted by verified owners when the toggle is on.
+  List<PropertyModel> _applyVerifiedFilter(List<PropertyModel> list) {
+    if (!_verifiedOnly) return list;
+    return list.where((p) => p.isVerified).toList();
   }
 
   String _filterLabel(PriceFilter filter) {
@@ -252,39 +264,73 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
 
   /// Filter/sort trigger shown at the right of the "AI Recommended" heading.
   Widget _buildFilterButton(AppColors colors) {
-    final bool isActive = _priceFilter != PriceFilter.none;
-    return PopupMenuButton<PriceFilter>(
-      tooltip: 'Filter by price',
+    final bool isActive = _priceFilter != PriceFilter.none || _verifiedOnly;
+    return PopupMenuButton<Object>(
+      tooltip: 'Filter listings',
       offset: const Offset(0, 40),
       color: colors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: (value) => setState(() => _priceFilter = value),
-      itemBuilder: (context) => PriceFilter.values.map((filter) {
-        final selected = _priceFilter == filter;
-        return PopupMenuItem<PriceFilter>(
-          value: filter,
+      onSelected: (value) => setState(() {
+        if (value is PriceFilter) {
+          _priceFilter = value;
+        } else if (value == _kVerifiedFilter) {
+          _verifiedOnly = !_verifiedOnly;
+        }
+      }),
+      itemBuilder: (context) => [
+        ...PriceFilter.values.map((filter) {
+          final selected = _priceFilter == filter;
+          return PopupMenuItem<Object>(
+            value: filter,
+            child: Row(
+              children: [
+                Icon(
+                  selected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  size: 18,
+                  color: selected ? colors.primary : colors.textSecondary,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  _filterLabel(filter),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: colors.textPrimary,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        const PopupMenuDivider(),
+        // Independent toggle: show only listings posted by verified owners.
+        PopupMenuItem<Object>(
+          value: _kVerifiedFilter,
           child: Row(
             children: [
               Icon(
-                selected
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_unchecked,
+                _verifiedOnly ? Icons.check_box : Icons.check_box_outline_blank,
                 size: 18,
-                color: selected ? colors.primary : colors.textSecondary,
+                color: _verifiedOnly ? colors.primary : colors.textSecondary,
               ),
               const SizedBox(width: 10),
+              const Icon(Icons.verified, size: 16, color: Color(0xff10B981)),
+              const SizedBox(width: 6),
               Text(
-                _filterLabel(filter),
+                'Verified only',
                 style: TextStyle(
                   fontSize: 13,
                   color: colors.textPrimary,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  fontWeight:
+                      _verifiedOnly ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
             ],
           ),
-        );
-      }).toList(),
+        ),
+      ],
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
@@ -337,7 +383,8 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
 
     // Offline location ranking from the user's area, then let Gemini refine the
     // order in the background (falls back to the local ranking).
-    final sorted = _applySort(_applyPriceFilter(allProperties));
+    final sorted =
+        _applySort(_applyVerifiedFilter(_applyPriceFilter(allProperties)));
     final locationRanked = recommendByLocation(sorted, userArea);
 
     // Only ask Gemini once the generated area feed is present, so it ranks the

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
@@ -88,23 +90,35 @@ class UserProvider with ChangeNotifier {
   VerificationStatus get verificationStatus =>
       _userModel?.verificationStatus ?? VerificationStatus.unverified;
 
-  /// Submits the account-verification request (form + mock ৳500 fee paid).
-  /// This is a frontend-only demo: it simulates a brief processing delay and
-  /// then marks the account [VerificationStatus.verified] directly — there is
-  /// no backend or real admin review.
-  Future<bool> submitVerification({required String governmentId}) async {
+  /// Submits the account-verification request: uploads the NID photos, records
+  /// the request and marks the profile verified in the database. The ৳200 fee is
+  /// a mock payment and there is no admin review step, so paying completes it.
+  Future<bool> submitVerification({
+    required String governmentId,
+    List<File> documents = const [],
+  }) async {
     if (_userModel == null) return false;
     _isLoading = true;
     notifyListeners();
-    // Simulate the mock payment + verification round-trip.
-    await Future.delayed(const Duration(milliseconds: 600));
-    _userModel = _userModel!.copyWith(
-      verificationStatus: VerificationStatus.verified,
-      governmentId: governmentId,
-    );
-    _isLoading = false;
-    notifyListeners();
-    return true;
+    try {
+      final paths = await _dbService.uploadVerificationDocs(documents);
+      await _dbService.submitVerification(
+        fullName: _userModel!.name,
+        governmentId: governmentId,
+        documentPaths: paths,
+      );
+      _userModel = _userModel!.copyWith(
+        verificationStatus: VerificationStatus.verified,
+        governmentId: governmentId,
+      );
+      return true;
+    } catch (e) {
+      debugPrint('Verification failed: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   /// Mock admin approval that grants the green verified badge. In a real

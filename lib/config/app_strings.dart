@@ -83,7 +83,7 @@ class AppStrings {
       'verif_none': 'Not verified',
 
       // Account verification
-      'av_info': 'Verify your identity to earn a green badge and unlock more trust from renters. A ৳500 fee applies.',
+      'av_info': 'Verify your identity to earn a green badge and unlock more trust from renters. A ৳200 fee applies.',
       'av_fullname': 'Full name (as per NID)',
       'av_fullname_hint': 'e.g. Isbat Samin',
       'av_nid': 'NID / Passport number',
@@ -95,18 +95,18 @@ class AppStrings {
       'av_front': 'Front side',
       'av_back': 'Back side',
       'av_added_suffix': 'added',
-      'av_submit': 'Pay ৳500 & Submit for verification',
+      'av_submit': 'Pay ৳200 & Submit for verification',
       'av_attach_both': 'Please attach both sides of your NID.',
       'av_fee_title': 'Verification fee',
-      'av_fee_desc': 'A one-time fee of ৳500 is paid to the admin to review and verify your account.',
+      'av_fee_desc': 'A one-time fee of ৳200 is paid to the admin to review and verify your account.',
       'av_amount_payable': 'Amount payable',
-      'av_pay_now': 'Pay ৳500 now',
+      'av_pay_now': 'Pay ৳200 now',
       'av_mock_payment': 'Mock payment — no real charge',
       'av_payment_received': 'Payment received. Your account is now verified!',
       'av_verified_title': 'Your account is verified',
       'av_verified_desc': 'You now have the green verified badge across DwellWise.',
       'av_pending_title': 'Verification pending',
-      'av_pending_desc': 'We received your details and ৳500 fee. An admin will review and approve your account shortly.',
+      'av_pending_desc': 'We received your details and ৳200 fee. An admin will review and approve your account shortly.',
       'av_simulate': 'Simulate admin approval',
 
       // Add property

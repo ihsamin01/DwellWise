@@ -12,6 +12,7 @@ import '../../data/bd_area_coordinates.dart';
 import '../../data/bd_locations.dart';
 import '../../models/property_model.dart';
 import '../../providers/property_provider.dart';
+import '../../providers/user_provider.dart';
 import '../../services/supabase_service.dart';
 import '../../utils/map_launcher.dart';
 
@@ -271,7 +272,9 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
       availableFrom: _availableMonth!,
       includedBills: _includedBills.toList(),
       imageUrls: imageUrls,
-      isVerified: false,
+      // A verified account's listings carry the verified badge, so they show up
+      // under the home feed's "Verified only" filter.
+      isVerified: context.read<UserProvider>().userModel?.isVerified ?? false,
       ownerId: PropertyProvider.currentUserId,
       facilities: _selectedFeatures.toList(),
       createdAt: DateTime.now(),

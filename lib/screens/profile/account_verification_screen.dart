@@ -1,14 +1,18 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_colors.dart';
 import '../../config/app_strings.dart';
 import '../../models/user_model.dart';
+import '../../providers/notification_provider.dart';
 import '../../providers/user_provider.dart';
 
-/// Account verification: the user submits identity details and pays a mock
-/// ৳500 fee, moving the account to "Pending admin approval". Once an admin
-/// approves it (mock), the account earns a green verified badge.
+/// Account verification: the user submits identity details, attaches NID photos
+/// and pays a mock ৳200 fee. There is no admin review step — paying completes
+/// the process and the account earns the green verified badge immediately.
 class AccountVerificationScreen extends StatefulWidget {
   const AccountVerificationScreen({super.key});
 
@@ -23,8 +27,10 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
   final _dobController = TextEditingController();
   final _addressController = TextEditingController();
 
-  bool _frontUploaded = false;
-  bool _backUploaded = false;
+  /// NID photos attached by the user; uploaded to Storage on submit.
+  File? _frontImage;
+  File? _backImage;
+  final ImagePicker _imagePicker = ImagePicker();
   bool _submitting = false;
 
   @override
@@ -57,9 +63,62 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     }
   }
 
+  /// Lets the user attach an NID photo from the camera or the gallery.
+  Future<void> _pickDocument({required bool isFront}) async {
+    final colors = AppColors.of(context);
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: colors.surface,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.photo_camera_outlined, color: colors.primary),
+              title: const Text('Take a photo'),
+              onTap: () =>
+                  Navigator.of(sheetContext).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading:
+                  Icon(Icons.photo_library_outlined, color: colors.primary),
+              title: const Text('Choose from gallery'),
+              onTap: () =>
+                  Navigator.of(sheetContext).pop(ImageSource.gallery),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+
+    try {
+      final shot = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 80,
+        maxWidth: 1600,
+      );
+      if (shot == null || !mounted) return;
+      setState(() {
+        if (isFront) {
+          _frontImage = File(shot.path);
+        } else {
+          _backImage = File(shot.path);
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not attach that photo.')),
+      );
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (!_frontUploaded || !_backUploaded) {
+    if (_frontImage == null || _backImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppStrings.tr(context, 'av_attach_both'))),
       );
@@ -70,24 +129,60 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     if (confirmed != true || !mounted) return;
 
     setState(() => _submitting = true);
-    final ok = await context
-        .read<UserProvider>()
-        .submitVerification(governmentId: _nidController.text.trim());
+    final ok = await context.read<UserProvider>().submitVerification(
+          governmentId: _nidController.text.trim(),
+          documents: [_frontImage!, _backImage!],
+        );
     if (!mounted) return;
     setState(() => _submitting = false);
 
-    if (ok) {
+    if (!ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppStrings.tr(context, 'av_payment_received')),
-          backgroundColor: const Color(0xff10B981),
+        const SnackBar(
+          content: Text('Verification could not be completed. Try again.'),
+          backgroundColor: Color(0xffDC2626),
         ),
       );
-      // Frontend-only demo: submission simulates an immediate successful
-      // verification, so we return straight to Account & Security to show
-      // the updated badge.
-      context.go('/profile/security');
+      return;
     }
+
+    // Drop it in the in-app notification inbox as well.
+    context.read<NotificationProvider>().addNotification(
+          icon: Icons.verified,
+          title: 'Account verified',
+          message:
+              'Your identity has been verified. The green badge now shows on your profile.',
+        );
+
+    await _showVerifiedDialog();
+    if (!mounted) return;
+    context.go('/profile');
+  }
+
+  Future<void> _showVerifiedDialog() {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.verified, color: Color(0xff10B981), size: 52),
+        title: const Text('Account verified'),
+        content: const Text(
+          'Payment received and your identity is confirmed. '
+          'Your profile now carries the verified badge.',
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xff1877F2),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<bool?> _showPaymentSheet() {
@@ -121,7 +216,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
                   children: [
                     Text(AppStrings.t(sheetContext, 'av_amount_payable'),
                         style: TextStyle(color: colors.textSecondary)),
-                    Text('৳${AppStrings.digits(sheetContext, '500')}',
+                    Text('৳${AppStrings.digits(sheetContext, '200')}',
                         style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -256,9 +351,9 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
                 child: _UploadBox(
                   label: AppStrings.t(context, 'av_front'),
                   addedSuffix: AppStrings.t(context, 'av_added_suffix'),
-                  uploaded: _frontUploaded,
+                  image: _frontImage,
                   colors: colors,
-                  onTap: () => setState(() => _frontUploaded = true),
+                  onTap: () => _pickDocument(isFront: true),
                 ),
               ),
               const SizedBox(width: 12),
@@ -266,9 +361,9 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
                 child: _UploadBox(
                   label: AppStrings.t(context, 'av_back'),
                   addedSuffix: AppStrings.t(context, 'av_added_suffix'),
-                  uploaded: _backUploaded,
+                  image: _backImage,
                   colors: colors,
-                  onTap: () => setState(() => _backUploaded = true),
+                  onTap: () => _pickDocument(isFront: false),
                 ),
               ),
             ],
@@ -343,41 +438,78 @@ class _RequiredLabel extends StatelessWidget {
 class _UploadBox extends StatelessWidget {
   final String label;
   final String addedSuffix;
-  final bool uploaded;
+
+  /// The attached photo, or null while nothing has been chosen.
+  final File? image;
   final AppColors colors;
   final VoidCallback onTap;
 
   const _UploadBox({
     required this.label,
     required this.addedSuffix,
-    required this.uploaded,
+    required this.image,
     required this.colors,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final uploaded = image != null;
     final accent = uploaded ? const Color(0xff10B981) : colors.textSecondary;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         height: 110,
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: accent.withOpacity(0.5)),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(uploaded ? Icons.check_circle : Icons.add_a_photo_outlined,
-                color: accent, size: 28),
-            const SizedBox(height: 8),
-            Text(uploaded ? '$label $addedSuffix' : label,
-                style: TextStyle(fontSize: 13, color: accent, fontWeight: FontWeight.w600)),
-          ],
-        ),
+        child: uploaded
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.file(image!, fit: BoxFit.cover),
+                  // Label strip so the user still knows which side this is.
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      color: Colors.black54,
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.check_circle,
+                              color: Color(0xff10B981), size: 14),
+                          const SizedBox(width: 4),
+                          Text('$label $addedSuffix',
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_a_photo_outlined, color: accent, size: 28),
+                  const SizedBox(height: 8),
+                  Text(label,
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: accent,
+                          fontWeight: FontWeight.w600)),
+                ],
+              ),
       ),
     );
   }
