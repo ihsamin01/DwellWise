@@ -86,10 +86,10 @@ List<PropertyModel> generateAreaProperties(String area, {int count = 12}) {
         propertyType: _types[rng.nextInt(_types.length)],
         area: area,
         address: 'Block $block, Road ${1 + rng.nextInt(20)}, $area',
-        // Jitter ~±0.006° (≈600 m) around the real area centre so each pin sits
-        // in the neighbourhood the address names.
-        latitude: baseLat + (rng.nextDouble() - 0.5) * 0.012,
-        longitude: baseLng + (rng.nextDouble() - 0.5) * 0.012,
+        // Jitter ~±0.0009° (≈100 m) around the real area centre so each pin
+        // lands on the place its address names.
+        latitude: baseLat + (rng.nextDouble() - 0.5) * 0.0018,
+        longitude: baseLng + (rng.nextDouble() - 0.5) * 0.0018,
         beds: beds,
         baths: baths,
         balcony: rng.nextInt(3),

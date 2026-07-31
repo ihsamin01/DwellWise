@@ -333,7 +333,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
 
     // Only ask Gemini once the generated area feed is present, so it ranks the
     // nearby posts too (keeps them on top).
-    final feedReady = allProperties.any((p) => p.id.startsWith('ai-'));
+    final feedReady = propertyProvider.hasAreaFeed;
     if (feedReady && userArea != null && userArea.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _requestAiRanking(userArea, locationRanked);

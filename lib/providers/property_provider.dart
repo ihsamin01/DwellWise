@@ -48,27 +48,66 @@ class PropertyProvider with ChangeNotifier {
     // No notifyListeners: called during search flow; screens already rebuild.
   }
 
-  /// The area the current AI-Recommended feed was generated for.
+  /// The area the current AI-Recommended feed was loaded for.
   String? _feedArea;
+
+  /// Ids currently occupying the area feed, so a new area can replace them.
+  Set<String> _areaFeedIds = {};
 
   /// Ensures ~[count] dummy listings exist around the user's area (derived from
   /// their profile [userAddress]), so the AI Recommended feed always has enough
   /// nearby posts. Regenerates only when the area changes.
-  void syncAreaFeed(String? userAddress, {int count = 12}) {
+  Future<void> syncAreaFeed(String? userAddress, {int count = 12}) async {
     final area = deriveArea(userAddress);
     if (area == null || area.isEmpty) return;
     if (area.toLowerCase() == _feedArea) return;
     _feedArea = area.toLowerCase();
 
-    // Replace the previous generated feed.
-    _properties.removeWhere((p) => p.id.startsWith('ai-'));
-    final generated = generateAreaProperties(area, count: count);
-    for (final p in generated) {
+    // "Banani, Dhaka" -> neighbourhood "Banani", city "Dhaka".
+    final parts = area.split(',').map((s) => s.trim()).toList();
+    final specific = parts.first;
+    final city = parts.length > 1 ? parts.last : null;
+
+    var nearby = <PropertyModel>[];
+    try {
+      // 1. Neighbourhood within the right city — place names such as
+      //    "Chawkbazar" exist in several divisions, so the city must match.
+      nearby = await _dbService
+          .getPropertiesByArea(specific, city: city, limit: count);
+
+      // 2. Nothing for that neighbourhood: stay in the same city rather than
+      //    drifting to a same-named place elsewhere.
+      if (nearby.isEmpty && city != null) {
+        nearby = await _dbService.getPropertiesByArea(city, limit: count);
+      }
+
+      // 3. No city given at all — fall back to the plain neighbourhood match.
+      if (nearby.isEmpty && city == null) {
+        nearby = await _dbService.getPropertiesByArea(specific, limit: count);
+      }
+    } catch (e) {
+      debugPrint('Error loading area feed: $e');
+    }
+
+    // Only if the database has nothing for this area (e.g. it hasn't been
+    // seeded yet) do we fall back to locally generated listings.
+    if (nearby.isEmpty) {
+      nearby = generateAreaProperties(area, count: count);
+    }
+
+    final newIds = nearby.map((p) => p.id).toSet();
+    _properties
+        .removeWhere((p) => _areaFeedIds.contains(p.id) || newIds.contains(p.id));
+    _areaFeedIds = newIds;
+    for (final p in nearby) {
       _searchGenerated[p.id] = p; // resolvable by details/saved/recently-viewed
     }
-    _properties.insertAll(0, generated);
+    _properties.insertAll(0, nearby);
     notifyListeners();
   }
+
+  /// True once an area-specific feed has been loaded.
+  bool get hasAreaFeed => _areaFeedIds.isNotEmpty;
 
   /// Extracts the area from a free-text address by taking its **last two**
   /// comma-separated parts, e.g.

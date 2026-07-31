@@ -160,6 +160,12 @@ const Map<String, (double, double)> bdAreaCoordinates = {
   'lalkhan bazar': (22.3480, 91.8180),
   'oxygen': (22.3830, 91.8060),
   'muradpur': (22.3660, 91.8330),
+  // Qualified keys for place names that also exist in Dhaka. `coordinatesFor`
+  // checks these "<area> <city>" keys before the bare name.
+  'chawkbazar chattogram': (22.3592, 91.8340),
+  'kotwali chattogram': (22.3350, 91.8330),
+  'new market chattogram': (22.3345, 91.8318),
+  'sadarghat chattogram': (22.3190, 91.8390),
   'coxs bazar': (21.4272, 92.0058),
   "cox's bazar": (21.4272, 92.0058),
   'kolatoli': (21.4200, 91.9900),
@@ -262,6 +268,14 @@ const Map<String, (double, double)> bdAreaCoordinates = {
       .map((s) => s.trim())
       .where((s) => s.isNotEmpty)
       .toList();
+
+  // Qualified match first: some place names exist in several divisions
+  // (e.g. Chawkbazar in both Dhaka and Chattogram), so "chawkbazar chattogram"
+  // must win over the bare "chawkbazar" key.
+  for (var i = 0; i + 1 < parts.length; i++) {
+    final hit = bdAreaCoordinates['${parts[i]} ${parts[i + 1]}'];
+    if (hit != null) return hit;
+  }
 
   // Exact match, most specific part first.
   for (final part in parts) {
