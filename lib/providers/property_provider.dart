@@ -57,10 +57,14 @@ class PropertyProvider with ChangeNotifier {
   /// Ensures ~[count] dummy listings exist around the user's area (derived from
   /// their profile [userAddress]), so the AI Recommended feed always has enough
   /// nearby posts. Regenerates only when the area changes.
-  Future<void> syncAreaFeed(String? userAddress, {int count = 12}) async {
+  Future<void> syncAreaFeed(
+    String? userAddress, {
+    int count = 12,
+    bool force = false,
+  }) async {
     final area = deriveArea(userAddress);
     if (area == null || area.isEmpty) return;
-    if (area.toLowerCase() == _feedArea) return;
+    if (!force && area.toLowerCase() == _feedArea) return;
     _feedArea = area.toLowerCase();
 
     // "Banani, Dhaka" -> neighbourhood "Banani", city "Dhaka".

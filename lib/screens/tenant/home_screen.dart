@@ -141,6 +141,15 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     });
   }
 
+  /// Pull-to-refresh: re-reads the listings (so newly posted rentals from other
+  /// devices show up) and rebuilds the area feed for [userAddress].
+  Future<void> _refreshFeed(String? userAddress) async {
+    final provider = context.read<PropertyProvider>();
+    await provider.fetchProperties();
+    await provider.syncAreaFeed(userAddress, force: true);
+    _aiRankedFor = null; // let Gemini re-rank the refreshed list
+  }
+
   @override
   void dispose() {
     _scrollController.removeListener(_scrollListener);
@@ -442,9 +451,14 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                 valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
               ),
             )
-          : SingleChildScrollView(
+          : RefreshIndicator(
+              color: colors.primary,
+              onRefresh: () => _refreshFeed(userAddress),
+              child: SingleChildScrollView(
               controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -596,6 +610,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                       height: 120), // Bottom padding to avoid nav overlap
                 ],
               ),
+            ),
             ),
       bottomNavigationBar: widget.showBottomNavigation
           ? const BottomNavigation(currentIndex: 0)

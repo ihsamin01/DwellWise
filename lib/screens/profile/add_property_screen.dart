@@ -1,13 +1,18 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/app_colors.dart';
 import '../../config/app_strings.dart';
+import '../../data/bd_area_coordinates.dart';
 import '../../data/bd_locations.dart';
 import '../../models/property_model.dart';
 import '../../providers/property_provider.dart';
+import '../../services/supabase_service.dart';
 import '../../utils/map_launcher.dart';
 
 /// Multi-step "Rent your property" flow: Basic → Location → Price → Detailed.
@@ -59,7 +64,9 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
   // Detailed
   final Set<String> _selectedFeatures = {};
   final _descriptionController = TextEditingController();
-  int _pictureCount = 0;
+  /// Photos chosen for the listing; uploaded to Supabase Storage on submit.
+  final List<File> _pickedImages = [];
+  final ImagePicker _imagePicker = ImagePicker();
 
   bool _submitting = false;
 
@@ -89,6 +96,77 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
   }
 
   /// Composes a human-readable address from the location fields.
+  /// Lets the user choose where the listing photos come from.
+  void _showPhotoSourceSheet() {
+    final colors = AppColors.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: colors.surface,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.photo_camera_outlined, color: colors.primary),
+              title: const Text('Take a photo'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _pickFromCamera();
+              },
+            ),
+            ListTile(
+              leading:
+                  Icon(Icons.photo_library_outlined, color: colors.primary),
+              title: const Text('Choose from gallery'),
+              subtitle: const Text('You can select more than one'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _pickFromGallery();
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickFromCamera() async {
+    try {
+      final shot = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 75,
+        maxWidth: 1600,
+      );
+      if (shot != null && mounted) {
+        setState(() => _pickedImages.add(File(shot.path)));
+      }
+    } catch (e) {
+      if (mounted) _snackText('Could not open the camera.');
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    try {
+      final shots = await _imagePicker.pickMultiImage(
+        imageQuality: 75,
+        maxWidth: 1600,
+      );
+      if (shots.isNotEmpty && mounted) {
+        setState(() =>
+            _pickedImages.addAll(shots.map((x) => File(x.path))));
+      }
+    } catch (e) {
+      if (mounted) _snackText('Could not open the gallery.');
+    }
+  }
+
+  void _snackText(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   String _composedAddress() {
     final parts = <String>[
       if (_houseController.text.trim().isNotEmpty) 'House ${_houseController.text.trim()}',
@@ -161,6 +239,20 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
     setState(() => _submitting = true);
 
     final provider = context.read<PropertyProvider>();
+
+    // Upload the chosen photos first so every device loads them from Storage.
+    final imageUrls = await SupabaseService().uploadPropertyImages(_pickedImages);
+    if (!mounted) return;
+    if (_pickedImages.isNotEmpty && imageUrls.isEmpty) {
+      _snackText('Photos could not be uploaded — posting without them.');
+    }
+
+    // Put the listing's pin on the area it names instead of (0, 0).
+    final composedAddress = _composedAddress();
+    final (lat, lng) = coordinatesFor(
+      _area != null ? '$_area, ${_district ?? _division ?? ''}' : composedAddress,
+    );
+
     final property = PropertyModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: _titleController.text.trim(),
@@ -169,16 +261,16 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
       priceFor: _priceFor,
       propertyType: _type!,
       area: _area!,
-      address: _composedAddress(),
-      latitude: 0,
-      longitude: 0,
+      address: composedAddress,
+      latitude: lat,
+      longitude: lng,
       beds: _bedrooms!,
       baths: _bathrooms!,
       balcony: _balcony!,
       sizeSqFt: 0,
       availableFrom: _availableMonth!,
       includedBills: _includedBills.toList(),
-      imageUrls: const [],
+      imageUrls: imageUrls,
       isVerified: false,
       ownerId: PropertyProvider.currentUserId,
       facilities: _selectedFeatures.toList(),
@@ -502,30 +594,81 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
         const SizedBox(height: 22),
         _label(AppStrings.t(context, 'ap_picture'), colors),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            InkWell(
-              onTap: () => setState(() => _pictureCount++),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: 96,
-                height: 96,
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colors.border),
+        SizedBox(
+          height: 96,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              // Add button
+              InkWell(
+                onTap: _showPhotoSourceSheet,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 96,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: colors.border),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_photo_alternate_outlined,
+                          size: 30, color: colors.primary),
+                      const SizedBox(height: 4),
+                      Text('Add photo',
+                          style: TextStyle(
+                              fontSize: 11, color: colors.textSecondary)),
+                    ],
+                  ),
                 ),
-                child: Icon(Icons.add_photo_alternate_outlined,
-                    size: 32, color: colors.textSecondary),
               ),
-            ),
-            const SizedBox(width: 12),
-            if (_pictureCount > 0)
-              Text(
-                  '${AppStrings.digits(context, '$_pictureCount')} ${AppStrings.t(context, _pictureCount > 1 ? 'ap_photos_added' : 'ap_photo_added')}',
-                  style: TextStyle(color: colors.textSecondary)),
-          ],
+              // Selected photo thumbnails
+              for (var i = 0; i < _pickedImages.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          _pickedImages[i],
+                          width: 96,
+                          height: 96,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 2,
+                        right: 2,
+                        child: InkWell(
+                          onTap: () =>
+                              setState(() => _pickedImages.removeAt(i)),
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close,
+                                size: 16, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
+        if (_pickedImages.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            '${_pickedImages.length} photo${_pickedImages.length > 1 ? 's' : ''} selected',
+            style: TextStyle(fontSize: 12, color: colors.textSecondary),
+          ),
+        ],
         const SizedBox(height: 22),
         _label(AppStrings.t(context, 'ap_mark_maps'), colors),
         const SizedBox(height: 8),

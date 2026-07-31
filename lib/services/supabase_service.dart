@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/property_model.dart';
 import '../models/user_model.dart';
@@ -57,6 +59,32 @@ class SupabaseService {
     return (response as List)
         .map((p) => PropertyModel.fromJson(p as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Uploads listing photos to the public `property-images` bucket and returns
+  /// their public URLs, so the same images render on every device. Files that
+  /// fail to upload are skipped rather than failing the whole post.
+  Future<List<String>> uploadPropertyImages(List<File> files) async {
+    final client = _client;
+    if (client == null || files.isEmpty) return [];
+
+    final uid = client.auth.currentUser?.id ?? 'anonymous';
+    final stamp = DateTime.now().millisecondsSinceEpoch;
+    final urls = <String>[];
+
+    for (var i = 0; i < files.length; i++) {
+      final file = files[i];
+      final ext = file.path.contains('.') ? file.path.split('.').last : 'jpg';
+      final objectPath = '$uid/${stamp}_$i.$ext';
+      try {
+        await client.storage.from('property-images').upload(objectPath, file);
+        urls.add(
+            client.storage.from('property-images').getPublicUrl(objectPath));
+      } catch (_) {
+        // Skip this image; the listing is still posted.
+      }
+    }
+    return urls;
   }
 
   /// Inserts a new property listing. Row Level Security only accepts rows owned
