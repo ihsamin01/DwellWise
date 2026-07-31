@@ -1,24 +1,41 @@
 import 'dart:convert';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 import '../config/ai_config.dart';
 import '../models/property_model.dart';
 
 /// Service interfacing with Google Gemini for the AI Recommended feed.
+///
+/// The API key is loaded lazily: a `--dart-define` override first, otherwise
+/// the gitignored `assets/secrets/gemini.json`. If neither is available the
+/// service stays disabled and callers fall back to the offline ranking.
 class GeminiService {
-  late final GenerativeModel _model;
+  GenerativeModel? _model;
+  bool _initialised = false;
 
-  GeminiService() {
-    _model = GenerativeModel(
-      model: AiConfig.geminiModel,
-      apiKey: AiConfig.geminiApiKey,
-    );
+  Future<void> _ensureInitialised() async {
+    if (_initialised) return;
+    _initialised = true;
+
+    var key = AiConfig.geminiApiKeyOverride;
+    if (key.isEmpty) {
+      try {
+        final raw = await rootBundle.loadString(AiConfig.secretsAsset);
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          key = (decoded['GEMINI_API_KEY'] as String?)?.trim() ?? '';
+        }
+      } catch (_) {
+        // No local secrets file — stay disabled.
+      }
+    }
+
+    if (key.isNotEmpty && !key.contains('your-key')) {
+      _model = GenerativeModel(model: AiConfig.geminiModel, apiKey: key);
+    }
   }
-
-  bool get isConfigured =>
-      AiConfig.geminiApiKey.isNotEmpty &&
-      !AiConfig.geminiApiKey.contains('YOUR_');
 
   /// Asks Gemini to rank [candidates] for a user living at [userLocation] and
   /// returns the property ids ordered from most to least relevant. Returns an
@@ -27,7 +44,10 @@ class GeminiService {
     required String userLocation,
     required List<PropertyModel> candidates,
   }) async {
-    if (!isConfigured || candidates.isEmpty) return [];
+    if (candidates.isEmpty) return [];
+    await _ensureInitialised();
+    final model = _model;
+    if (model == null) return [];
 
     final items = candidates
         .take(20)
@@ -43,10 +63,9 @@ class GeminiService {
         'other text. Example: ["p1","p3","p2"]';
 
     try {
-      final response = await _model
-          .generateContent([Content.text(prompt)]).timeout(
-        const Duration(seconds: 12),
-      );
+      final response = await model.generateContent(
+        [Content.text(prompt)],
+      ).timeout(const Duration(seconds: 12));
       return _parseIds(response.text ?? '');
     } catch (_) {
       return [];

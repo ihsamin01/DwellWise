@@ -1,20 +1,24 @@
 /// Google Gemini configuration for the AI Recommended feed.
 ///
-/// The key is NOT stored in source control. It is injected at build time:
+/// The key is never committed. At runtime [GeminiService] reads it from
+/// `assets/secrets/gemini.json` (gitignored — see the README in that folder):
 ///
-///   flutter run   --dart-define-from-file=env.json
-///   flutter build apk --dart-define-from-file=env.json
+///   { "GEMINI_API_KEY": "your-key" }
 ///
-/// `env.json` (gitignored) looks like:
-///   { "GEMINI_API_KEY": "your-key-here" }
+/// A `--dart-define=GEMINI_API_KEY=...` build flag still overrides it if given,
+/// but plain `flutter run` works because of the asset file.
 ///
-/// When no key is supplied, [isConfigured] is false and the AI Recommended feed
-/// falls back to the offline location-based ranking, so the app still works.
+/// With no key at all the app keeps working: the AI Recommended feed falls back
+/// to the offline location-based ranking.
 class AiConfig {
   AiConfig._();
 
-  static const String geminiApiKey =
+  /// Optional compile-time override; empty unless --dart-define is used.
+  static const String geminiApiKeyOverride =
       String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+
+  /// Asset that holds the local key.
+  static const String secretsAsset = 'assets/secrets/gemini.json';
 
   static const String geminiModel = 'gemini-flash-latest';
 }
