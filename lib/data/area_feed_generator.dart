@@ -32,7 +32,9 @@ const _titlePrefixes = [
   'Renovated Flat in',
 ];
 
-const _types = ['Apartment', 'Sublet', 'Family', 'Studio'];
+/// Must match `SearchFiltersProvider.propertyTypes`, otherwise a type filter
+/// can never match a generated listing.
+const _types = ['Family', 'Bachelor', 'Office room', 'Sublet', 'Hostel'];
 const _ownerIds = ['o1', 'o3', 'o5', 'o6', 'o7', 'o8', 'o9', 'o10', 'o12', 'o13'];
 const _facilityPool = ['Wifi', 'Gas', 'Lift', 'Parking', 'Security', 'Backup', 'CCTV'];
 const _months = ['August', 'September', 'October', 'November'];

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/area_feed_generator.dart';
 import '../models/property_model.dart';
 import '../services/supabase_service.dart';
@@ -136,11 +137,29 @@ class PropertyProvider with ChangeNotifier {
   /// Listings the current user has posted (newest first).
   List<PropertyModel> get myListings => List.unmodifiable(_myListings);
 
-  /// Removes one of the current user's own listings.
-  void removeMyListing(String propertyId) {
+  /// Loads the signed-in user's own listings from the database, so posts they
+  /// made survive an app restart (and show up on any device they log in from).
+  /// Falls back to the seeded demo entries when nobody is signed in.
+  Future<void> loadMyListings() async {
+    if (Supabase.instance.client.auth.currentUser == null) return;
+    try {
+      final rows = await _dbService.getMyProperties();
+      _myListings
+        ..clear()
+        ..addAll(rows);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading my listings: $e');
+    }
+  }
+
+  /// Removes one of the current user's own listings, in the database too.
+  Future<void> removeMyListing(String propertyId) async {
     _myListings.removeWhere((p) => p.id == propertyId);
     _properties.removeWhere((p) => p.id == propertyId);
+    _areaFeedIds.remove(propertyId);
     notifyListeners();
+    await _dbService.deleteProperty(propertyId);
   }
 
   /// Loads properties list.
@@ -172,6 +191,9 @@ class PropertyProvider with ChangeNotifier {
       if (newProperty.ownerId == currentUserId) {
         _myListings.insert(0, newProperty);
       }
+      // Re-read from the database so the stored row (with its real id) replaces
+      // the local copy and the listing is tracked across restarts.
+      await loadMyListings();
       return true;
     } catch (e) {
       debugPrint('Error creating listing: $e');

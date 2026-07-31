@@ -12,8 +12,23 @@ import '../../widgets/property_card.dart';
 
 /// Lists the properties the current user has posted for rent, with a quick
 /// delete action. New listings from "Add property" land here.
-class MyPropertiesScreen extends StatelessWidget {
+class MyPropertiesScreen extends StatefulWidget {
   const MyPropertiesScreen({super.key});
+
+  @override
+  State<MyPropertiesScreen> createState() => _MyPropertiesScreenState();
+}
+
+class _MyPropertiesScreenState extends State<MyPropertiesScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Pull the user's own listings from the database each time the screen
+    // opens, so posts made on any device are tracked here.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<PropertyProvider>().loadMyListings();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

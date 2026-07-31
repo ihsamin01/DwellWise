@@ -61,6 +61,83 @@ class SupabaseService {
         .toList();
   }
 
+  /// Searches approved listings by location. Matching is done on the address,
+  /// which holds "<thana/area>, <district>", so an area, a thana or a whole
+  /// district all resolve. [district] narrows names that repeat across the
+  /// country (Kotwali, New Market, Sadar …).
+  Future<List<PropertyModel>> searchProperties({
+    String? area,
+    String? thana,
+    String? district,
+    String? type,
+    int limit = 60,
+  }) async {
+    final client = _client;
+    if (client == null) return [];
+
+    Future<List<PropertyModel>> run(String locality) async {
+      var builder = client
+          .from('properties')
+          .select()
+          .eq('status', 'approved')
+          .ilike('address', '%$locality%');
+
+      // Narrow names that repeat across the country (Kotwali, Sadar, Mirpur…).
+      final d = district?.trim() ?? '';
+      if (d.isNotEmpty && d != locality) {
+        builder = builder.ilike('address', '%$d%');
+      }
+      if (type != null && type.trim().isNotEmpty) {
+        builder = builder.eq('property_type', type.trim());
+      }
+
+      final response =
+          await builder.order('created_at', ascending: false).limit(limit);
+      return (response as List)
+          .map((p) => PropertyModel.fromJson(p as Map<String, dynamic>))
+          .toList();
+    }
+
+    // Most specific first, widening until something matches: a neighbourhood
+    // like "Kalai Sadar" has no listings of its own, so fall back to its thana
+    // ("Kalai") and then to the district.
+    for (final locality in [area, thana, district]) {
+      final term = locality?.trim() ?? '';
+      if (term.isEmpty) continue;
+      final hits = await run(term);
+      if (hits.isNotEmpty) return hits;
+    }
+    return [];
+  }
+
+  /// Fetches the listings posted by the signed-in user (newest first), so
+  /// "My properties" survives an app restart. Includes listings of any status
+  /// because Row Level Security lets an owner see their own rows.
+  Future<List<PropertyModel>> getMyProperties() async {
+    final client = _client;
+    final uid = client?.auth.currentUser?.id;
+    if (client == null || uid == null) return [];
+    final response = await client
+        .from('properties')
+        .select()
+        .eq('owner_id', uid)
+        .order('created_at', ascending: false);
+    return (response as List)
+        .map((p) => PropertyModel.fromJson(p as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Deletes one of the signed-in user's listings.
+  Future<void> deleteProperty(String propertyId) async {
+    final client = _client;
+    if (client == null) return;
+    try {
+      await client.from('properties').delete().eq('id', propertyId);
+    } catch (_) {
+      // Non-fatal: it still disappears from this session's list.
+    }
+  }
+
   /// Uploads listing photos to the public `property-images` bucket and returns
   /// their public URLs, so the same images render on every device. Files that
   /// fail to upload are skipped rather than failing the whole post.

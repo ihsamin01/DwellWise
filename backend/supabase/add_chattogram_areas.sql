@@ -46,7 +46,7 @@ select
     || a.area || '.',
   (7 + floor(random() * 34)) * 1000,
   'Monthly',
-  (array['Apartment','Sublet','Family','Studio'])[1 + floor(random() * 4)::int],
+  (array['Family','Bachelor','Office room','Sublet','Hostel'])[1 + ((g - 1) % 5)],
   a.area,
   'Block ' || chr(65 + floor(random() * 6)::int) || ', Road ' ||
     (1 + floor(random() * 20))::text || ', ' || a.area || ', ' || a.city,
