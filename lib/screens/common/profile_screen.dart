@@ -58,6 +58,13 @@ class ProfileScreen extends StatelessWidget {
           ),
           _MenuTile(
             colors: colors,
+            icon: Icons.insights_outlined,
+            title: AppStrings.t(context, 'p_analytics'),
+            subtitle: AppStrings.t(context, 'p_analytics_sub'),
+            onTap: () => context.push('/profile/analytics'),
+          ),
+          _MenuTile(
+            colors: colors,
             icon: Icons.receipt_long_outlined,
             title: AppStrings.t(context, 'p_purchase_history'),
             subtitle: AppStrings.t(context, 'p_purchase_history_sub'),
