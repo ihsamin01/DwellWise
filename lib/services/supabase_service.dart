@@ -314,6 +314,45 @@ class SupabaseService {
     }
   }
 
+  /// Fetches the signed-in user's most recently viewed property ids (newest
+  /// first), so the history survives logging out and back in.
+  Future<List<String>> getRecentlyViewedIds({int limit = 5}) async {
+    final client = _client;
+    final uid = client?.auth.currentUser?.id;
+    if (client == null || uid == null) return [];
+    try {
+      final response = await client
+          .from('recently_viewed')
+          .select('property_id')
+          .eq('user_id', uid)
+          .order('viewed_at', ascending: false)
+          .limit(limit);
+      return (response as List)
+          .map((row) => row['property_id'] as String)
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Records (or bumps the recency of) a property view. Non-fatal: the local
+  /// history already reflects the change even if this write is rejected
+  /// (e.g. a demo property that has no matching row in `properties`).
+  Future<void> recordPropertyView(String propertyId) async {
+    final client = _client;
+    final uid = client?.auth.currentUser?.id;
+    if (client == null || uid == null) return;
+    try {
+      await client.from('recently_viewed').upsert({
+        'user_id': uid,
+        'property_id': propertyId,
+        'viewed_at': DateTime.now().toIso8601String(),
+      });
+    } catch (_) {
+      // Keep the local history working even if the write is rejected.
+    }
+  }
+
   /// Updates the editable profile fields for [user] in the DB.
   Future<void> updateUserProfile(UserModel user) async {
     final client = _client;

@@ -176,6 +176,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     _scrollController.addListener(_scrollListener);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PropertyProvider>().fetchProperties();
+      context.read<RecentlyViewedProvider>().loadRecentlyViewedIds();
     });
   }
 

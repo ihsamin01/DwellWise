@@ -6,6 +6,7 @@ import '../config/app_strings.dart';
 import '../providers/auth_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/locale_provider.dart';
+import '../providers/recently_viewed_provider.dart';
 import '../providers/saved_properties_provider.dart';
 
 /// App-wide navigation drawer opened from the hamburger icon, listing
@@ -192,6 +193,7 @@ class AppDrawer extends StatelessWidget {
 
                       context.read<LocaleProvider>().reset();
                       context.read<SavedPropertiesProvider>().clear();
+                      context.read<RecentlyViewedProvider>().clear();
                       await context.read<AuthProvider>().logout();
                       if (context.mounted) {
                         context.go('/login');
