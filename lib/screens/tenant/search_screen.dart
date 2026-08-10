@@ -185,9 +185,12 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                                     activeColor: colors.primary,
                                     dense: true,
                                     onChanged: (val) {
+                                      if (val == null) return;
                                       setModalState(() {
-                                        localSelected = val ?? '';
+                                        localSelected = val;
                                       });
+                                      onSelect(val);
+                                      Navigator.pop(context);
                                     },
                                   );
                                 },
@@ -195,24 +198,6 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                             ),
                     ),
                     const SizedBox(height: 12),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xff1877F2), // CTA Orange
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      onPressed: () {
-                        if (localSelected.isNotEmpty) {
-                          onSelect(localSelected);
-                        }
-                        Navigator.pop(context);
-                      },
-                      child: const Text('Apply Filter',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold)),
-                    ),
                   ],
                 ),
               ),
