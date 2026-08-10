@@ -1,10 +1,26 @@
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../config/supabase_config.dart';
 
 /// Lightweight authenticated-user representation used by the app UI.
 class AppAuthUser {
   AppAuthUser({required this.email});
 
   final String email;
+}
+
+/// Outcome of a "Continue with Google" attempt.
+enum GoogleSignInOutcome { success, notRegistered, cancelled, failed }
+
+class GoogleSignInResult {
+  GoogleSignInResult(this.outcome, {this.email, this.name, this.errorMessage});
+
+  final GoogleSignInOutcome outcome;
+  final String? email;
+  final String? name;
+  final String? errorMessage;
 }
 
 /// Authentication backed by Supabase Auth.
@@ -16,8 +32,31 @@ class AppAuthUser {
 class AuthService {
   SupabaseClient get _client => Supabase.instance.client;
 
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: SupabaseConfig.googleWebClientId,
+    scopes: const ['email', 'profile'],
+  );
+
+  static const String _keepSignedInKey = 'dw_keep_signed_in';
+
   /// The currently signed-in Supabase user, or null.
   User? get currentUser => _client.auth.currentUser;
+
+  /// Remembers whether the user opted to stay signed in across app restarts.
+  Future<void> setKeepSignedIn(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keepSignedInKey, value);
+  }
+
+  /// Called on startup: if the user did NOT choose "keep me signed in", clear
+  /// the restored session so they must log in again after leaving the app.
+  Future<void> applySessionPersistencePolicy() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keep = prefs.getBool(_keepSignedInKey) ?? false;
+    if (!keep && currentUser != null) {
+      await _client.auth.signOut();
+    }
+  }
 
   /// Signs in with phone + password (resolves the phone to its email first).
   Future<User?> signIn({
@@ -53,6 +92,7 @@ class AuthService {
     required String email,
     required String password,
     String? address,
+    String? gender,
     String role = 'tenant',
   }) async {
     final response = await _client.auth.signUp(
@@ -63,9 +103,82 @@ class AuthService {
         'phone_number': phone,
         'role': role,
         if (address != null && address.isNotEmpty) 'address': address,
+        if (gender != null && gender.isNotEmpty) 'gender': gender,
       },
     );
-    return response.user;
+
+    // The DB trigger creates the profile from name/phone/role only, so persist
+    // the address + gender onto the freshly-created profile row here.
+    final user = response.user;
+    if (user != null) {
+      final updates = <String, dynamic>{};
+      if (address != null && address.isNotEmpty) updates['address'] = address;
+      if (gender != null && gender.isNotEmpty) updates['gender'] = gender;
+      if (updates.isNotEmpty) {
+        try {
+          await _client.from('profiles').update(updates).eq('id', user.id);
+        } catch (_) {
+          // Non-fatal: the account is still created.
+        }
+      }
+    }
+    return user;
+  }
+
+  /// "Continue with Google": shows the native account picker, then only logs
+  /// the user in if their email is already registered in `profiles`. Otherwise
+  /// returns [GoogleSignInOutcome.notRegistered] so the UI can send them to the
+  /// registration screen (no Supabase account is created in that case).
+  Future<GoogleSignInResult> signInWithGoogle() async {
+    try {
+      // Start from a clean slate so the account picker always shows.
+      await _googleSignIn.signOut();
+
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        return GoogleSignInResult(GoogleSignInOutcome.cancelled);
+      }
+      final email = googleUser.email;
+
+      // Is this email already registered through the app's form?
+      final rows = await _client
+          .from('profiles')
+          .select('email')
+          .eq('email', email)
+          .limit(1);
+
+      if (rows.isEmpty) {
+        await _googleSignIn.signOut();
+        return GoogleSignInResult(
+          GoogleSignInOutcome.notRegistered,
+          email: email,
+          name: googleUser.displayName,
+        );
+      }
+
+      // Registered → complete the Supabase sign-in with the Google ID token.
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      if (idToken == null) {
+        await _googleSignIn.signOut();
+        return GoogleSignInResult(
+          GoogleSignInOutcome.failed,
+          errorMessage: 'Could not get a Google ID token.',
+        );
+      }
+
+      await _client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: googleAuth.accessToken,
+      );
+      return GoogleSignInResult(GoogleSignInOutcome.success, email: email);
+    } catch (e) {
+      return GoogleSignInResult(
+        GoogleSignInOutcome.failed,
+        errorMessage: e.toString(),
+      );
+    }
   }
 
   /// Step 1 of recovery: emails a 6-digit code to [email] (only if an account
@@ -95,5 +208,8 @@ class AuthService {
     await _client.auth.signOut();
   }
 
-  Future<void> signOut() => _client.auth.signOut();
+  Future<void> signOut() async {
+    await _googleSignIn.signOut();
+    await _client.auth.signOut();
+  }
 }

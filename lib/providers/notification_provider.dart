@@ -61,6 +61,27 @@ class NotificationProvider with ChangeNotifier {
 
   /// Marks [id] as read if it isn't already. Tapping an already-read
   /// notification is a deliberate no-op — no state change, no rebuild.
+  /// Pushes a new unread notification to the top of the inbox (e.g. when an
+  /// account gets verified).
+  void addNotification({
+    required IconData icon,
+    required String title,
+    required String message,
+  }) {
+    _notifications.insert(
+      0,
+      NotificationModel(
+        id: 'n-${DateTime.now().millisecondsSinceEpoch}',
+        icon: icon,
+        title: title,
+        message: message,
+        timestamp: DateTime.now(),
+        isRead: false,
+      ),
+    );
+    notifyListeners();
+  }
+
   void markAsRead(String id) {
     final index = _notifications.indexWhere((n) => n.id == id);
     if (index == -1 || _notifications[index].isRead) return;

@@ -70,6 +70,8 @@ class AppStrings {
       'p_add_property_sub': 'Add a property for rent',
       'p_my_properties': 'My properties',
       'p_my_properties_sub': 'View and manage your added properties',
+      'p_analytics': 'Analytics',
+      'p_analytics_sub': 'Your earnings, spending and rental history',
       'p_purchase_history': 'Purchase history',
       'p_purchase_history_sub': 'View your purchase history',
       'p_edit_profile': 'Edit profile',
@@ -83,7 +85,7 @@ class AppStrings {
       'verif_none': 'Not verified',
 
       // Account verification
-      'av_info': 'Verify your identity to earn a green badge and unlock more trust from renters. A ৳500 fee applies.',
+      'av_info': 'Verify your identity to earn a green badge and unlock more trust from renters. A ৳200 fee applies.',
       'av_fullname': 'Full name (as per NID)',
       'av_fullname_hint': 'e.g. Isbat Samin',
       'av_nid': 'NID / Passport number',
@@ -95,18 +97,18 @@ class AppStrings {
       'av_front': 'Front side',
       'av_back': 'Back side',
       'av_added_suffix': 'added',
-      'av_submit': 'Pay ৳500 & Submit for verification',
+      'av_submit': 'Pay ৳200 & Submit for verification',
       'av_attach_both': 'Please attach both sides of your NID.',
       'av_fee_title': 'Verification fee',
-      'av_fee_desc': 'A one-time fee of ৳500 is paid to the admin to review and verify your account.',
+      'av_fee_desc': 'A one-time fee of ৳200 is paid to the admin to review and verify your account.',
       'av_amount_payable': 'Amount payable',
-      'av_pay_now': 'Pay ৳500 now',
+      'av_pay_now': 'Pay ৳200 now',
       'av_mock_payment': 'Mock payment — no real charge',
       'av_payment_received': 'Payment received. Your account is now verified!',
       'av_verified_title': 'Your account is verified',
       'av_verified_desc': 'You now have the green verified badge across DwellWise.',
       'av_pending_title': 'Verification pending',
-      'av_pending_desc': 'We received your details and ৳500 fee. An admin will review and approve your account shortly.',
+      'av_pending_desc': 'We received your details and ৳200 fee. An admin will review and approve your account shortly.',
       'av_simulate': 'Simulate admin approval',
 
       // Add property
@@ -173,6 +175,11 @@ class AppStrings {
       'month_July': 'July', 'month_August': 'August', 'month_September': 'September',
       'month_October': 'October', 'month_November': 'November', 'month_December': 'December',
 
+      // Short month labels for chart axes
+      'mshort_1': 'Jan', 'mshort_2': 'Feb', 'mshort_3': 'Mar', 'mshort_4': 'Apr',
+      'mshort_5': 'May', 'mshort_6': 'Jun', 'mshort_7': 'Jul', 'mshort_8': 'Aug',
+      'mshort_9': 'Sep', 'mshort_10': 'Oct', 'mshort_11': 'Nov', 'mshort_12': 'Dec',
+
       // Property types
       'type_Family': 'Family', 'type_Bachelor': 'Bachelor', 'type_Office room': 'Office room',
       'type_Sublet': 'Sublet', 'type_Hostel': 'Hostel', 'type_Flat': 'Flat',
@@ -209,6 +216,34 @@ class AppStrings {
       'ph_no_rentals': 'No rentals yet',
       'ph_rented': 'Rented',
       'per_month': 'per month',
+
+      // Analytics dashboard
+      'an_tab_owner': 'As owner',
+      'an_tab_renter': 'As renter',
+      'an_earned_total': 'Total earned',
+      'an_monthly_income': 'Monthly income',
+      'an_deals_done': 'Properties rented out',
+      'an_active_now': 'Running now',
+      'an_spent_total': 'Total spent',
+      'an_monthly_rent': 'Monthly rent',
+      'an_rented_total': 'Properties rented',
+      'an_avg_rent': 'Average rent',
+      'an_income_trend': 'Monthly income',
+      'an_spend_trend': 'Monthly rent paid',
+      'an_last_months': 'Last 6 months',
+      'an_type_rented_out': 'What I rented out',
+      'an_type_rented_in': 'What I rented',
+      'an_recent_owner': 'Rented out properties',
+      'an_recent_renter': 'Rented properties',
+      'an_active': 'Running',
+      'an_ended': 'Ended',
+      'an_months_suffix': 'mo',
+      'an_total_short': 'Total',
+      'an_tenant': 'Tenant',
+      'an_owner': 'Owner',
+      'an_empty_owner': 'You have not rented out any property yet.',
+      'an_empty_renter': 'You have not rented any property yet.',
+      'an_demo_note': 'Demo data — real figures will appear once deals are recorded in the app.',
     },
     'bn': {
       // Bottom navigation
@@ -268,6 +303,8 @@ class AppStrings {
       'p_add_property_sub': 'ভাড়ার জন্য প্রপার্টি যোগ করুন',
       'p_my_properties': 'আমার প্রপার্টি',
       'p_my_properties_sub': 'আপনার যোগ করা প্রপার্টি দেখুন ও পরিচালনা করুন',
+      'p_analytics': 'অ্যানালিটিক্স',
+      'p_analytics_sub': 'আপনার আয়, খরচ ও ভাড়ার হিসাব',
       'p_purchase_history': 'ক্রয়ের ইতিহাস',
       'p_purchase_history_sub': 'আপনার ক্রয়ের ইতিহাস দেখুন',
       'p_edit_profile': 'প্রোফাইল এডিট করুন',
@@ -371,6 +408,11 @@ class AppStrings {
       'month_July': 'জুলাই', 'month_August': 'আগস্ট', 'month_September': 'সেপ্টেম্বর',
       'month_October': 'অক্টোবর', 'month_November': 'নভেম্বর', 'month_December': 'ডিসেম্বর',
 
+      // Short month labels for chart axes
+      'mshort_1': 'জানু', 'mshort_2': 'ফেব্রু', 'mshort_3': 'মার্চ', 'mshort_4': 'এপ্রি',
+      'mshort_5': 'মে', 'mshort_6': 'জুন', 'mshort_7': 'জুলা', 'mshort_8': 'আগ',
+      'mshort_9': 'সেপ্ট', 'mshort_10': 'অক্টো', 'mshort_11': 'নভে', 'mshort_12': 'ডিসে',
+
       // Property types
       'type_Family': 'ফ্যামিলি', 'type_Bachelor': 'ব্যাচেলর', 'type_Office room': 'অফিস রুম',
       'type_Sublet': 'সাবলেট', 'type_Hostel': 'হোস্টেল', 'type_Flat': 'ফ্ল্যাট',
@@ -407,6 +449,34 @@ class AppStrings {
       'ph_no_rentals': 'এখনো কোনো ভাড়া নেই',
       'ph_rented': 'ভাড়া নেওয়া হয়েছে',
       'per_month': 'প্রতি মাসে',
+
+      // Analytics dashboard
+      'an_tab_owner': 'মালিক হিসেবে',
+      'an_tab_renter': 'ভাড়াটে হিসেবে',
+      'an_earned_total': 'মোট আয়',
+      'an_monthly_income': 'মাসিক আয়',
+      'an_deals_done': 'ভাড়া দেওয়া প্রপার্টি',
+      'an_active_now': 'এখন চালু',
+      'an_spent_total': 'মোট খরচ',
+      'an_monthly_rent': 'মাসিক ভাড়া',
+      'an_rented_total': 'ভাড়া নেওয়া প্রপার্টি',
+      'an_avg_rent': 'গড় ভাড়া',
+      'an_income_trend': 'মাসিক আয়',
+      'an_spend_trend': 'মাসিক ভাড়া পরিশোধ',
+      'an_last_months': 'শেষ ৬ মাস',
+      'an_type_rented_out': 'কী ভাড়া দিয়েছি',
+      'an_type_rented_in': 'কী ভাড়া নিয়েছি',
+      'an_recent_owner': 'ভাড়া দেওয়া প্রপার্টি',
+      'an_recent_renter': 'ভাড়া নেওয়া প্রপার্টি',
+      'an_active': 'চলছে',
+      'an_ended': 'শেষ',
+      'an_months_suffix': 'মাস',
+      'an_total_short': 'মোট',
+      'an_tenant': 'ভাড়াটে',
+      'an_owner': 'মালিক',
+      'an_empty_owner': 'আপনি এখনো কোনো প্রপার্টি ভাড়া দেননি।',
+      'an_empty_renter': 'আপনি এখনো কোনো প্রপার্টি ভাড়া নেননি।',
+      'an_demo_note': 'ডেমো ডেটা — অ্যাপে লেনদেন যুক্ত হলে এখানে আসল হিসাব দেখাবে।',
     },
   };
 

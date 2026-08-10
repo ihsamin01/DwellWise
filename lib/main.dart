@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/theme.dart';
 import 'config/routes.dart';
 import 'config/supabase_config.dart';
+import 'services/auth_service.dart';
 import 'services/deep_link_service.dart';
 
 // Providers imports
@@ -31,6 +32,10 @@ Future<void> main() async {
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,
   );
+
+  // If the user didn't tick "Keep me signed in", clear the restored session so
+  // they land on the login screen after leaving the app.
+  await AuthService().applySessionPersistencePolicy();
 
   runApp(const DwellWiseApp());
 }

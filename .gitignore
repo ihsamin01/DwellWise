@@ -37,6 +37,11 @@ migrate_working_dir/
 /android/build/
 /coverage/
 
+# Local secrets: the app reads assets/secrets/gemini.json at runtime if present.
+# Keep the folder (README) in git, never the key file itself.
+assets/secrets/*
+!assets/secrets/README.md
+
 # Symbolication related
 app.*.symbols
 

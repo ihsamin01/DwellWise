@@ -54,6 +54,7 @@ class AuthProvider with ChangeNotifier {
     required String email,
     required String password,
     String? address,
+    String? gender,
     String role = 'tenant',
   }) async {
     _setLoading(true);
@@ -65,6 +66,7 @@ class AuthProvider with ChangeNotifier {
         email: email,
         password: password,
         address: address,
+        gender: gender,
         role: role,
       );
       if (user == null) {
@@ -80,6 +82,30 @@ class AuthProvider with ChangeNotifier {
     } catch (e) {
       _setError(e.toString());
       return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Persists whether the user wants to stay signed in across app restarts.
+  Future<void> setKeepSignedIn(bool value) =>
+      _authService.setKeepSignedIn(value);
+
+  /// "Continue with Google". Returns the raw result so the screen can decide:
+  /// success → go home; notRegistered → go to the register page.
+  Future<GoogleSignInResult> signInWithGoogle() async {
+    _setLoading(true);
+    _clearError();
+    try {
+      final result = await _authService.signInWithGoogle();
+      if (result.outcome == GoogleSignInOutcome.success) {
+        final user = _authService.currentUser;
+        _currentUser = AppAuthUser(email: user?.email ?? result.email ?? '');
+        notifyListeners();
+      } else if (result.outcome == GoogleSignInOutcome.failed) {
+        _setError(result.errorMessage ?? 'Google sign-in failed.');
+      }
+      return result;
     } finally {
       _setLoading(false);
     }

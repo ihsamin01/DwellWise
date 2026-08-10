@@ -33,6 +33,11 @@ class PropertyModel {
   final List<String> includedBills;
   final List<String> imageUrls;
   final bool isVerified;
+
+  /// Moderation state stored in the database: 'approved' listings are public,
+  /// anything else is only visible to its owner. New listings publish straight
+  /// away, so this defaults to 'approved'.
+  final String status;
   final String ownerId;
   final List<String> facilities;
   final DateTime createdAt;
@@ -59,6 +64,7 @@ class PropertyModel {
     this.includedBills = const [],
     required this.imageUrls,
     required this.isVerified,
+    this.status = 'approved',
     required this.ownerId,
     required this.facilities,
     required this.createdAt,
@@ -94,6 +100,7 @@ class PropertyModel {
       includedBills: includedBills,
       imageUrls: imageUrls,
       isVerified: isVerified ?? this.isVerified,
+      status: status,
       ownerId: ownerId,
       facilities: facilities,
       createdAt: createdAt ?? this.createdAt,
@@ -128,6 +135,7 @@ class PropertyModel {
       includedBills: List<String>.from(json['included_bills'] ?? []),
       imageUrls: List<String>.from(json['image_urls'] ?? []),
       isVerified: json['is_verified'] as bool? ?? false,
+      status: json['status'] as String? ?? 'approved',
       ownerId: json['owner_id'] as String? ?? '',
       facilities: List<String>.from(json['facilities'] ?? []),
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -155,6 +163,7 @@ class PropertyModel {
       'included_bills': includedBills,
       'image_urls': imageUrls,
       'is_verified': isVerified,
+      'status': status,
       'owner_id': ownerId,
       'facilities': facilities,
       'created_at': createdAt.toIso8601String(),

@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
 import '../services/supabase_service.dart';
 
@@ -6,18 +9,40 @@ import '../services/supabase_service.dart';
 class UserProvider with ChangeNotifier {
   final SupabaseService _dbService = SupabaseService();
 
-  UserModel? _userModel = UserModel(
-    id: 'tenant1',
-    email: 'samin@dwellwise.com',
-    name: 'Samin Azhan',
-    phoneNumber: '+8801700000000',
-    role: UserRole.tenant,
-    createdAt: DateTime(2025, 11, 4),
-  );
+  UserModel? _userModel;
   bool _isLoading = false;
 
   UserModel? get userModel => _userModel;
   bool get isLoading => _isLoading;
+
+  /// Loads the profile of the currently signed-in Supabase user.
+  Future<void> loadCurrentUserProfile() async {
+    final authUser = Supabase.instance.client.auth.currentUser;
+    if (authUser == null) {
+      _userModel = null;
+      notifyListeners();
+      return;
+    }
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final profile = await _dbService.getUserProfile(authUser.id);
+      if (profile != null) {
+        _userModel = profile;
+      }
+    } catch (e) {
+      debugPrint('Error loading profile: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Clears the cached profile (e.g. on logout).
+  void clear() {
+    _userModel = null;
+    notifyListeners();
+  }
 
   /// Loads detailed profile record for authenticated user ID.
   Future<void> fetchUserProfile(String userId) async {
@@ -33,13 +58,16 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-  /// Updates profile metadata in database.
+  /// Updates profile metadata in the database.
+  ///
+  /// The local model is updated first so dependent screens (e.g. the
+  /// location-based home feed) react immediately; the DB write follows.
   Future<bool> updateProfile(UserModel updatedUser) async {
     _isLoading = true;
+    _userModel = updatedUser;
     notifyListeners();
     try {
       await _dbService.updateUserProfile(updatedUser);
-      _userModel = updatedUser;
       return true;
     } catch (e) {
       debugPrint('Error updating profile: $e');
@@ -62,23 +90,35 @@ class UserProvider with ChangeNotifier {
   VerificationStatus get verificationStatus =>
       _userModel?.verificationStatus ?? VerificationStatus.unverified;
 
-  /// Submits the account-verification request (form + mock ৳500 fee paid).
-  /// This is a frontend-only demo: it simulates a brief processing delay and
-  /// then marks the account [VerificationStatus.verified] directly — there is
-  /// no backend or real admin review.
-  Future<bool> submitVerification({required String governmentId}) async {
+  /// Submits the account-verification request: uploads the NID photos, records
+  /// the request and marks the profile verified in the database. The ৳200 fee is
+  /// a mock payment and there is no admin review step, so paying completes it.
+  Future<bool> submitVerification({
+    required String governmentId,
+    List<File> documents = const [],
+  }) async {
     if (_userModel == null) return false;
     _isLoading = true;
     notifyListeners();
-    // Simulate the mock payment + verification round-trip.
-    await Future.delayed(const Duration(milliseconds: 600));
-    _userModel = _userModel!.copyWith(
-      verificationStatus: VerificationStatus.verified,
-      governmentId: governmentId,
-    );
-    _isLoading = false;
-    notifyListeners();
-    return true;
+    try {
+      final paths = await _dbService.uploadVerificationDocs(documents);
+      await _dbService.submitVerification(
+        fullName: _userModel!.name,
+        governmentId: governmentId,
+        documentPaths: paths,
+      );
+      _userModel = _userModel!.copyWith(
+        verificationStatus: VerificationStatus.verified,
+        governmentId: governmentId,
+      );
+      return true;
+    } catch (e) {
+      debugPrint('Verification failed: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   /// Mock admin approval that grants the green verified badge. In a real

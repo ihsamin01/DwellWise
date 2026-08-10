@@ -6,7 +6,10 @@ import '../../providers/notification_provider.dart';
 import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
+import '../../providers/user_provider.dart';
 import '../../models/property_model.dart';
+import '../../services/gemini_service.dart';
+import '../../utils/location_recommender.dart';
 import '../../widgets/app_drawer.dart';
 import '../../widgets/bottom_navigation.dart';
 import '../../widgets/property_card.dart';
@@ -38,11 +41,49 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   String? _typeFilter;
   int? _bedsFilter;
   int? _bathsFilter;
+  bool _verifiedOnly = false;
   String _sortBy = 'Newest';
 
   /// Bedroom/bathroom quick-pick options. The last entry acts as an "N+" upper bucket.
   static const List<int> kBedsOptions = [1, 2, 3, 4];
   static const List<int> kBathsOptions = [1, 2, 3];
+
+  // AI Recommended (Gemini) — refines the local location ranking in the
+  // background; falls back to the local ranking on any error.
+  final GeminiService _gemini = GeminiService();
+  List<String>? _aiOrderedIds;
+  String? _aiRankedFor;
+
+  /// Kicks off a Gemini ranking for [userAddress] (once per address). Resets the
+  /// previous order when the address changes.
+  Future<void> _requestAiRanking(
+      String userAddress, List<PropertyModel> candidates) async {
+    if (_aiRankedFor == userAddress) return;
+    _aiRankedFor = userAddress;
+    _aiOrderedIds = null; // drop stale order for the new location
+    final ids = await _gemini.recommendPropertyIds(
+      userLocation: userAddress,
+      candidates: candidates,
+    );
+    if (mounted && _aiRankedFor == userAddress) {
+      setState(() => _aiOrderedIds = ids.isNotEmpty ? ids : null);
+    }
+  }
+
+  /// Reorders [list] to put Gemini's recommended ids first (in its order),
+  /// keeping the rest in their existing order.
+  List<PropertyModel> _applyAiOrder(List<PropertyModel> list) {
+    final ids = _aiOrderedIds;
+    if (ids == null || ids.isEmpty) return list;
+    final byId = {for (final p in list) p.id: p};
+    final ordered = <PropertyModel>[];
+    for (final id in ids) {
+      final p = byId.remove(id);
+      if (p != null) ordered.add(p);
+    }
+    ordered.addAll(list.where((p) => byId.containsKey(p.id)));
+    return ordered;
+  }
 
   /// Sort options shared with the search results screen. Value → label.
   static const Map<String, String> kSortOptions = {
@@ -68,7 +109,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     return result;
   }
 
-  /// Applies the active price/type/beds/baths filters to the recommended list.
+  /// Applies the active price/type/beds/baths/verified filters to the recommended list.
   List<PropertyModel> _applyFilters(List<PropertyModel> list) {
     var result = List<PropertyModel>.from(list);
 
@@ -107,6 +148,10 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
           : result.where((p) => p.baths == _bathsFilter).toList();
     }
 
+    if (_verifiedOnly) {
+      result = result.where((p) => p.isVerified).toList();
+    }
+
     return result;
   }
 
@@ -132,6 +177,15 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PropertyProvider>().fetchProperties();
     });
+  }
+
+  /// Pull-to-refresh: re-reads the listings (so newly posted rentals from other
+  /// devices show up) and rebuilds the area feed for [userAddress].
+  Future<void> _refreshFeed(String? userAddress) async {
+    final provider = context.read<PropertyProvider>();
+    await provider.fetchProperties();
+    await provider.syncAreaFeed(userAddress, force: true);
+    _aiRankedFor = null; // let Gemini re-rank the refreshed list
   }
 
   @override
@@ -235,12 +289,14 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   }
 
   /// Filter trigger shown at the right of the "AI Recommended" heading. Opens
-  /// a bottom sheet covering price, property type, bedrooms and bathrooms.
+  /// a bottom sheet covering price, property type, bedrooms, bathrooms and
+  /// verified-owner status.
   Widget _buildFilterButton(AppColors colors, List<String> availableTypes) {
     final bool isActive = _priceFilter != PriceFilter.none ||
         _typeFilter != null ||
         _bedsFilter != null ||
-        _bathsFilter != null;
+        _bathsFilter != null ||
+        _verifiedOnly;
     return GestureDetector(
       onTap: () => _openFilterSheet(colors, availableTypes),
       child: Container(
@@ -286,6 +342,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
         String? draftType = _typeFilter;
         int? draftBeds = _bedsFilter;
         int? draftBaths = _bathsFilter;
+        bool draftVerified = _verifiedOnly;
 
         return StatefulBuilder(
           builder: (context, setSheetState) {
@@ -330,6 +387,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                               draftType = null;
                               draftBeds = null;
                               draftBaths = null;
+                              draftVerified = false;
                             }),
                             child: const Text('Reset'),
                           ),
@@ -413,6 +471,21 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                               )),
                         ],
                       ),
+                      const SizedBox(height: 20),
+
+                      sectionTitle('Owner Verification'),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          DwellFilterChip(
+                            label: 'Verified owners only',
+                            isSelected: draftVerified,
+                            onSelected: (selected) =>
+                                setSheetState(() => draftVerified = selected),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 24),
 
                       SizedBox(
@@ -432,6 +505,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                               _typeFilter = draftType;
                               _bedsFilter = draftBeds;
                               _bathsFilter = draftBaths;
+                              _verifiedOnly = draftVerified;
                             });
                             Navigator.of(sheetContext).pop();
                           },
@@ -461,10 +535,36 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     final savedProvider = context.watch<SavedPropertiesProvider>();
     final recentlyViewedProvider = context.watch<RecentlyViewedProvider>();
 
+    final userAddress = context.watch<UserProvider>().userModel?.address;
+    // The last two parts of the address, e.g. "Banani, Dhaka" — everything
+    // (feed generation, ranking, Gemini) keys off this.
+    final userArea = PropertyProvider.deriveArea(userAddress);
+
+    // Make sure ~12 dummy listings exist around the user's area (regenerates
+    // only when the area changes). Runs post-frame since it notifies listeners.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      propertyProvider.syncAreaFeed(userAddress);
+    });
+
     final allProperties = propertyProvider.properties;
     final availableTypes = allProperties.map((p) => p.propertyType).toSet().toList()
       ..sort();
-    final recommendedList = _applySort(_applyFilters(allProperties));
+
+    // Offline location ranking from the user's area, then let Gemini refine the
+    // order in the background (falls back to the local ranking).
+    final sorted = _applySort(_applyFilters(allProperties));
+    final locationRanked = recommendByLocation(sorted, userArea);
+
+    // Only ask Gemini once the generated area feed is present, so it ranks the
+    // nearby posts too (keeps them on top).
+    final feedReady = propertyProvider.hasAreaFeed;
+    if (feedReady && userArea != null && userArea.trim().isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _requestAiRanking(userArea, locationRanked);
+      });
+    }
+    final recommendedList = _applyAiOrder(locationRanked);
+
     final recentlyViewedIds = recentlyViewedProvider.recentlyViewedIds;
 
     // Map viewed IDs to actual properties (home feed + search results),
@@ -566,9 +666,14 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                 valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
               ),
             )
-          : SingleChildScrollView(
+          : RefreshIndicator(
+              color: colors.primary,
+              onRefresh: () => _refreshFeed(userAddress),
+              child: SingleChildScrollView(
               controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -720,6 +825,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                       height: 120), // Bottom padding to avoid nav overlap
                 ],
               ),
+            ),
             ),
       bottomNavigationBar: widget.showBottomNavigation
           ? const BottomNavigation(currentIndex: 0)

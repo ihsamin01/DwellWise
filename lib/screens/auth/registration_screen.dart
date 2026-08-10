@@ -22,6 +22,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _addressController = TextEditingController();
 
   bool _obscurePassword = true;
+  String? _gender;
 
   @override
   void dispose() {
@@ -93,6 +94,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         address: _addressController.text.trim(),
+        gender: _gender,
       );
 
       if (success && mounted) {
@@ -166,14 +168,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 16.0),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 40), // Top Spacing
-
                 // Top Badge and Header Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -277,6 +277,47 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   validator: _validateName,
                 ),
                 const SizedBox(height: 20), // Form vertical gap
+
+                // Gender dropdown (drives the profile avatar)
+                _buildInputLabel(colors, 'GENDER *', true),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: _gender,
+                  style: TextStyle(color: colors.textPrimary, fontSize: 16),
+                  dropdownColor: colors.surface,
+                  decoration: InputDecoration(
+                    hintText: 'Select gender',
+                    hintStyle: TextStyle(color: colors.textSecondary),
+                    fillColor: colors.surface,
+                    filled: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    prefixIcon: Icon(Icons.wc_outlined, color: colors.textSecondary),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: colors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: colors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: colors.primary, width: 1.5),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xffDC2626)),
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'male', child: Text('Male')),
+                    DropdownMenuItem(value: 'female', child: Text('Female')),
+                  ],
+                  onChanged: (val) => setState(() => _gender = val),
+                  validator: (val) =>
+                      (val == null || val.isEmpty) ? 'Please select gender' : null,
+                ),
+                const SizedBox(height: 20),
 
                 // Phone Number Input
                 _buildInputLabel(colors, 'PHONE NUMBER *', true),
@@ -505,83 +546,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 32),
-
-                // Security Section
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.lock_outline, size: 14, color: colors.textSecondary),
-                        const SizedBox(width: 6),
-                        Text(
-                          'SECURE ENCRYPTION',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: colors.textSecondary),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Icon(Icons.gavel_outlined, size: 14, color: colors.textSecondary),
-                        const SizedBox(width: 6),
-                        Text(
-                          'LEGAL COMPLIANCE',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: colors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 48),
-
-                // Footer lines
-                Text(
-                  '© 2024 DwellWise. All rights reserved.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colors.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-
-                // Footer Links
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: () {},
-                      child: Text(
-                        'Privacy',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: colors.primary),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text('|', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
-                    ),
-                    GestureDetector(
-                      onTap: () {},
-                      child: Text(
-                        'Terms of Service',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: colors.primary),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text('|', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
-                    ),
-                    GestureDetector(
-                      onTap: () {},
-                      child: Text(
-                        'Contact Support',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: colors.primary),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
               ],
             ),
           ),

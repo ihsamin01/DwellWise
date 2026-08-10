@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../data/area_feed_generator.dart';
 import '../models/property_model.dart';
 import '../services/supabase_service.dart';
 
@@ -47,17 +49,117 @@ class PropertyProvider with ChangeNotifier {
     // No notifyListeners: called during search flow; screens already rebuild.
   }
 
+  /// The area the current AI-Recommended feed was loaded for.
+  String? _feedArea;
+
+  /// Ids currently occupying the area feed, so a new area can replace them.
+  Set<String> _areaFeedIds = {};
+
+  /// Ensures ~[count] dummy listings exist around the user's area (derived from
+  /// their profile [userAddress]), so the AI Recommended feed always has enough
+  /// nearby posts. Regenerates only when the area changes.
+  Future<void> syncAreaFeed(
+    String? userAddress, {
+    int count = 12,
+    bool force = false,
+  }) async {
+    final area = deriveArea(userAddress);
+    if (area == null || area.isEmpty) return;
+    if (!force && area.toLowerCase() == _feedArea) return;
+    _feedArea = area.toLowerCase();
+
+    // "Banani, Dhaka" -> neighbourhood "Banani", city "Dhaka".
+    final parts = area.split(',').map((s) => s.trim()).toList();
+    final specific = parts.first;
+    final city = parts.length > 1 ? parts.last : null;
+
+    var nearby = <PropertyModel>[];
+    try {
+      // 1. Neighbourhood within the right city — place names such as
+      //    "Chawkbazar" exist in several divisions, so the city must match.
+      nearby = await _dbService
+          .getPropertiesByArea(specific, city: city, limit: count);
+
+      // 2. Nothing for that neighbourhood: stay in the same city rather than
+      //    drifting to a same-named place elsewhere.
+      if (nearby.isEmpty && city != null) {
+        nearby = await _dbService.getPropertiesByArea(city, limit: count);
+      }
+
+      // 3. No city given at all — fall back to the plain neighbourhood match.
+      if (nearby.isEmpty && city == null) {
+        nearby = await _dbService.getPropertiesByArea(specific, limit: count);
+      }
+    } catch (e) {
+      debugPrint('Error loading area feed: $e');
+    }
+
+    // Only if the database has nothing for this area (e.g. it hasn't been
+    // seeded yet) do we fall back to locally generated listings.
+    if (nearby.isEmpty) {
+      nearby = generateAreaProperties(area, count: count);
+    }
+
+    final newIds = nearby.map((p) => p.id).toSet();
+    _properties
+        .removeWhere((p) => _areaFeedIds.contains(p.id) || newIds.contains(p.id));
+    _areaFeedIds = newIds;
+    for (final p in nearby) {
+      _searchGenerated[p.id] = p; // resolvable by details/saved/recently-viewed
+    }
+    _properties.insertAll(0, nearby);
+    notifyListeners();
+  }
+
+  /// True once an area-specific feed has been loaded.
+  bool get hasAreaFeed => _areaFeedIds.isNotEmpty;
+
+  /// Extracts the area from a free-text address by taking its **last two**
+  /// comma-separated parts, e.g.
+  /// "Block B, Road 11, Banani, Dhaka" -> "Banani, Dhaka".
+  ///
+  /// Falls back to the single remaining part for shorter addresses.
+  static String? deriveArea(String? address) {
+    if (address == null || address.trim().isEmpty) return null;
+    final parts = address
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return null;
+    if (parts.length == 1) return parts.first;
+    return '${parts[parts.length - 2]}, ${parts.last}';
+  }
+
   List<PropertyModel> get savedProperties =>
       _properties.where((p) => _savedPropertyIds.contains(p.id)).toList();
 
   /// Listings the current user has posted (newest first).
   List<PropertyModel> get myListings => List.unmodifiable(_myListings);
 
-  /// Removes one of the current user's own listings.
-  void removeMyListing(String propertyId) {
+  /// Loads the signed-in user's own listings from the database, so posts they
+  /// made survive an app restart (and show up on any device they log in from).
+  /// Falls back to the seeded demo entries when nobody is signed in.
+  Future<void> loadMyListings() async {
+    if (Supabase.instance.client.auth.currentUser == null) return;
+    try {
+      final rows = await _dbService.getMyProperties();
+      _myListings
+        ..clear()
+        ..addAll(rows);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading my listings: $e');
+    }
+  }
+
+  /// Removes one of the current user's own listings, in the database too.
+  Future<void> removeMyListing(String propertyId) async {
     _myListings.removeWhere((p) => p.id == propertyId);
     _properties.removeWhere((p) => p.id == propertyId);
+    _areaFeedIds.remove(propertyId);
     notifyListeners();
+    await _dbService.deleteProperty(propertyId);
   }
 
   /// Loads properties list.
@@ -89,6 +191,9 @@ class PropertyProvider with ChangeNotifier {
       if (newProperty.ownerId == currentUserId) {
         _myListings.insert(0, newProperty);
       }
+      // Re-read from the database so the stored row (with its real id) replaces
+      // the local copy and the listing is tracked across restarts.
+      await loadMyListings();
       return true;
     } catch (e) {
       debugPrint('Error creating listing: $e');

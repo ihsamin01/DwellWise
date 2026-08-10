@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/user_provider.dart';
+import '../../services/auth_service.dart';
 
 /// Screen representing user login page.
 class LoginScreen extends StatefulWidget {
@@ -50,9 +52,46 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    final authProvider = context.read<AuthProvider>();
+    final userProvider = context.read<UserProvider>();
+    final result = await authProvider.signInWithGoogle();
+    if (!mounted) return;
+
+    switch (result.outcome) {
+      case GoogleSignInOutcome.success:
+        await authProvider.setKeepSignedIn(_keepMeSignedIn);
+        await userProvider.loadCurrentUserProfile();
+        if (!mounted) return;
+        context.go('/tenant-home');
+        break;
+      case GoogleSignInOutcome.notRegistered:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                '${result.email ?? 'This account'} is not registered. Please register first.'),
+            backgroundColor: const Color(0xffDC2626),
+          ),
+        );
+        context.push('/register');
+        break;
+      case GoogleSignInOutcome.cancelled:
+        break;
+      case GoogleSignInOutcome.failed:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.errorMessage ?? 'Google sign-in failed.'),
+            backgroundColor: const Color(0xffDC2626),
+          ),
+        );
+        break;
+    }
+  }
+
   void _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
       final authProvider = context.read<AuthProvider>();
+      final userProvider = context.read<UserProvider>();
 
       final success = await authProvider.login(
         '+880${_phoneController.text.trim()}',
@@ -60,6 +99,9 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (success && mounted) {
+        await authProvider.setKeepSignedIn(_keepMeSignedIn);
+        await userProvider.loadCurrentUserProfile();
+        if (!mounted) return;
         context.go('/tenant-home');
       } else if (mounted) {
         final errorMsg = authProvider.errorMessage ?? 'Login failed. Please check credentials.';
@@ -336,7 +378,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // Google sign-in button ONLY (No Facebook button)
                 _GoogleSignInButton(
-                  onTap: () => context.go('/tenant-home'),
+                  onTap: _handleGoogleSignIn,
                 ),
                 const SizedBox(height: 32),
 
@@ -362,28 +404,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
-
-                // Legal text
-                Text(
-                  "By signing in, you agree to DwellWise's Terms of Service and Privacy Policy",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colors.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-
-                // Footer
-                Text(
-                  '© 2024 DwellWise. Professional Rental Solutions.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colors.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
               ],
             ),
           ),

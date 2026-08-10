@@ -8,7 +8,7 @@ import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
 import '../../providers/search_filters_provider.dart';
-import '../../services/mock_search_service.dart';
+import '../../services/supabase_service.dart';
 import '../../widgets/property_card.dart';
 
 /// Dedicated results page reached from the Search screen. Shows a compact
@@ -37,42 +37,50 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _buildResults());
   }
 
-  void _buildResults() {
+  Future<void> _buildResults() async {
     final fp = context.read<SearchFiltersProvider>();
     final pp = context.read<PropertyProvider>();
 
-    // 1. Location-generated realistic listings (type-aware).
-    final generated = MockSearchService.generate(
-      division: fp.division,
-      district: fp.district,
-      thana: fp.thana,
-      area: fp.area,
-      type: fp.type,
-    );
+    // Live listings for the searched location, straight from the database.
+    var results = <PropertyModel>[];
+    try {
+      results = await SupabaseService().searchProperties(
+        area: fp.area,
+        thana: fp.thana,
+        district: fp.district,
+        type: fp.type,
+      );
+    } catch (e) {
+      debugPrint('Search failed: $e');
+    }
 
-    // 2. Home-feed posts that genuinely match the most specific locality.
+    // Include anything already loaded locally that matches (e.g. a listing the
+    // user just posted), without duplicating rows the query already returned.
     final locality = (fp.area.isNotEmpty
             ? fp.area
             : fp.thana.isNotEmpty
                 ? fp.thana
                 : fp.district)
         .toLowerCase();
-    var homeMatches = locality.isEmpty
+    final ids = results.map((p) => p.id).toSet();
+    var localMatches = locality.isEmpty
         ? <PropertyModel>[]
         : pp.properties
             .where((p) =>
-                p.area.toLowerCase().contains(locality) ||
-                p.address.toLowerCase().contains(locality))
+                !ids.contains(p.id) &&
+                (p.area.toLowerCase().contains(locality) ||
+                    p.address.toLowerCase().contains(locality)))
             .toList();
     if (fp.type.isNotEmpty) {
-      homeMatches =
-          homeMatches.where((p) => p.propertyType == fp.type).toList();
+      localMatches =
+          localMatches.where((p) => p.propertyType == fp.type).toList();
     }
 
-    // Register generated posts so details/saved/recently screens resolve them.
-    pp.registerSearchResults(generated);
+    // Register them so details/saved/recently-viewed can resolve them by id.
+    pp.registerSearchResults(results);
 
-    setState(() => _base = [...homeMatches, ...generated]);
+    if (!mounted) return;
+    setState(() => _base = [...localMatches, ...results]);
   }
 
   List<PropertyModel> _sorted(String sortBy) {

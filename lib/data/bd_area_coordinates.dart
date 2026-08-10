@@ -1,0 +1,296 @@
+/// Latitude/longitude lookup for Bangladeshi places, used so a generated
+/// listing's map pin actually matches its address.
+///
+/// Keys are lower-cased place names (neighbourhood, thana, district or
+/// division city). [coordinatesFor] resolves a free-text area like
+/// "Banani, Dhaka" by trying the most specific part first, then falling back to
+/// the district/division, and finally to central Dhaka.
+library bd_area_coordinates;
+
+/// (latitude, longitude) pairs keyed by lower-cased place name.
+const Map<String, (double, double)> bdAreaCoordinates = {
+  // ---------------- DHAKA CITY ----------------
+  'dhaka': (23.8103, 90.4125),
+  'banani': (23.7937, 90.4066),
+  'banani dohs': (23.7965, 90.3998),
+  'gulshan': (23.7925, 90.4078),
+  'gulshan 1': (23.7806, 90.4143),
+  'gulshan 2': (23.7947, 90.4145),
+  'niketan': (23.7815, 90.4118),
+  'baridhara': (23.8043, 90.4181),
+  'bashundhara': (23.8203, 90.4288),
+  'bashundhara r/a': (23.8203, 90.4288),
+  'uttara': (23.8759, 90.3795),
+  'uttara east': (23.8687, 90.4009),
+  'uttara west': (23.8759, 90.3667),
+  'airport': (23.8433, 90.3978),
+  'khilkhet': (23.8290, 90.4203),
+  'nikunja': (23.8275, 90.4212),
+  'vatara': (23.8060, 90.4260),
+  'badda': (23.7806, 90.4258),
+  'middle badda': (23.7818, 90.4247),
+  'north badda': (23.7877, 90.4258),
+  'south badda': (23.7742, 90.4249),
+  'merul badda': (23.7690, 90.4230),
+  'aftabnagar': (23.7625, 90.4380),
+  'rampura': (23.7614, 90.4180),
+  'banasree': (23.7605, 90.4285),
+  'khilgaon': (23.7500, 90.4260),
+  'goran': (23.7455, 90.4310),
+  'basabo': (23.7392, 90.4290),
+  'mugda': (23.7381, 90.4243),
+  'motijheel': (23.7330, 90.4172),
+  'arambagh': (23.7345, 90.4155),
+  'kamalapur': (23.7325, 90.4265),
+  'paltan': (23.7345, 90.4120),
+  'purana paltan': (23.7337, 90.4122),
+  'naya paltan': (23.7382, 90.4148),
+  'segunbagicha': (23.7365, 90.4062),
+  'ramna': (23.7380, 90.4010),
+  'eskaton': (23.7480, 90.4030),
+  'kakrail': (23.7385, 90.4090),
+  'siddheswari': (23.7420, 90.4055),
+  'moghbazar': (23.7480, 90.4085),
+  'hatirjheel': (23.7530, 90.4050),
+  'tejgaon': (23.7639, 90.3936),
+  'farmgate': (23.7580, 90.3893),
+  'nakhalpara': (23.7660, 90.3930),
+  'agargaon': (23.7770, 90.3780),
+  'sher-e-bangla nagar': (23.7745, 90.3782),
+  'mohammadpur': (23.7590, 90.3595),
+  'shyamoli': (23.7740, 90.3660),
+  'adabor': (23.7745, 90.3560),
+  'bosila': (23.7530, 90.3450),
+  'dhanmondi': (23.7461, 90.3742),
+  'dhanmondi 27': (23.7530, 90.3740),
+  'dhanmondi 32': (23.7513, 90.3760),
+  'jigatola': (23.7395, 90.3735),
+  'kalabagan': (23.7480, 90.3830),
+  'panthapath': (23.7520, 90.3870),
+  'green road': (23.7500, 90.3840),
+  'hazaribagh': (23.7355, 90.3630),
+  'lalbagh': (23.7185, 90.3880),
+  'azimpur': (23.7300, 90.3860),
+  'new market': (23.7335, 90.3850),
+  'nilkhet': (23.7330, 90.3872),
+  'elephant road': (23.7390, 90.3860),
+  'shahbagh': (23.7385, 90.3955),
+  'kotwali': (23.7100, 90.4090),
+  'sadarghat': (23.7060, 90.4110),
+  'wari': (23.7175, 90.4180),
+  'sutrapur': (23.7085, 90.4190),
+  'gendaria': (23.7080, 90.4230),
+  'bangshal': (23.7200, 90.4050),
+  'chawkbazar': (23.7180, 90.3960),
+  'jatrabari': (23.7100, 90.4360),
+  'demra': (23.7150, 90.4830),
+  'shyampur': (23.6960, 90.4360),
+  'kadamtali': (23.7000, 90.4300),
+  'kamrangirchar': (23.7160, 90.3720),
+  'mirpur': (23.8223, 90.3654),
+  'mirpur 1': (23.7980, 90.3540),
+  'mirpur 2': (23.8060, 90.3630),
+  'mirpur 6': (23.8110, 90.3660),
+  'mirpur 10': (23.8069, 90.3686),
+  'mirpur 11': (23.8195, 90.3660),
+  'mirpur 12': (23.8285, 90.3640),
+  'mirpur 13': (23.8180, 90.3760),
+  'mirpur 14': (23.8100, 90.3830),
+  'mirpur dohs': (23.8285, 90.3720),
+  'pallabi': (23.8240, 90.3650),
+  'kalshi': (23.8250, 90.3800),
+  'rupnagar': (23.8225, 90.3555),
+  'kazipara': (23.7970, 90.3720),
+  'sheorapara': (23.7930, 90.3720),
+  'kafrul': (23.7920, 90.3860),
+  'ibrahimpur': (23.7975, 90.3855),
+  'bhashantek': (23.8095, 90.3900),
+  'cantonment': (23.7997, 90.3966),
+  'dhaka cantonment': (23.7997, 90.3966),
+  'shah ali': (23.8140, 90.3560),
+  'turag': (23.8760, 90.3540),
+  'dakshinkhan': (23.8720, 90.4110),
+  'uttarkhan': (23.8830, 90.4120),
+  'ashkona': (23.8570, 90.4030),
+  'savar': (23.8583, 90.2667),
+  'ashulia': (23.8930, 90.3170),
+  'hemayetpur': (23.8000, 90.2760),
+  'keraniganj': (23.7000, 90.3800),
+  'dohar': (23.5800, 90.1000),
+  'nawabganj': (23.6100, 90.1600),
+  'dhamrai': (23.9100, 90.2200),
+  // ---------------- DHAKA DIVISION DISTRICTS ----------------
+  'gazipur': (23.9999, 90.4203),
+  'joydebpur': (24.0000, 90.4200),
+  'tongi': (23.8900, 90.4030),
+  'kaliakair': (24.0700, 90.2200),
+  'sreepur': (24.1900, 90.4700),
+  'narayanganj': (23.6238, 90.5000),
+  'chashara': (23.6250, 90.5000),
+  'fatullah': (23.6300, 90.4900),
+  'siddhirganj': (23.6700, 90.5200),
+  'sonargaon': (23.6480, 90.6000),
+  'rupganj': (23.7700, 90.5300),
+  'narsingdi': (23.9200, 90.7150),
+  'munshiganj': (23.5422, 90.5305),
+  'manikganj': (23.8600, 90.0000),
+  'tangail': (24.2513, 89.9167),
+  'kishoreganj': (24.4449, 90.7766),
+  'bhairab': (24.0500, 90.9800),
+  'faridpur': (23.6070, 89.8429),
+  'madaripur': (23.1641, 90.1897),
+  'shariatpur': (23.2423, 90.4348),
+  'rajbari': (23.7574, 89.6444),
+  'gopalganj': (23.0050, 89.8266),
+  // ---------------- CHATTOGRAM ----------------
+  'chattogram': (22.3569, 91.7832),
+  'chittagong': (22.3569, 91.7832),
+  'agrabad': (22.3280, 91.8123),
+  'nasirabad': (22.3690, 91.8100),
+  'panchlaish': (22.3630, 91.8290),
+  'khulshi': (22.3600, 91.8100),
+  'halishahar': (22.3200, 91.7800),
+  'chandgaon': (22.3720, 91.8480),
+  'bayazid': (22.3800, 91.8200),
+  'pahartali': (22.3550, 91.7300),
+  'patenga': (22.2300, 91.7900),
+  'bakalia': (22.3450, 91.8500),
+  'double mooring': (22.3300, 91.8100),
+  'jamal khan': (22.3400, 91.8300),
+  'lalkhan bazar': (22.3480, 91.8180),
+  'oxygen': (22.3830, 91.8060),
+  'muradpur': (22.3660, 91.8330),
+  // Qualified keys for place names that also exist in Dhaka. `coordinatesFor`
+  // checks these "<area> <city>" keys before the bare name.
+  'chawkbazar chattogram': (22.3592, 91.8340),
+  'kotwali chattogram': (22.3350, 91.8330),
+  'new market chattogram': (22.3345, 91.8318),
+  'sadarghat chattogram': (22.3190, 91.8390),
+  'coxs bazar': (21.4272, 92.0058),
+  "cox's bazar": (21.4272, 92.0058),
+  'kolatoli': (21.4200, 91.9900),
+  'cumilla': (23.4607, 91.1809),
+  'comilla': (23.4607, 91.1809),
+  'kandirpar': (23.4600, 91.1800),
+  'brahmanbaria': (23.9571, 91.1115),
+  'chandpur': (23.2333, 90.6667),
+  'feni': (23.0159, 91.3976),
+  'noakhali': (22.8696, 91.0995),
+  'maijdee': (22.8400, 91.1000),
+  'lakshmipur': (22.9447, 90.8282),
+  'bandarban': (22.1953, 92.2184),
+  'rangamati': (22.6533, 92.1750),
+  'khagrachhari': (23.1193, 91.9847),
+  // ---------------- RAJSHAHI ----------------
+  'rajshahi': (24.3745, 88.6042),
+  'shaheb bazar': (24.3670, 88.6030),
+  'boalia': (24.3700, 88.6000),
+  'motihar': (24.3600, 88.6400),
+  'rajpara': (24.3800, 88.5900),
+  'bogura': (24.8465, 89.3773),
+  'bogra': (24.8465, 89.3773),
+  'satmatha': (24.8500, 89.3700),
+  'pabna': (24.0064, 89.2372),
+  'sirajganj': (24.4533, 89.7006),
+  'natore': (24.4206, 89.0003),
+  'naogaon': (24.7936, 88.9318),
+  'joypurhat': (25.0968, 89.0227),
+  'chapainawabganj': (24.5965, 88.2775),
+  // ---------------- KHULNA ----------------
+  'khulna': (22.8456, 89.5403),
+  'sonadanga': (22.8100, 89.5400),
+  'khalishpur': (22.8500, 89.5300),
+  'daulatpur': (22.8800, 89.5300),
+  'boyra': (22.8200, 89.5300),
+  'jashore': (23.1664, 89.2081),
+  'jessore': (23.1664, 89.2081),
+  'kushtia': (23.9013, 89.1206),
+  'satkhira': (22.7185, 89.0705),
+  'bagerhat': (22.6516, 89.7856),
+  'jhenaidah': (23.5450, 89.1726),
+  'magura': (23.4855, 89.4198),
+  'narail': (23.1725, 89.5122),
+  'chuadanga': (23.6402, 88.8412),
+  'meherpur': (23.7622, 88.6318),
+  'mongla': (22.4900, 89.6000),
+  // ---------------- BARISHAL ----------------
+  'barishal': (22.7010, 90.3535),
+  'barisal': (22.7010, 90.3535),
+  'sadar road': (22.7020, 90.3520),
+  'nathullabad': (22.7180, 90.3550),
+  'patuakhali': (22.3596, 90.3299),
+  'kuakata': (21.8200, 90.1200),
+  'bhola': (22.6859, 90.6482),
+  'pirojpur': (22.5841, 89.9720),
+  'jhalokathi': (22.6406, 90.1987),
+  'barguna': (22.1550, 90.1266),
+  // ---------------- SYLHET ----------------
+  'sylhet': (24.8949, 91.8687),
+  'zindabazar': (24.8950, 91.8680),
+  'ambarkhana': (24.9050, 91.8700),
+  'uposhohor': (24.8880, 91.8770),
+  'tilagor': (24.9000, 91.9000),
+  'subid bazar': (24.9060, 91.8760),
+  'moulvibazar': (24.4829, 91.7774),
+  'sreemangal': (24.3065, 91.7296),
+  'habiganj': (24.3745, 91.4155),
+  'sunamganj': (25.0658, 91.3950),
+  // ---------------- RANGPUR ----------------
+  'rangpur': (25.7439, 89.2752),
+  'dhap': (25.7480, 89.2500),
+  'dinajpur': (25.6217, 88.6354),
+  'gaibandha': (25.3288, 89.5281),
+  'kurigram': (25.8072, 89.6362),
+  'lalmonirhat': (25.9923, 89.2847),
+  'nilphamari': (25.9317, 88.8560),
+  'saidpur': (25.7770, 88.8920),
+  'panchagarh': (26.3411, 88.5542),
+  'thakurgaon': (26.0337, 88.4616),
+  // ---------------- MYMENSINGH ----------------
+  'mymensingh': (24.7471, 90.4203),
+  'ganginar par': (24.7500, 90.4050),
+  'trishal': (24.5800, 90.3900),
+  'bhaluka': (24.3800, 90.4000),
+  'jamalpur': (24.9375, 89.9372),
+  'netrokona': (24.8830, 90.7270),
+  'sherpur': (25.0205, 90.0153),
+};
+
+/// Resolves coordinates for a free-text area such as "Banani, Dhaka".
+///
+/// Tries each comma-separated part from the most specific (first) to the least,
+/// then a loose contains-match, and finally falls back to central Dhaka so a
+/// pin is always shown.
+(double, double) coordinatesFor(String area) {
+  final parts = area
+      .toLowerCase()
+      .split(',')
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
+
+  // Qualified match first: some place names exist in several divisions
+  // (e.g. Chawkbazar in both Dhaka and Chattogram), so "chawkbazar chattogram"
+  // must win over the bare "chawkbazar" key.
+  for (var i = 0; i + 1 < parts.length; i++) {
+    final hit = bdAreaCoordinates['${parts[i]} ${parts[i + 1]}'];
+    if (hit != null) return hit;
+  }
+
+  // Exact match, most specific part first.
+  for (final part in parts) {
+    final hit = bdAreaCoordinates[part];
+    if (hit != null) return hit;
+  }
+
+  // Loose match: a known key contained in (or containing) the part.
+  for (final part in parts) {
+    for (final entry in bdAreaCoordinates.entries) {
+      if (part.contains(entry.key) || entry.key.contains(part)) {
+        return entry.value;
+      }
+    }
+  }
+
+  return bdAreaCoordinates['dhaka']!;
+}

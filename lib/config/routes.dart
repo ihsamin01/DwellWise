@@ -32,6 +32,7 @@ import '../screens/profile/account_verification_screen.dart';
 import '../screens/profile/add_property_screen.dart';
 import '../screens/profile/my_properties_screen.dart';
 import '../screens/profile/purchase_history_screen.dart';
+import '../screens/profile/analytics_screen.dart';
 import '../screens/profile/account_security_screen.dart';
 import '../screens/profile/notification_settings_screen.dart';
 import '../screens/profile/language_settings_screen.dart';
@@ -213,6 +214,10 @@ class AppRoutes {
       GoRoute(
         path: '/profile/my-properties',
         builder: (context, state) => const MyPropertiesScreen(),
+      ),
+      GoRoute(
+        path: '/profile/analytics',
+        builder: (context, state) => const AnalyticsScreen(),
       ),
       GoRoute(
         path: '/profile/purchase-history',
