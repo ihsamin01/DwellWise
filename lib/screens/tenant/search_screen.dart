@@ -230,7 +230,10 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
             elevation: 0,
             leading: IconButton(
               icon: Icon(Icons.arrow_back, color: colors.primary, size: 24),
-              onPressed: () => context.go('/home'),
+              // This screen is always a tab inside MainTabsShell, so "back"
+              // should return to the Home tab, not push a new GoRouter page.
+              // MainTabsShell's PopScope handles exactly that on pop.
+              onPressed: () => Navigator.maybePop(context),
             ),
             title: Text(
               'DwellWise',
