@@ -191,7 +191,7 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
 
     if (ok) {
       _snack('ap_posted');
-      context.go('/profile/my-properties');
+      context.pushReplacement('/profile/my-properties');
     } else {
       _snack('ap_post_failed');
     }
