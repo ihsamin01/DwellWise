@@ -89,4 +89,16 @@ class NotificationProvider with ChangeNotifier {
     _notifications[index] = _notifications[index].copyWith(isRead: true);
     notifyListeners();
   }
+
+  /// Marks every notification as read (e.g. when the inbox is opened).
+  void markAllAsRead() {
+    if (unreadCount == 0) return;
+
+    for (var i = 0; i < _notifications.length; i++) {
+      if (!_notifications[i].isRead) {
+        _notifications[i] = _notifications[i].copyWith(isRead: true);
+      }
+    }
+    notifyListeners();
+  }
 }

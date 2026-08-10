@@ -15,4 +15,6 @@ create index if not exists recently_viewed_user_idx
 
 alter table public.recently_viewed enable row level security;
 
--- TODO: policies — user manages only their own history
+create policy "users manage own history"
+  on public.recently_viewed for all
+  using (user_id = auth.uid()) with check (user_id = auth.uid());

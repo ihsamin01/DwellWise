@@ -495,6 +495,10 @@ class AppStrings {
     return _translations[code]?[key] ?? _translations['en']?[key] ?? key;
   }
 
+  /// Locale-independent English lookup, for screens that must always render
+  /// in English regardless of the app's selected language.
+  static String en(String key) => _translations['en']?[key] ?? key;
+
   /// True when the app is currently showing Bangla.
   static bool isBangla(BuildContext context) =>
       context.watch<LocaleProvider>().languageCode == 'bn';

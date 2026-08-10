@@ -30,8 +30,16 @@ class PropertyProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
 
   /// Home-feed properties plus any search-generated listings (for lookups).
-  List<PropertyModel> get lookupPool =>
-      [..._properties, ..._searchGenerated.values];
+  /// Deduplicated by id: area-feed properties are registered in both
+  /// [_properties] and [_searchGenerated], so a naive concat would list them
+  /// twice (visible as duplicates on the Saved properties page).
+  List<PropertyModel> get lookupPool {
+    final byId = <String, PropertyModel>{
+      for (final p in _searchGenerated.values) p.id: p,
+      for (final p in _properties) p.id: p,
+    };
+    return byId.values.toList();
+  }
 
   /// Finds a property by id across the home feed and search results.
   PropertyModel? findById(String id) {

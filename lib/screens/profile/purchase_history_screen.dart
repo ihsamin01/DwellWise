@@ -72,15 +72,15 @@ class PurchaseHistoryScreen extends StatelessWidget {
 
     final total = rentals.fold<double>(0, (sum, r) => sum + r.price);
     final countLabel = rentals.length == 1
-        ? AppStrings.t(context, 'ph_one_rented')
-        : AppStrings.t(context, 'ph_many_rented');
+        ? AppStrings.en('ph_one_rented')
+        : AppStrings.en('ph_many_rented');
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(title: Text(AppStrings.t(context, 'p_purchase_history'))),
+      appBar: AppBar(title: Text(AppStrings.en('p_purchase_history'))),
       body: rentals.isEmpty
           ? Center(
-              child: Text(AppStrings.t(context, 'ph_no_rentals'),
+              child: Text(AppStrings.en('ph_no_rentals'),
                   style: TextStyle(color: colors.textSecondary)),
             )
           : ListView(
@@ -98,15 +98,15 @@ class PurchaseHistoryScreen extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(AppStrings.t(context, 'ph_total'),
+                          Text(AppStrings.en('ph_total'),
                               style: TextStyle(fontSize: 15, color: colors.textSecondary)),
                           const SizedBox(height: 2),
-                          Text('${AppStrings.digits(context, '${rentals.length}')}$countLabel',
+                          Text('${rentals.length} $countLabel',
                               style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                         ],
                       ),
                       Text(
-                        Formatters.formatCurrency(total),
+                        '৳${formatWithCommas(total)}',
                         style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -130,9 +130,8 @@ class _RentalTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bangla = AppStrings.isBangla(context);
-    final title = bangla ? rental.titleBn : rental.title;
-    final location = bangla ? rental.locationBn : rental.location;
+    final title = rental.title;
+    final location = rental.location;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -208,13 +207,13 @@ class _RentalTile extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '৳${AppStrings.digits(context, formatWithCommas(rental.price))}',
+                            '৳${formatWithCommas(rental.price)}',
                             style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: colors.primary),
                           ),
-                          Text(' / ${AppStrings.t(context, 'period_${rental.priceFor}')}',
+                          Text(' / ${AppStrings.en('period_${rental.priceFor}')}',
                               style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                         ],
                       ),
@@ -238,7 +237,7 @@ class _RentalTile extends StatelessWidget {
                     const Icon(Icons.check_circle, size: 15, color: Color(0xff10B981)),
                     const SizedBox(width: 5),
                     Text(
-                        '${AppStrings.t(context, 'ph_rented')} · ${Formatters.formatDate(rental.rentedOn)}',
+                        '${AppStrings.en('ph_rented')} · ${Formatters.formatDate(rental.rentedOn)}',
                         style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                   ],
                 ),
@@ -260,7 +259,7 @@ class _RentalTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        AppStrings.t(context, 'type_$type'),
+        AppStrings.en('type_$type'),
         style: TextStyle(
             fontSize: 10.5, fontWeight: FontWeight.w700, color: colors.primary),
       ),

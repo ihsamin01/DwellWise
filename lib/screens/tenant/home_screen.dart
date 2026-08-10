@@ -13,6 +13,7 @@ import '../../utils/location_recommender.dart';
 import '../../widgets/app_drawer.dart';
 import '../../widgets/bottom_navigation.dart';
 import '../../widgets/property_card.dart';
+import '../../widgets/filter_chip.dart';
 
 /// Price-based filter options for the AI recommended feed.
 /// [none] is the initial "no filter applied" state and is not shown as a
@@ -37,13 +38,15 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   final ScrollController _scrollController = ScrollController();
   int _displayedCount = 10;
   PriceFilter _priceFilter = PriceFilter.none;
-
-  /// Menu value for the "Verified only" toggle (it sits alongside the price
-  /// options but behaves as an independent checkbox).
-  static const String _kVerifiedFilter = 'verified-only';
+  String? _typeFilter;
+  int? _bedsFilter;
+  int? _bathsFilter;
   bool _verifiedOnly = false;
-
   String _sortBy = 'Newest';
+
+  /// Bedroom/bathroom quick-pick options. The last entry acts as an "N+" upper bucket.
+  static const List<int> kBedsOptions = [1, 2, 3, 4];
+  static const List<int> kBathsOptions = [1, 2, 3];
 
   // AI Recommended (Gemini) — refines the local location ranking in the
   // background; falls back to the local ranking on any error.
@@ -106,27 +109,50 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     return result;
   }
 
-  /// Applies the active price filter/sort to the recommended list.
-  List<PropertyModel> _applyPriceFilter(List<PropertyModel> list) {
-    final result = List<PropertyModel>.from(list);
+  /// Applies the active price/type/beds/baths/verified filters to the recommended list.
+  List<PropertyModel> _applyFilters(List<PropertyModel> list) {
+    var result = List<PropertyModel>.from(list);
+
     switch (_priceFilter) {
       case PriceFilter.under10k:
-        return result.where((p) => p.price < 10000).toList();
+        result = result.where((p) => p.price < 10000).toList();
+        break;
       case PriceFilter.range10to20k:
-        return result.where((p) => p.price >= 10000 && p.price < 20000).toList();
+        result = result.where((p) => p.price >= 10000 && p.price < 20000).toList();
+        break;
       case PriceFilter.range20to30k:
-        return result.where((p) => p.price >= 20000 && p.price < 30000).toList();
+        result = result.where((p) => p.price >= 20000 && p.price < 30000).toList();
+        break;
       case PriceFilter.above30k:
-        return result.where((p) => p.price >= 30000).toList();
+        result = result.where((p) => p.price >= 30000).toList();
+        break;
       case PriceFilter.none:
-        return result;
+        break;
     }
-  }
 
-  /// Keeps only listings posted by verified owners when the toggle is on.
-  List<PropertyModel> _applyVerifiedFilter(List<PropertyModel> list) {
-    if (!_verifiedOnly) return list;
-    return list.where((p) => p.isVerified).toList();
+    if (_typeFilter != null) {
+      result = result.where((p) => p.propertyType == _typeFilter).toList();
+    }
+
+    if (_bedsFilter != null) {
+      final isMax = _bedsFilter == kBedsOptions.last;
+      result = isMax
+          ? result.where((p) => p.beds >= _bedsFilter!).toList()
+          : result.where((p) => p.beds == _bedsFilter).toList();
+    }
+
+    if (_bathsFilter != null) {
+      final isMax = _bathsFilter == kBathsOptions.last;
+      result = isMax
+          ? result.where((p) => p.baths >= _bathsFilter!).toList()
+          : result.where((p) => p.baths == _bathsFilter).toList();
+    }
+
+    if (_verifiedOnly) {
+      result = result.where((p) => p.isVerified).toList();
+    }
+
+    return result;
   }
 
   String _filterLabel(PriceFilter filter) {
@@ -150,6 +176,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     _scrollController.addListener(_scrollListener);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PropertyProvider>().fetchProperties();
+      context.read<RecentlyViewedProvider>().loadRecentlyViewedIds();
     });
   }
 
@@ -262,75 +289,17 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     );
   }
 
-  /// Filter/sort trigger shown at the right of the "AI Recommended" heading.
-  Widget _buildFilterButton(AppColors colors) {
-    final bool isActive = _priceFilter != PriceFilter.none || _verifiedOnly;
-    return PopupMenuButton<Object>(
-      tooltip: 'Filter listings',
-      offset: const Offset(0, 40),
-      color: colors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: (value) => setState(() {
-        if (value is PriceFilter) {
-          _priceFilter = value;
-        } else if (value == _kVerifiedFilter) {
-          _verifiedOnly = !_verifiedOnly;
-        }
-      }),
-      itemBuilder: (context) => [
-        ...PriceFilter.values.map((filter) {
-          final selected = _priceFilter == filter;
-          return PopupMenuItem<Object>(
-            value: filter,
-            child: Row(
-              children: [
-                Icon(
-                  selected
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_unchecked,
-                  size: 18,
-                  color: selected ? colors.primary : colors.textSecondary,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  _filterLabel(filter),
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: colors.textPrimary,
-                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
-        const PopupMenuDivider(),
-        // Independent toggle: show only listings posted by verified owners.
-        PopupMenuItem<Object>(
-          value: _kVerifiedFilter,
-          child: Row(
-            children: [
-              Icon(
-                _verifiedOnly ? Icons.check_box : Icons.check_box_outline_blank,
-                size: 18,
-                color: _verifiedOnly ? colors.primary : colors.textSecondary,
-              ),
-              const SizedBox(width: 10),
-              const Icon(Icons.verified, size: 16, color: Color(0xff10B981)),
-              const SizedBox(width: 6),
-              Text(
-                'Verified only',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: colors.textPrimary,
-                  fontWeight:
-                      _verifiedOnly ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+  /// Filter trigger shown at the right of the "AI Recommended" heading. Opens
+  /// a bottom sheet covering price, property type, bedrooms, bathrooms and
+  /// verified-owner status.
+  Widget _buildFilterButton(AppColors colors, List<String> availableTypes) {
+    final bool isActive = _priceFilter != PriceFilter.none ||
+        _typeFilter != null ||
+        _bedsFilter != null ||
+        _bathsFilter != null ||
+        _verifiedOnly;
+    return GestureDetector(
+      onTap: () => _openFilterSheet(colors, availableTypes),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
@@ -360,6 +329,205 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     );
   }
 
+  void _openFilterSheet(AppColors colors, List<String> availableTypes) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        // Local draft state so picks only apply once "Apply Filters" is tapped.
+        PriceFilter draftPrice = _priceFilter;
+        String? draftType = _typeFilter;
+        int? draftBeds = _bedsFilter;
+        int? draftBaths = _bathsFilter;
+        bool draftVerified = _verifiedOnly;
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            Widget sectionTitle(String text) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: colors.textPrimary,
+                    ),
+                  ),
+                );
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 16,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Filter Properties',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: colors.textPrimary,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => setSheetState(() {
+                              draftPrice = PriceFilter.none;
+                              draftType = null;
+                              draftBeds = null;
+                              draftBaths = null;
+                              draftVerified = false;
+                            }),
+                            child: const Text('Reset'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      sectionTitle('Price'),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: PriceFilter.values.map((filter) {
+                          return DwellFilterChip(
+                            label: _filterLabel(filter),
+                            isSelected: draftPrice == filter,
+                            onSelected: (_) =>
+                                setSheetState(() => draftPrice = filter),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 20),
+
+                      sectionTitle('Property Type'),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          DwellFilterChip(
+                            label: 'All',
+                            isSelected: draftType == null,
+                            onSelected: (_) =>
+                                setSheetState(() => draftType = null),
+                          ),
+                          ...availableTypes.map((type) => DwellFilterChip(
+                                label: type,
+                                isSelected: draftType == type,
+                                onSelected: (_) =>
+                                    setSheetState(() => draftType = type),
+                              )),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      sectionTitle('Bedrooms'),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          DwellFilterChip(
+                            label: 'Any',
+                            isSelected: draftBeds == null,
+                            onSelected: (_) =>
+                                setSheetState(() => draftBeds = null),
+                          ),
+                          ...kBedsOptions.map((n) => DwellFilterChip(
+                                label: n == kBedsOptions.last ? '$n+' : '$n',
+                                isSelected: draftBeds == n,
+                                onSelected: (_) =>
+                                    setSheetState(() => draftBeds = n),
+                              )),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      sectionTitle('Bathrooms'),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          DwellFilterChip(
+                            label: 'Any',
+                            isSelected: draftBaths == null,
+                            onSelected: (_) =>
+                                setSheetState(() => draftBaths = null),
+                          ),
+                          ...kBathsOptions.map((n) => DwellFilterChip(
+                                label: n == kBathsOptions.last ? '$n+' : '$n',
+                                isSelected: draftBaths == n,
+                                onSelected: (_) =>
+                                    setSheetState(() => draftBaths = n),
+                              )),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      sectionTitle('Owner Verification'),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          DwellFilterChip(
+                            label: 'Verified owners only',
+                            isSelected: draftVerified,
+                            onSelected: (selected) =>
+                                setSheetState(() => draftVerified = selected),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _priceFilter = draftPrice;
+                              _typeFilter = draftType;
+                              _bedsFilter = draftBeds;
+                              _bathsFilter = draftBaths;
+                              _verifiedOnly = draftVerified;
+                            });
+                            Navigator.of(sheetContext).pop();
+                          },
+                          child: const Text(
+                            'Apply Filters',
+                            style: TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
@@ -380,11 +548,12 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     });
 
     final allProperties = propertyProvider.properties;
+    final availableTypes = allProperties.map((p) => p.propertyType).toSet().toList()
+      ..sort();
 
     // Offline location ranking from the user's area, then let Gemini refine the
     // order in the background (falls back to the local ranking).
-    final sorted =
-        _applySort(_applyVerifiedFilter(_applyPriceFilter(allProperties)));
+    final sorted = _applySort(_applyFilters(allProperties));
     final locationRanked = recommendByLocation(sorted, userArea);
 
     // Only ask Gemini once the generated area feed is present, so it ranks the
@@ -611,7 +780,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                         ),
                         _buildSortButton(colors),
                         const SizedBox(width: 8),
-                        _buildFilterButton(colors),
+                        _buildFilterButton(colors, availableTypes),
                       ],
                     ),
                   ),
