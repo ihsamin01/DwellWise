@@ -129,7 +129,6 @@ class AppDrawer extends StatelessWidget {
                     label: AppStrings.t(context, 'menu_logout'),
                     color: theme.colorScheme.error,
                     onTap: () async {
-                      Navigator.of(context).pop();
                       final confirmed = await showDialog<bool>(
                         context: context,
                         builder: (dialogContext) => AlertDialog(
@@ -181,12 +180,17 @@ class AppDrawer extends StatelessWidget {
                         ),
                       );
 
-                      if (confirmed == true && context.mounted) {
-                        context.read<LocaleProvider>().reset();
-                        await context.read<AuthProvider>().logout();
-                        if (context.mounted) {
-                          context.go('/login');
-                        }
+                      if (!context.mounted) return;
+
+                      if (confirmed != true) {
+                        Navigator.of(context).pop();
+                        return;
+                      }
+
+                      context.read<LocaleProvider>().reset();
+                      await context.read<AuthProvider>().logout();
+                      if (context.mounted) {
+                        context.go('/login');
                       }
                     },
                   ),
