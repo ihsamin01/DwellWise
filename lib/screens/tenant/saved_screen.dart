@@ -25,6 +25,16 @@ class TenantSavedScreen extends StatefulWidget {
 class _TenantSavedScreenState extends State<TenantSavedScreen> {
   final Set<String> _removingIds = {};
 
+  @override
+  void initState() {
+    super.initState();
+    // Pull the signed-in user's saved properties from the database, so
+    // favorites survive logging out and back in.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<SavedPropertiesProvider>().loadSavedIds();
+    });
+  }
+
   void _onUnsave(BuildContext context, SavedPropertiesProvider savedProvider,
       PropertyModel property) async {
     setState(() {
@@ -82,7 +92,13 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
           child: AppBar(
             backgroundColor: colors.surface,
             elevation: 0,
-            automaticallyImplyLeading: false,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: colors.primary, size: 24),
+              // This screen is always a tab inside MainTabsShell, so "back"
+              // should return to the Home tab, not push a new GoRouter page.
+              // MainTabsShell's PopScope handles exactly that on pop.
+              onPressed: () => Navigator.maybePop(context),
+            ),
             title: Text(
               'Saved Properties',
               style: TextStyle(

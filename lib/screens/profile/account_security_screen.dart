@@ -6,6 +6,7 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/security_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../providers/saved_properties_provider.dart';
 import '../../providers/user_provider.dart';
 
 /// Account status, security controls, and account deletion.
@@ -67,6 +68,7 @@ class AccountSecurityScreen extends StatelessWidget {
     await context.read<SecurityProvider>().deleteAccount();
     if (!context.mounted) return;
     context.read<LocaleProvider>().reset();
+    context.read<SavedPropertiesProvider>().clear();
     await context.read<AuthProvider>().logout();
     if (!context.mounted) return;
     context.go('/login');

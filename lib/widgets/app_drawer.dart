@@ -6,6 +6,7 @@ import '../config/app_strings.dart';
 import '../providers/auth_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/locale_provider.dart';
+import '../providers/saved_properties_provider.dart';
 
 /// App-wide navigation drawer opened from the hamburger icon, listing
 /// account/profile/settings destinations.
@@ -18,7 +19,9 @@ class AppDrawer extends StatelessWidget {
     final user = context.watch<UserProvider>().userModel;
 
     void navigateTo(String path) {
-      Navigator.of(context).pop();
+      // Deliberately not closing the drawer first: leaving it open means
+      // popping back from the destination screen reveals Home with the
+      // sidebar still open, instead of dropping the user on bare Home.
       context.push(path);
     }
 
@@ -188,6 +191,7 @@ class AppDrawer extends StatelessWidget {
                       }
 
                       context.read<LocaleProvider>().reset();
+                      context.read<SavedPropertiesProvider>().clear();
                       await context.read<AuthProvider>().logout();
                       if (context.mounted) {
                         context.go('/login');

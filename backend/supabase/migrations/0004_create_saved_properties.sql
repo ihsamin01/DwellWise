@@ -12,4 +12,6 @@ create table if not exists public.saved_properties (
 
 alter table public.saved_properties enable row level security;
 
--- TODO: policies — user manages only their own saves
+create policy "users manage own saves"
+  on public.saved_properties for all
+  using (user_id = auth.uid()) with check (user_id = auth.uid());

@@ -263,6 +263,57 @@ class SupabaseService {
     }
   }
 
+  /// Fetches the ids of properties the signed-in user has saved/favorited, so
+  /// the saved list survives logging out and back in (or reinstalling).
+  Future<Set<String>> getSavedPropertyIds() async {
+    final client = _client;
+    final uid = client?.auth.currentUser?.id;
+    if (client == null || uid == null) return {};
+    try {
+      final response = await client
+          .from('saved_properties')
+          .select('property_id')
+          .eq('user_id', uid);
+      return (response as List)
+          .map((row) => row['property_id'] as String)
+          .toSet();
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Persists a favorite. Non-fatal: the local save already reflects the
+  /// change even if this write is rejected (e.g. a demo property that has no
+  /// matching row in the `properties` table).
+  Future<void> saveProperty(String propertyId) async {
+    final client = _client;
+    final uid = client?.auth.currentUser?.id;
+    if (client == null || uid == null) return;
+    try {
+      await client
+          .from('saved_properties')
+          .upsert({'user_id': uid, 'property_id': propertyId});
+    } catch (_) {
+      // Keep the local save working even if the insert is rejected.
+    }
+  }
+
+  /// Removes a favorite from the database.
+  Future<void> unsaveProperty(String propertyId) async {
+    final client = _client;
+    final uid = client?.auth.currentUser?.id;
+    if (client == null || uid == null) return;
+    try {
+      await client
+          .from('saved_properties')
+          .delete()
+          .eq('user_id', uid)
+          .eq('property_id', propertyId);
+    } catch (_) {
+      // Keep the local unsave working even if the delete is rejected.
+    }
+  }
+
   /// Updates the editable profile fields for [user] in the DB.
   Future<void> updateUserProfile(UserModel user) async {
     final client = _client;
