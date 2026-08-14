@@ -12,3 +12,8 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Exception: the shared DEBUG key is committed on purpose so every teammate's
+# build has the same SHA-1 and Google Sign-In works from any machine. It is a
+# throwaway debug key, never a release key.
+!keystore/dwellwise-debug.jks
