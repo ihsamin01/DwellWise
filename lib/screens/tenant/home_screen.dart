@@ -12,6 +12,7 @@ import '../../services/gemini_service.dart';
 import '../../utils/location_recommender.dart';
 import '../../widgets/app_drawer.dart';
 import '../../widgets/bottom_navigation.dart';
+import '../../widgets/language_toggle.dart';
 import '../../widgets/property_card.dart';
 import '../../widgets/filter_chip.dart';
 
@@ -601,17 +602,26 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                   child: Icon(Icons.menu, color: colors.primary, size: 24),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  'DwellWise',
-                  style: TextStyle(
-                    color: colors.primary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                // Flexible so the title gives way on narrow screens instead of
+                // overflowing the row once the language toggle takes its space.
+                Flexible(
+                  child: Text(
+                    'DwellWise',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.primary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
             ),
             actions: [
+              const Padding(
+                padding: EdgeInsets.only(right: 12.0),
+                child: LanguageToggle(),
+              ),
               Padding(
                 padding: const EdgeInsets.only(right: 16.0),
                 child: GestureDetector(

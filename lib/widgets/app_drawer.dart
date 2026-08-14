@@ -91,11 +91,8 @@ class AppDrawer extends StatelessWidget {
                     label: AppStrings.t(context, 'menu_notifications'),
                     onTap: () => navigateTo('/profile/notifications'),
                   ),
-                  _DrawerTile(
-                    icon: Icons.language_outlined,
-                    label: AppStrings.t(context, 'menu_language'),
-                    onTap: () => navigateTo('/profile/language'),
-                  ),
+                  // Language lives in the home app bar now, as a one-tap
+                  // toggle rather than a menu item behind two screens.
                   _DrawerTile(
                     icon: Icons.dark_mode_outlined,
                     label: AppStrings.t(context, 'menu_dark_mode'),
