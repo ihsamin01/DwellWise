@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_colors.dart';
+import '../../config/app_strings.dart';
 import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
@@ -100,7 +101,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
               onPressed: () => Navigator.maybePop(context),
             ),
             title: Text(
-              'Saved Properties',
+              AppStrings.t(context, 'saved_title'),
               style: TextStyle(
                 color: colors.primary,
                 fontSize: 18,
@@ -171,7 +172,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'No saved properties yet',
+              AppStrings.t(context, 'saved_empty_title'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -181,7 +182,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Start exploring and save your favorites',
+              AppStrings.t(context, 'saved_empty_subtitle'),
               style: TextStyle(
                 fontSize: 14,
                 color: colors.textSecondary,
@@ -199,9 +200,9 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,
-                child: const Text(
-                  'Explore Properties',
-                  style: TextStyle(
+                child: Text(
+                  AppStrings.t(context, 'saved_explore_cta'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
