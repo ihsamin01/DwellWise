@@ -54,7 +54,14 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     final keep = prefs.getBool(_keepSignedInKey) ?? false;
     if (!keep && currentUser != null) {
-      await _client.auth.signOut();
+      try {
+        await _client.auth.signOut();
+      } on AuthException catch (_) {
+        // Offline, or Supabase unreachable. gotrue drops the local session
+        // before it ever calls the server, so the policy has already been
+        // applied — the failed server-side logout is not worth crashing
+        // startup over, which is what an uncaught throw here would do.
+      }
     }
   }
 
