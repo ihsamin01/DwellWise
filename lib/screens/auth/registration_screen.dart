@@ -6,7 +6,18 @@ import '../../providers/auth_provider.dart';
 
 /// Screen representing user registration page.
 class RegistrationScreen extends StatefulWidget {
-  const RegistrationScreen({Key? key}) : super(key: key);
+  const RegistrationScreen({
+    Key? key,
+    this.prefillEmail,
+    this.prefillName,
+  }) : super(key: key);
+
+  /// Email and name carried over when the user lands here from "Continue with
+  /// Google" with an account that is not registered yet. Prefilling them keeps
+  /// the address identical to the Google one, so the next Google sign-in finds
+  /// the profile instead of bouncing back to registration.
+  final String? prefillEmail;
+  final String? prefillName;
 
   @override
   State<RegistrationScreen> createState() => _RegistrationScreenState();
@@ -23,6 +34,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   bool _obscurePassword = true;
   String? _gender;
+
+  @override
+  void initState() {
+    super.initState();
+    final email = widget.prefillEmail;
+    final name = widget.prefillName;
+    if (email != null && email.isNotEmpty) _emailController.text = email;
+    if (name != null && name.isNotEmpty) _nameController.text = name;
+  }
 
   @override
   void dispose() {

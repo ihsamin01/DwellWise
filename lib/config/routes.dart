@@ -75,7 +75,10 @@ class AppRoutes {
       ),
       GoRoute(
         path: '/register',
-        builder: (context, state) => const RegistrationScreen(),
+        builder: (context, state) => RegistrationScreen(
+          prefillEmail: state.uri.queryParameters['email'],
+          prefillName: state.uri.queryParameters['name'],
+        ),
       ),
       GoRoute(
         path: '/otp',

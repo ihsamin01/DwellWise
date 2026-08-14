@@ -73,7 +73,17 @@ class _LoginScreenState extends State<LoginScreen> {
             backgroundColor: const Color(0xffDC2626),
           ),
         );
-        context.push('/register');
+        // Carry the Google email/name across so the account is registered under
+        // the exact same address the next Google sign-in will look up.
+        context.push(
+          Uri(
+            path: '/register',
+            queryParameters: <String, String>{
+              if (result.email != null) 'email': result.email!,
+              if (result.name != null) 'name': result.name!,
+            },
+          ).toString(),
+        );
         break;
       case GoogleSignInOutcome.cancelled:
         break;
