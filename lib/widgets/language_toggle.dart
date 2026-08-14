@@ -13,8 +13,10 @@ import '../providers/locale_provider.dart';
 class LanguageToggle extends StatelessWidget {
   const LanguageToggle({super.key});
 
-  /// Width of one half of the pill, sized for 'English' — the wider label.
-  static const double _segmentWidth = 48;
+  /// Overall pill width, sized so 'English' — the wider label — fits in half of
+  /// it. The two halves take their width from whatever is left inside the
+  /// padding and border instead of being fixed, so the row cannot overflow.
+  static const double _width = 108;
   static const double _height = 30;
   static const double _inset = 3;
 
@@ -33,7 +35,7 @@ class LanguageToggle extends StatelessWidget {
       value: isBangla ? 'বাংলা' : 'English',
       child: Container(
         height: _height,
-        width: _segmentWidth * 2 + _inset * 2,
+        width: _width,
         padding: const EdgeInsets.all(_inset),
         decoration: BoxDecoration(
           color: colors.background,
@@ -48,35 +50,47 @@ class LanguageToggle extends StatelessWidget {
                   isBangla ? Alignment.centerRight : Alignment.centerLeft,
               duration: _slide,
               curve: _slideCurve,
-              child: Container(
-                width: _segmentWidth,
-                height: _height - _inset * 2,
-                decoration: BoxDecoration(
-                  color: colors.primary,
-                  borderRadius: BorderRadius.circular(_height / 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colors.primary.withOpacity(0.3),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
+              child: FractionallySizedBox(
+                widthFactor: 0.5,
+                heightFactor: 1,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: colors.primary,
+                    borderRadius: BorderRadius.circular(_height / 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colors.primary.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            Row(
-              children: [
-                _Segment(
-                  label: 'English',
-                  selected: !isBangla,
-                  onTap: () => localeProvider.setLanguage(AppLanguage.english),
-                ),
-                _Segment(
-                  label: 'বাংলা',
-                  selected: isBangla,
-                  onTap: () => localeProvider.setLanguage(AppLanguage.bangla),
-                ),
-              ],
+            // Positioned.fill gives the row tight constraints, which is what
+            // lets the two halves split the width exactly evenly.
+            Positioned.fill(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _Segment(
+                      label: 'English',
+                      selected: !isBangla,
+                      onTap: () =>
+                          localeProvider.setLanguage(AppLanguage.english),
+                    ),
+                  ),
+                  Expanded(
+                    child: _Segment(
+                      label: 'বাংলা',
+                      selected: isBangla,
+                      onTap: () =>
+                          localeProvider.setLanguage(AppLanguage.bangla),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -106,21 +120,18 @@ class _Segment extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: LanguageToggle._segmentWidth,
-        child: Center(
-          // The label colour crossfades on the same curve as the thumb, so the
-          // text turns white exactly as the thumb arrives underneath it.
-          child: AnimatedDefaultTextStyle(
-            duration: LanguageToggle._slide,
-            curve: LanguageToggle._slideCurve,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              color: selected ? Colors.white : colors.textSecondary,
-            ),
-            child: Text(label, maxLines: 1),
+      child: Center(
+        // The label colour crossfades on the same curve as the thumb, so the
+        // text turns white exactly as the thumb arrives underneath it.
+        child: AnimatedDefaultTextStyle(
+          duration: LanguageToggle._slide,
+          curve: LanguageToggle._slideCurve,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected ? Colors.white : colors.textSecondary,
           ),
+          child: Text(label, maxLines: 1),
         ),
       ),
     );
