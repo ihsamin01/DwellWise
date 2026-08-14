@@ -9,11 +9,17 @@ class AuthProvider with ChangeNotifier {
   AppAuthUser? _currentUser;
   bool _isLoading = false;
   String? _errorMessage;
+  AccountConflict _registerConflict = AccountConflict.none;
 
   AppAuthUser? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _currentUser != null;
+
+  /// Set when the last [register] attempt was refused because the email or the
+  /// phone number already belongs to an account. Lets the form mark the field
+  /// that clashed instead of only showing a message.
+  AccountConflict get registerConflict => _registerConflict;
 
   AuthProvider() {
     // Restore any persisted Supabase session on app start.
@@ -59,7 +65,18 @@ class AuthProvider with ChangeNotifier {
   }) async {
     _setLoading(true);
     _clearError();
+    _registerConflict = AccountConflict.none;
     try {
+      // Refuse before creating anything if either detail is already taken.
+      _registerConflict = await _authService.findAccountConflict(
+        email: email,
+        phone: phone,
+      );
+      if (_registerConflict != AccountConflict.none) {
+        _setError(_conflictMessage(_registerConflict));
+        return false;
+      }
+
       final user = await _authService.register(
         name: name,
         phone: phone,
@@ -77,13 +94,33 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } on AuthException catch (e) {
-      _setError(e.message);
+      // Backstop: Supabase still rejects a duplicate email if an account was
+      // created between the check above and the sign-up call.
+      if (e.message.toLowerCase().contains('already registered')) {
+        _registerConflict = AccountConflict.email;
+        _setError(_conflictMessage(AccountConflict.email));
+      } else {
+        _setError(e.message);
+      }
       return false;
     } catch (e) {
       _setError(e.toString());
       return false;
     } finally {
       _setLoading(false);
+    }
+  }
+
+  String _conflictMessage(AccountConflict conflict) {
+    switch (conflict) {
+      case AccountConflict.email:
+        return 'This email is already registered. Try logging in instead.';
+      case AccountConflict.phone:
+        return 'This phone number is already registered. Try logging in instead.';
+      case AccountConflict.both:
+        return 'This email and phone number are already registered. Try logging in instead.';
+      case AccountConflict.none:
+        return '';
     }
   }
 
