@@ -35,7 +35,6 @@ import '../screens/profile/purchase_history_screen.dart';
 import '../screens/profile/analytics_screen.dart';
 import '../screens/profile/account_security_screen.dart';
 import '../screens/profile/notification_settings_screen.dart';
-import '../screens/profile/language_settings_screen.dart';
 import '../screens/profile/theme_settings_screen.dart';
 import '../screens/profile/terms_conditions_screen.dart';
 import '../screens/profile/privacy_policy_screen.dart';
@@ -233,10 +232,6 @@ class AppRoutes {
       GoRoute(
         path: '/profile/notifications',
         builder: (context, state) => const NotificationSettingsScreen(),
-      ),
-      GoRoute(
-        path: '/profile/language',
-        builder: (context, state) => const LanguageSettingsScreen(),
       ),
       GoRoute(
         path: '/profile/theme',
