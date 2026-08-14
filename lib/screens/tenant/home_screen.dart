@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_colors.dart';
+import '../../config/app_strings.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
@@ -277,7 +278,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
             Icon(Icons.swap_vert, size: 16, color: colors.primary),
             const SizedBox(width: 4),
             Text(
-              'Sort',
+              AppStrings.t(context, 'sort'),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -317,7 +318,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
             ),
             const SizedBox(width: 4),
             Text(
-              'Filter',
+              AppStrings.t(context, 'filter'),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -696,7 +697,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Find Your Perfect Home',
+                          AppStrings.t(context, 'home_hero_title'),
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -705,7 +706,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Explore amazing properties in your city',
+                          AppStrings.t(context, 'home_hero_subtitle'),
                           style: TextStyle(
                             fontSize: 14,
                             color: colors.textSecondary,
@@ -723,7 +724,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Recently Viewed',
+                            AppStrings.t(context, 'home_recently_viewed'),
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -733,7 +734,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                           GestureDetector(
                             onTap: () => context.push('/recently-viewed'),
                             child: Text(
-                              'View All',
+                              AppStrings.t(context, 'home_view_all'),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: colors.primary,
@@ -778,7 +779,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            '🚀 AI Recommended',
+                            '🚀 ${AppStrings.t(context, 'home_ai_recommended')}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
