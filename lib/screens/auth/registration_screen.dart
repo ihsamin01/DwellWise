@@ -81,7 +81,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       return 'Enter a valid mobile number (e.g. 1712345678)';
     }
     if (_takenPhone != null && value.trim() == _takenPhone) {
-      return 'This phone number is already registered — please log in instead';
+      return 'This phone number is already registered';
     }
     return null;
   }
@@ -96,7 +96,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     }
     if (_takenEmail != null &&
         value.trim().toLowerCase() == _takenEmail!.toLowerCase()) {
-      return 'This email is already registered — please log in instead';
+      return 'This email is already registered';
     }
     return null;
   }
@@ -379,6 +379,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   style: TextStyle(color: colors.textPrimary),
                   decoration: InputDecoration(
                     hintText: '1XXX-XXXXXX',
+                    // Two lines so an "already registered" warning is never
+                    // clipped mid-sentence on a narrow screen.
+                    errorMaxLines: 2,
                     hintStyle: TextStyle(color: colors.textSecondary),
                     fillColor: colors.surface,
                     filled: true,
@@ -440,6 +443,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   style: TextStyle(color: colors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'you@example.com',
+                    errorMaxLines: 2,
                     hintStyle: TextStyle(color: colors.textSecondary),
                     fillColor: colors.surface,
                     filled: true,
