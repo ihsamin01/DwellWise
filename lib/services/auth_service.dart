@@ -14,6 +14,9 @@ class AppAuthUser {
 /// Outcome of a "Continue with Google" attempt.
 enum GoogleSignInOutcome { success, notRegistered, cancelled, failed }
 
+/// Which registration detail is already in use by another account.
+enum AccountConflict { none, email, phone, both }
+
 class GoogleSignInResult {
   GoogleSignInResult(this.outcome, {this.email, this.name, this.errorMessage});
 
@@ -89,6 +92,35 @@ class AuthService {
       password: password,
     );
     return response.user;
+  }
+
+  /// Which of the registration details already belong to an existing account.
+  ///
+  /// Supabase enforces uniqueness on the sign-up email, but nothing stops two
+  /// accounts sharing a phone number — and phone is what [signIn] looks an
+  /// account up by, so a duplicate would make login ambiguous. This check
+  /// covers both before the account is created.
+  Future<AccountConflict> findAccountConflict({
+    required String email,
+    required String phone,
+  }) async {
+    final rows = await _client
+        .from('profiles')
+        .select('email, phone_number')
+        .or('email.ilike.$email,phone_number.eq.$phone');
+
+    var emailTaken = false;
+    var phoneTaken = false;
+    for (final row in rows) {
+      final rowEmail = (row['email'] as String?) ?? '';
+      if (rowEmail.toLowerCase() == email.toLowerCase()) emailTaken = true;
+      if (row['phone_number'] == phone) phoneTaken = true;
+    }
+
+    if (emailTaken && phoneTaken) return AccountConflict.both;
+    if (emailTaken) return AccountConflict.email;
+    if (phoneTaken) return AccountConflict.phone;
+    return AccountConflict.none;
   }
 
   /// Registers a new account with a real email. Name/phone/role are stored as

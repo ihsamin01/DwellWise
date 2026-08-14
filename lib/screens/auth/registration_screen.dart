@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/auth_service.dart';
 
 /// Screen representing user registration page.
 class RegistrationScreen extends StatefulWidget {
@@ -34,6 +35,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   bool _obscurePassword = true;
   String? _gender;
+
+  /// The exact phone / email the server refused as already registered. Held so
+  /// the field validators can flag them, and so the warning clears itself as
+  /// soon as the user edits the value into something different.
+  String? _takenPhone;
+  String? _takenEmail;
 
   @override
   void initState() {
@@ -73,6 +80,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (!phoneRegex.hasMatch(value.trim())) {
       return 'Enter a valid mobile number (e.g. 1712345678)';
     }
+    if (_takenPhone != null && value.trim() == _takenPhone) {
+      return 'This phone number is already registered — please log in instead';
+    }
     return null;
   }
 
@@ -83,6 +93,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     final emailRegex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
     if (!emailRegex.hasMatch(value.trim())) {
       return 'Enter a valid email address';
+    }
+    if (_takenEmail != null &&
+        value.trim().toLowerCase() == _takenEmail!.toLowerCase()) {
+      return 'This email is already registered — please log in instead';
     }
     return null;
   }
@@ -128,6 +142,23 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         // Redirect to Login Screen
         context.go('/login');
       } else if (mounted) {
+        // Mark the field(s) the server refused, then re-run validation so the
+        // warning appears under the offending input and not just in a snackbar.
+        final conflict = authProvider.registerConflict;
+        if (conflict != AccountConflict.none) {
+          setState(() {
+            if (conflict == AccountConflict.phone ||
+                conflict == AccountConflict.both) {
+              _takenPhone = _phoneController.text.trim();
+            }
+            if (conflict == AccountConflict.email ||
+                conflict == AccountConflict.both) {
+              _takenEmail = _emailController.text.trim();
+            }
+          });
+          _formKey.currentState!.validate();
+        }
+
         final errorMsg = authProvider.errorMessage ?? 'Registration failed.';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
