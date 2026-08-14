@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_colors.dart';
+import '../../config/app_strings.dart';
 import '../../providers/search_filters_provider.dart';
 import '../../widgets/bottom_navigation.dart';
 
@@ -32,6 +33,15 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
     context.push('/search-results');
   }
 
+  /// Translated name of a filter category ('Division' -> 'বিভাগ').
+  String _typeLabel(BuildContext context, String type) =>
+      AppStrings.t(context, 'flt_${type.toLowerCase()}');
+
+  /// "Please select a Division first", in the current language.
+  String _needFirst(BuildContext context, String type) =>
+      AppStrings.tr(context, 'flt_need_first_fmt')
+          .replaceFirst('{}', AppStrings.tr(context, 'flt_${type.toLowerCase()}'));
+
   void _showFilterModal(
       BuildContext context, SearchFiltersProvider filterProvider, String type) {
     final colors = AppColors.of(context);
@@ -48,7 +58,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
       case 'District':
         if (filterProvider.division.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please select a Division first')),
+            SnackBar(content: Text(_needFirst(context, 'Division'))),
           );
           return;
         }
@@ -59,7 +69,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
       case 'Thana':
         if (filterProvider.district.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please select a District first')),
+            SnackBar(content: Text(_needFirst(context, 'District'))),
           );
           return;
         }
@@ -70,7 +80,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
       case 'Area':
         if (filterProvider.thana.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please select a Thana first')),
+            SnackBar(content: Text(_needFirst(context, 'Thana'))),
           );
           return;
         }
@@ -100,11 +110,14 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
         String query = '';
         return StatefulBuilder(
           builder: (context, setModalState) {
+            // Matches either script, so the list can be filtered by typing
+            // 'Dhaka' or 'ঢাকা'.
             final visible = query.isEmpty
                 ? options
-                : options
-                    .where((o) => o.toLowerCase().contains(query.toLowerCase()))
-                    .toList();
+                : options.where((o) {
+                    return o.toLowerCase().contains(query.toLowerCase()) ||
+                        AppStrings.placeOf(context, o).contains(query);
+                  }).toList();
             return SafeArea(
               child: Padding(
                 padding: EdgeInsets.only(
@@ -118,7 +131,8 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Select $type',
+                      AppStrings.t(context, 'flt_select_fmt')
+                          .replaceFirst('{}', _typeLabel(context, type)),
                       style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -145,7 +159,10 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                                 style: TextStyle(
                                     fontSize: 14, color: colors.textPrimary),
                                 decoration: InputDecoration(
-                                  hintText: 'Type to filter $type list...',
+                                  hintText: AppStrings.t(
+                                          context, 'flt_search_hint_fmt')
+                                      .replaceFirst(
+                                          '{}', _typeLabel(context, type)),
                                   hintStyle: TextStyle(
                                       fontSize: 13, color: colors.textSecondary),
                                   border: InputBorder.none,
@@ -162,7 +179,8 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                       child: visible.isEmpty
                           ? Padding(
                               padding: const EdgeInsets.symmetric(vertical: 20.0),
-                              child: Text('No options available.',
+                              child: Text(
+                                  AppStrings.t(context, 'flt_no_options'),
                                   style: TextStyle(color: colors.textSecondary)),
                             )
                           : ConstrainedBox(
@@ -176,7 +194,9 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                                 itemBuilder: (context, index) {
                                   final opt = visible[index];
                                   return RadioListTile<String>(
-                                    title: Text(opt,
+                                    // Shown translated, selected in English —
+                                    // the value drives the filter query.
+                                    title: Text(AppStrings.place(context, opt),
                                         style: TextStyle(
                                             fontSize: 14,
                                             color: colors.textPrimary)),
@@ -349,8 +369,8 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                       _buildFilterButton(
                         colors: colors,
                         label: filterProvider.division.isEmpty
-                            ? 'Division ▼'
-                            : '${filterProvider.division} ▼',
+                            ? '${_typeLabel(context, 'Division')} ▼'
+                            : '${AppStrings.place(context, filterProvider.division)} ▼',
                         isActive: filterProvider.division.isNotEmpty,
                         onTap: () => _showFilterModal(
                             context, filterProvider, 'Division'),
@@ -358,8 +378,8 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                       _buildFilterButton(
                         colors: colors,
                         label: filterProvider.district.isEmpty
-                            ? 'District ▼'
-                            : '${filterProvider.district} ▼',
+                            ? '${_typeLabel(context, 'District')} ▼'
+                            : '${AppStrings.place(context, filterProvider.district)} ▼',
                         isActive: filterProvider.district.isNotEmpty,
                         onTap: () => _showFilterModal(
                             context, filterProvider, 'District'),
@@ -367,8 +387,8 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                       _buildFilterButton(
                         colors: colors,
                         label: filterProvider.thana.isEmpty
-                            ? 'Thana ▼'
-                            : '${filterProvider.thana} ▼',
+                            ? '${_typeLabel(context, 'Thana')} ▼'
+                            : '${AppStrings.place(context, filterProvider.thana)} ▼',
                         isActive: filterProvider.thana.isNotEmpty,
                         onTap: () =>
                             _showFilterModal(context, filterProvider, 'Thana'),
@@ -376,8 +396,8 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                       _buildFilterButton(
                         colors: colors,
                         label: filterProvider.area.isEmpty
-                            ? 'Area ▼'
-                            : '${filterProvider.area} ▼',
+                            ? '${_typeLabel(context, 'Area')} ▼'
+                            : '${AppStrings.place(context, filterProvider.area)} ▼',
                         isActive: filterProvider.area.isNotEmpty,
                         onTap: () =>
                             _showFilterModal(context, filterProvider, 'Area'),
@@ -385,8 +405,8 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                       _buildFilterButton(
                         colors: colors,
                         label: filterProvider.type.isEmpty
-                            ? 'Type ▼'
-                            : '${filterProvider.type} ▼',
+                            ? '${_typeLabel(context, 'Type')} ▼'
+                            : '${AppStrings.place(context, filterProvider.type)} ▼',
                         isActive: filterProvider.type.isNotEmpty,
                         onTap: () =>
                             _showFilterModal(context, filterProvider, 'Type'),
