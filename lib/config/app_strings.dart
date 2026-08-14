@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../data/bd_locations_bn.dart';
 import '../providers/locale_provider.dart';
 
 /// Central translation table for app chrome text — navigation labels, menu
@@ -244,6 +245,32 @@ class AppStrings {
       'an_empty_owner': 'You have not rented out any property yet.',
       'an_empty_renter': 'You have not rented any property yet.',
       'an_demo_note': 'Demo data — real figures will appear once deals are recorded in the app.',
+
+      // Home feed
+      'home_hero_title': 'Find Your Perfect Home',
+      'home_hero_subtitle': 'Explore amazing properties in your city',
+      'home_recently_viewed': 'Recently Viewed',
+      'home_view_all': 'View All',
+      'home_ai_recommended': 'AI Recommended',
+      'sort': 'Sort',
+      'filter': 'Filter',
+
+      // Search filters. '{}' is replaced with the filter's own name.
+      'flt_division': 'Division',
+      'flt_district': 'District',
+      'flt_thana': 'Thana',
+      'flt_area': 'Area',
+      'flt_type': 'Type',
+      'flt_select_fmt': 'Select {}',
+      'flt_search_hint_fmt': 'Type to filter {} list...',
+      'flt_need_first_fmt': 'Please select a {} first',
+      'flt_no_options': 'No options available.',
+
+      // Saved properties
+      'saved_title': 'Saved Properties',
+      'saved_empty_title': 'No saved properties yet',
+      'saved_empty_subtitle': 'Start exploring and save your favorites',
+      'saved_explore_cta': 'Explore Properties',
     },
     'bn': {
       // Bottom navigation
@@ -477,6 +504,32 @@ class AppStrings {
       'an_empty_owner': 'আপনি এখনো কোনো প্রপার্টি ভাড়া দেননি।',
       'an_empty_renter': 'আপনি এখনো কোনো প্রপার্টি ভাড়া নেননি।',
       'an_demo_note': 'ডেমো ডেটা — অ্যাপে লেনদেন যুক্ত হলে এখানে আসল হিসাব দেখাবে।',
+
+      // Home feed
+      'home_hero_title': 'আপনার পছন্দের বাড়ি খুঁজুন',
+      'home_hero_subtitle': 'আপনার শহরের চমৎকার বাড়িগুলো ঘুরে দেখুন',
+      'home_recently_viewed': 'সম্প্রতি দেখা',
+      'home_view_all': 'সব দেখুন',
+      'home_ai_recommended': 'এআই সুপারিশ',
+      'sort': 'সাজান',
+      'filter': 'ফিল্টার',
+
+      // Search filters. '{}' is replaced with the filter's own name.
+      'flt_division': 'বিভাগ',
+      'flt_district': 'জেলা',
+      'flt_thana': 'থানা',
+      'flt_area': 'এলাকা',
+      'flt_type': 'ধরন',
+      'flt_select_fmt': '{} নির্বাচন করুন',
+      'flt_search_hint_fmt': '{} খুঁজতে টাইপ করুন...',
+      'flt_need_first_fmt': 'আগে {} নির্বাচন করুন',
+      'flt_no_options': 'কোনো অপশন নেই।',
+
+      // Saved properties
+      'saved_title': 'সেভ করা বাড়ি',
+      'saved_empty_title': 'এখনো কোনো বাড়ি সেভ করা হয়নি',
+      'saved_empty_subtitle': 'ঘুরে দেখুন আর পছন্দের বাড়িগুলো সেভ করুন',
+      'saved_explore_cta': 'বাড়ি দেখুন',
     },
   };
 
@@ -498,6 +551,24 @@ class AppStrings {
   /// Locale-independent English lookup, for screens that must always render
   /// in English regardless of the app's selected language.
   static String en(String key) => _translations['en']?[key] ?? key;
+
+  /// Display name for a division / district / thana. Returns the Bangla name
+  /// when the app is in Bangla and one is known, otherwise the English name
+  /// unchanged.
+  ///
+  /// Only ever use this for what is drawn on screen. Filters, queries and
+  /// stored preferences must keep passing the English name around, or a
+  /// language switch would silently change which listings match.
+  static String place(BuildContext context, String english) {
+    final code = context.watch<LocaleProvider>().languageCode;
+    return code == 'bn' ? bnPlace(english) : english;
+  }
+
+  /// Non-reactive [place], for use inside callbacks rather than build.
+  static String placeOf(BuildContext context, String english) {
+    final code = context.read<LocaleProvider>().languageCode;
+    return code == 'bn' ? bnPlace(english) : english;
+  }
 
   /// True when the app is currently showing Bangla.
   static bool isBangla(BuildContext context) =>
