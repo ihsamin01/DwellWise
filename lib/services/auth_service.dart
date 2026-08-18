@@ -220,6 +220,32 @@ class AuthService {
     }
   }
 
+  /// Changes the signed-in user's password, after checking the current one.
+  ///
+  /// Supabase will set a new password for whoever holds a valid session, so
+  /// without this re-authentication an unlocked phone would be enough to take
+  /// an account over. Throws an [AuthException] the caller can surface.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final email = currentUser?.email;
+    if (email == null) {
+      throw const AuthException('You need to be signed in to change your password.');
+    }
+
+    try {
+      await _client.auth.signInWithPassword(
+        email: email,
+        password: currentPassword,
+      );
+    } on AuthException {
+      throw const AuthException('Your current password is incorrect.');
+    }
+
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
+  }
+
   /// Step 1 of recovery: emails a 6-digit code to [email] (only if an account
   /// with that email exists).
   Future<void> sendPasswordResetCode(String email) async {

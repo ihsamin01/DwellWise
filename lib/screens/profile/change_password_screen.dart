@@ -35,10 +35,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSubmitting = true);
-    final success = await context.read<SecurityProvider>().changePassword(
-          currentPassword: _currentController.text,
-          newPassword: _newController.text,
-        );
+    final security = context.read<SecurityProvider>();
+    final success = await security.changePassword(
+      currentPassword: _currentController.text,
+      newPassword: _newController.text,
+    );
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
@@ -53,7 +54,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           backgroundColor: Color(0xff10B981),
         ),
       );
+      return;
     }
+
+    // The change can genuinely fail now, so the failure has to be shown —
+    // previously the call could not fail and there was no branch for it.
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(security.errorMessage ?? 'Could not change the password.'),
+        backgroundColor: const Color(0xffDC2626),
+      ),
+    );
   }
 
   @override
