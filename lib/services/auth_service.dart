@@ -273,6 +273,29 @@ class AuthService {
     await _client.auth.signOut();
   }
 
+  /// Permanently deletes the signed-in user's account.
+  ///
+  /// Removing a row from `auth.users` needs the service_role key, which must
+  /// never ship in the app, so the work happens in the `delete-account` edge
+  /// function. It identifies the caller from their own access token, so a user
+  /// can only delete themselves.
+  Future<void> deleteAccount() async {
+    if (currentUser == null) {
+      throw const AuthException('You need to be signed in to delete your account.');
+    }
+
+    final response = await _client.functions.invoke('delete-account');
+    if (response.status != 200) {
+      final data = response.data;
+      final detail = data is Map && data['error'] != null
+          ? data['error'].toString()
+          : 'status ${response.status}';
+      throw AuthException('Could not delete the account ($detail).');
+    }
+
+    await signOut();
+  }
+
   Future<void> signOut() async {
     await _googleSignIn.signOut();
     await _client.auth.signOut();

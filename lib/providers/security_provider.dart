@@ -76,11 +76,23 @@ class SecurityProvider with ChangeNotifier {
     }
   }
 
-  /// Simulates account deletion. No backend to call — just clears local flags.
-  Future<void> deleteAccount() async {
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-    _isEmailVerified = false;
-    _isPhoneVerified = false;
-    notifyListeners();
+  /// Permanently deletes the account. Returns false and sets [errorMessage]
+  /// if the server refused, so the UI never claims a deletion that did not
+  /// happen.
+  Future<bool> deleteAccount() async {
+    _errorMessage = null;
+    try {
+      await _authService.deleteAccount();
+      _isEmailVerified = false;
+      _isPhoneVerified = false;
+      notifyListeners();
+      return true;
+    } on AuthException catch (e) {
+      _errorMessage = e.message;
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    }
   }
 }

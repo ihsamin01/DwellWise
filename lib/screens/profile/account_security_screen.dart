@@ -65,8 +65,23 @@ class AccountSecurityScreen extends StatelessWidget {
 
     if (confirmed != true || !context.mounted) return;
 
-    await context.read<SecurityProvider>().deleteAccount();
+    final security = context.read<SecurityProvider>();
+    final deleted = await security.deleteAccount();
     if (!context.mounted) return;
+
+    // Only tear the session down if the account really went. Signing the user
+    // out of an account that still exists would look identical to success.
+    if (!deleted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text(security.errorMessage ?? 'Could not delete the account.'),
+          backgroundColor: const Color(0xffDC2626),
+        ),
+      );
+      return;
+    }
+
     context.read<SavedPropertiesProvider>().clear();
     context.read<RecentlyViewedProvider>().clear();
     await context.read<AuthProvider>().logout();
