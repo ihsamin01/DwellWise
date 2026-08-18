@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../config/app_colors.dart';
 import '../../config/app_strings.dart';
 import '../../models/user_model.dart';
+import '../../models/notification_model.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/user_provider.dart';
 
@@ -149,7 +150,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
 
     // Drop it in the in-app notification inbox as well.
     context.read<NotificationProvider>().addNotification(
-          icon: Icons.verified,
+          kind: NotificationKind.verification,
           title: 'Account verified',
           message:
               'Your identity has been verified. The green badge now shows on your profile.',

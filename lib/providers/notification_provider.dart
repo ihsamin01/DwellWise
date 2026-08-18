@@ -1,97 +1,114 @@
 import 'package:flutter/material.dart';
+
 import '../models/notification_model.dart';
+import '../services/notification_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Provider holding the mock notification inbox and unread count. Frontend
-/// only — no backend/API, just local state.
+/// Provider holding the notification inbox and unread count.
+///
+/// Backed by the `notifications` table, so the inbox is per-account and
+/// survives a restart. New rows arrive over Realtime, which is what keeps the
+/// home-screen badge current without polling.
 class NotificationProvider with ChangeNotifier {
-  final List<NotificationModel> _notifications = [
-    NotificationModel(
-      id: 'n1',
-      icon: Icons.chat_bubble_outline,
-      title: 'New message from owner',
-      message: 'Rashed Ahmed sent you a message about Bachelor Sublet Room, Mirpur 11.',
-      timestamp: DateTime.now().subtract(const Duration(minutes: 8)),
-      isRead: false,
-    ),
-    NotificationModel(
-      id: 'n2',
-      icon: Icons.trending_down,
-      title: 'Price reduced',
-      message: 'The rent for Family Flat, Mirpur 11 dropped to ৳15,000.',
-      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-      isRead: false,
-    ),
-    NotificationModel(
-      id: 'n3',
-      icon: Icons.home_work_outlined,
-      title: 'New match found',
-      message: 'A new 2-bed apartment in Uttara matches your saved search.',
-      timestamp: DateTime.now().subtract(const Duration(hours: 5)),
-      isRead: false,
-    ),
-    NotificationModel(
-      id: 'n4',
-      icon: Icons.verified_outlined,
-      title: 'Government ID verified',
-      message: 'Your account is now verified with a green badge.',
-      timestamp: DateTime.now().subtract(const Duration(days: 1)),
-      isRead: false,
-    ),
-    NotificationModel(
-      id: 'n5',
-      icon: Icons.system_update_outlined,
-      title: 'Update available',
-      message: 'DwellWise 2.1 is available with faster search and bug fixes.',
-      timestamp: DateTime.now().subtract(const Duration(days: 2)),
-      isRead: false,
-    ),
-    NotificationModel(
-      id: 'n6',
-      icon: Icons.build_outlined,
-      title: 'Scheduled maintenance',
-      message: 'DwellWise will be briefly unavailable Friday, 1:00-2:00 AM for maintenance.',
-      timestamp: DateTime.now().subtract(const Duration(days: 3)),
-      isRead: true,
-    ),
-  ];
+  NotificationProvider() {
+    _channel = _service.subscribe(_onInserted);
+    refresh();
+  }
 
-  List<NotificationModel> get notifications => List.unmodifiable(_notifications);
+  final NotificationService _service = NotificationService();
+  final List<NotificationModel> _notifications = [];
+
+  RealtimeChannel? _channel;
+  bool _isLoading = false;
+
+  List<NotificationModel> get notifications =>
+      List.unmodifiable(_notifications);
+
+  bool get isLoading => _isLoading;
 
   int get unreadCount => _notifications.where((n) => !n.isRead).length;
 
-  /// Marks [id] as read if it isn't already. Tapping an already-read
-  /// notification is a deliberate no-op — no state change, no rebuild.
-  /// Pushes a new unread notification to the top of the inbox (e.g. when an
-  /// account gets verified).
-  void addNotification({
-    required IconData icon,
-    required String title,
-    required String message,
-  }) {
-    _notifications.insert(
-      0,
-      NotificationModel(
-        id: 'n-${DateTime.now().millisecondsSinceEpoch}',
-        icon: icon,
-        title: title,
-        message: message,
-        timestamp: DateTime.now(),
-        isRead: false,
-      ),
-    );
-    notifyListeners();
+  @override
+  void dispose() {
+    final channel = _channel;
+    if (channel != null) _service.unsubscribe(channel);
+    super.dispose();
   }
 
-  void markAsRead(String id) {
+  Future<void> refresh() async {
+    if (_service.currentUserId == null) return;
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final fetched = await _service.fetch();
+      _notifications
+        ..clear()
+        ..addAll(fetched);
+    } catch (_) {
+      // Offline: keep whatever is already listed rather than emptying the
+      // inbox and hiding the badge.
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Raises a notification for the signed-in user (e.g. verification
+  /// approved). Shown immediately and replaced by the stored row.
+  Future<void> addNotification({
+    required NotificationKind kind,
+    required String title,
+    required String message,
+  }) async {
+    final optimistic = NotificationModel(
+      id: 'pending-${DateTime.now().microsecondsSinceEpoch}',
+      icon: kind.icon,
+      title: title,
+      message: message,
+      timestamp: DateTime.now(),
+      isRead: false,
+    );
+    _notifications.insert(0, optimistic);
+    notifyListeners();
+
+    try {
+      final saved = await _service.add(
+        kind: kind,
+        title: title,
+        message: message,
+      );
+      final index = _notifications.indexWhere((n) => n.id == optimistic.id);
+      if (index == -1) return;
+      if (saved == null) {
+        _notifications.removeAt(index);
+      } else {
+        _notifications[index] = saved;
+      }
+      notifyListeners();
+    } catch (_) {
+      _notifications.removeWhere((n) => n.id == optimistic.id);
+      notifyListeners();
+    }
+  }
+
+  /// Marks [id] as read if it isn't already. Tapping an already-read
+  /// notification is a deliberate no-op — no state change, no rebuild.
+  Future<void> markAsRead(String id) async {
     final index = _notifications.indexWhere((n) => n.id == id);
     if (index == -1 || _notifications[index].isRead) return;
 
     _notifications[index] = _notifications[index].copyWith(isRead: true);
     notifyListeners();
+
+    try {
+      await _service.markRead(id);
+    } catch (_) {
+      // The badge comes back on the next refresh if this did not land.
+    }
   }
 
   /// Marks every notification as read (e.g. when the inbox is opened).
-  void markAllAsRead() {
+  Future<void> markAllAsRead() async {
     if (unreadCount == 0) return;
 
     for (var i = 0; i < _notifications.length; i++) {
@@ -99,6 +116,18 @@ class NotificationProvider with ChangeNotifier {
         _notifications[i] = _notifications[i].copyWith(isRead: true);
       }
     }
+    notifyListeners();
+
+    try {
+      await _service.markAllRead();
+    } catch (_) {
+      // Same as above: a failed write shows up again after a refresh.
+    }
+  }
+
+  void _onInserted(NotificationModel notification) {
+    if (_notifications.any((n) => n.id == notification.id)) return;
+    _notifications.insert(0, notification);
     notifyListeners();
   }
 }
