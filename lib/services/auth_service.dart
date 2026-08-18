@@ -290,13 +290,17 @@ class AuthService {
       throw const AuthException('You need to be signed in to delete your account.');
     }
 
-    final response = await _client.functions.invoke('delete-account');
-    if (response.status != 200) {
-      final data = response.data;
-      final detail = data is Map && data['error'] != null
-          ? data['error'].toString()
-          : 'status ${response.status}';
-      throw AuthException('Could not delete the account ($detail).');
+    try {
+      await _client.functions.invoke('delete-account');
+    } on FunctionException catch (e) {
+      // invoke() throws on any non-2xx rather than returning the status, so
+      // the failure is translated here instead of read off a response.
+      throw AuthException(
+        e.status == 404
+            ? 'Account deletion is not available yet — the delete-account '
+                'function has not been deployed.'
+            : 'Could not delete the account. Please try again.',
+      );
     }
 
     await signOut();
