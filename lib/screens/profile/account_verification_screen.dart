@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -286,13 +287,20 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(color: colors.textSecondary),
             ),
-            // Demo helper so the green badge can be shown without a real admin.
-            if (!verified) ...[
+            // Debug-only shortcut so the green badge can be demoed without an
+            // admin queue. kDebugMode keeps it out of release builds, where it
+            // would let anyone approve their own identity check.
+            if (!verified && kDebugMode) ...[
               const SizedBox(height: 24),
               OutlinedButton.icon(
                 onPressed: () => context.read<UserProvider>().approveVerification(),
                 icon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
                 label: Text(AppStrings.t(context, 'av_simulate')),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Debug builds only',
+                style: TextStyle(fontSize: 11, color: colors.textSecondary),
               ),
             ],
           ],
