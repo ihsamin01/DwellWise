@@ -1,298 +1,224 @@
 import 'package:flutter/material.dart';
-import '../models/chat_model.dart';
-import '../models/chat_message_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Provider handling instant messaging conversations and attachment uploads.
+import '../models/chat_message_model.dart';
+import '../models/chat_model.dart';
+import '../services/chat_service.dart';
+
+/// Provider handling instant messaging conversations and attachments.
+///
+/// Backed by the `chats` / `messages` tables. Sends are optimistic: the
+/// message is shown immediately and reconciled with the row the server
+/// returns, so the thread never feels like it is waiting on the network. New
+/// messages arrive over a Realtime subscription; row-level security means the
+/// subscription only ever delivers messages from the user's own chats, so no
+/// filtering by chat is needed on the client.
 class ChatProvider with ChangeNotifier {
-  static const String _currentUserId = 'tenant1';
-  static const String _otherUserId = 'owner1';
+  ChatProvider() {
+    _listenForMessages();
+  }
+
+  final ChatService _service = ChatService();
 
   final List<ChatModel> _chats = [];
   final Map<String, List<ChatMessageModel>> _messagesByChatId = {};
-
   final List<ChatMessageModel> _activeMessages = [];
 
+  RealtimeChannel? _messagesChannel;
+
   bool _isTyping = false;
+  bool _isLoading = false;
   String _searchQuery = '';
   String? _activeChatId;
   bool _hasLoadedChats = false;
 
-  List<ChatModel> get chats => _buildConversationList();
+  /// The signed-in user's id — what message bubbles compare against to decide
+  /// which side of the thread they belong on.
+  String? get currentUserId => _service.currentUserId;
 
+  List<ChatModel> get chats => _buildConversationList();
   List<ChatModel> get conversations => chats;
 
   List<ChatMessageModel> get activeMessages => _activeMessages;
   bool get isTyping => _isTyping;
+  bool get isLoading => _isLoading;
   String get searchQuery => _searchQuery;
   String? get activeChatId => _activeChatId;
 
   int get unreadConversationCount =>
-      _chats.where((chat) => chat.unreadCount > 0).length;
+      _chats.where((chat) => chat.unreadCount > 0 && !chat.isMuted).length;
+
+  @override
+  void dispose() {
+    final channel = _messagesChannel;
+    if (channel != null) _service.unsubscribe(channel);
+    super.dispose();
+  }
+
+  // ── loading ────────────────────────────────────────────────────────────
 
   void loadChats({bool forceReload = false}) {
-    if (_hasLoadedChats && !forceReload) {
-      notifyListeners();
-      return;
-    }
-
-    final now = DateTime.now();
-    _chats
-      ..clear()
-      ..addAll([
-        ChatModel(
-          id: '1',
-          userName: 'Rahim Ahmed',
-          userImage:
-              'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&q=80',
-          lastMessage: 'Is the apartment still available?',
-          lastMessageTime: now.subtract(const Duration(minutes: 8)),
-          unreadCount: 2,
-          isMuted: false,
-          isPriority: true,
-          isOnline: true,
-          lastMessageSenderId: _currentUserId,
-          lastMessageType: 'text',
-          messageCount: 8,
-        ),
-        ChatModel(
-          id: '2',
-          userName: 'Fatema Khan',
-          userImage:
-              'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=256&q=80',
-          lastMessage: 'Thank you!',
-          lastMessageTime: now.subtract(const Duration(hours: 3)),
-          unreadCount: 0,
-          isMuted: true,
-          isPriority: false,
-          isOnline: false,
-          lastMessageSenderId: _otherUserId,
-          lastMessageType: 'text',
-          messageCount: 4,
-        ),
-        ChatModel(
-          id: '3',
-          userName: 'Nusrat Jahan',
-          userImage:
-              'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=256&q=80',
-          lastMessage: 'Please share the floor plan PDF.',
-          lastMessageTime: now.subtract(const Duration(minutes: 42)),
-          unreadCount: 1,
-          isMuted: false,
-          isPriority: false,
-          isOnline: true,
-          isTyping: true,
-          lastMessageSenderId: _otherUserId,
-          lastMessageType: 'pdf',
-          messageCount: 12,
-        ),
-      ]);
-
-    _messagesByChatId
-      ..clear()
-      ..addAll({
-        '1': [
-          ChatMessageModel(
-            id: 'm1',
-            chatId: '1',
-            senderId: _otherUserId,
-            message:
-                'Hello, is this penthouse available for visit this Friday?',
-            isRead: true,
-            createdAt: now.subtract(const Duration(hours: 2, minutes: 20)),
-          ),
-          ChatMessageModel(
-            id: 'm2',
-            chatId: '1',
-            senderId: _currentUserId,
-            message: 'Yes, it is still available.',
-            isRead: true,
-            createdAt: now.subtract(const Duration(hours: 2, minutes: 10)),
-          ),
-          ChatMessageModel(
-            id: 'm3',
-            chatId: '1',
-            senderId: _otherUserId,
-            message: 'Is the apartment still available?',
-            isRead: false,
-            createdAt: now.subtract(const Duration(minutes: 8)),
-          ),
-        ],
-        '2': [
-          ChatMessageModel(
-            id: 'm4',
-            chatId: '2',
-            senderId: _currentUserId,
-            message: 'I have sent the documents over email.',
-            isRead: true,
-            createdAt: now.subtract(const Duration(hours: 4)),
-          ),
-          ChatMessageModel(
-            id: 'm5',
-            chatId: '2',
-            senderId: _otherUserId,
-            message: 'Thank you!',
-            isRead: false,
-            createdAt: now.subtract(const Duration(hours: 3)),
-          ),
-        ],
-        '3': [
-          ChatMessageModel(
-            id: 'm6',
-            chatId: '3',
-            senderId: _otherUserId,
-            message: 'Please share the floor plan PDF.',
-            isRead: false,
-            createdAt: now.subtract(const Duration(minutes: 42)),
-          ),
-        ],
-      });
-
+    if (_hasLoadedChats && !forceReload) return;
     _hasLoadedChats = true;
-    notifyListeners();
+    refreshChats();
   }
 
   Future<void> refreshChats() async {
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-    loadChats(forceReload: true);
+    if (_service.currentUserId == null) return;
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final fetched = await _service.fetchChats();
+      _chats
+        ..clear()
+        ..addAll(fetched);
+    } catch (_) {
+      // Offline or refused: keep whatever is already on screen rather than
+      // blanking the inbox.
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
+  /// Loads a thread from the server, then marks it read.
+  Future<void> loadChatHistory(String chatId) async {
+    try {
+      final messages = await _service.fetchMessages(chatId);
+      _messagesByChatId[chatId] = messages;
+      _syncActiveMessages(chatId);
+      notifyListeners();
+      await markConversationRead(chatId);
+    } catch (_) {
+      // Leave any cached messages in place.
+    }
+  }
+
+  // ── conversations ──────────────────────────────────────────────────────
+
   void searchConversations(String query) {
-    _searchQuery = query.trim().toLowerCase();
+    _searchQuery = query;
     notifyListeners();
   }
 
   void clearSearch() {
-    if (_searchQuery.isEmpty) {
-      return;
-    }
-
     _searchQuery = '';
     notifyListeners();
   }
 
-  List<ChatMessageModel> messagesForChat(String chatId) {
-    return List.unmodifiable(_messagesByChatId[chatId] ?? const []);
-  }
+  List<ChatMessageModel> messagesForChat(String chatId) =>
+      List.unmodifiable(_messagesByChatId[chatId] ?? const []);
 
   ChatModel? chatById(String chatId) {
     for (final chat in _chats) {
-      if (chat.id == chatId) {
-        return chat;
-      }
+      if (chat.id == chatId) return chat;
     }
     return null;
   }
 
   void openConversation(String chatId) {
     _activeChatId = chatId;
+    _syncActiveMessages(chatId);
+    notifyListeners();
     loadChatHistory(chatId);
-    markConversationRead(chatId);
   }
 
-  /// Starts (or reuses) a conversation thread with a property owner and
-  /// returns its chat id, so the Messages inbox always has an entry for
-  /// owners the tenant has reached out to.
-  String startConversationWithOwner({
+  /// Opens the thread with a property's owner, creating it on first contact.
+  ///
+  /// Asynchronous because the chat row has to exist before it can be opened —
+  /// the id is the database's, so both participants resolve to the same
+  /// conversation.
+  Future<String?> startConversationWithOwner({
     required String ownerId,
     required String ownerName,
     String? ownerImage,
-  }) {
-    final chatId = 'owner-$ownerId';
+    String? propertyId,
+  }) async {
+    if (_service.currentUserId == null) return null;
+    if (_service.currentUserId == ownerId) return null;
 
-    if (chatById(chatId) == null) {
-      _chats.insert(
-        0,
-        ChatModel(
-          id: chatId,
-          userName: ownerName,
-          userImage: ownerImage,
-          lastMessage: 'Say hello to $ownerName',
-          lastMessageTime: DateTime.now(),
-          isOnline: true,
-        ),
+    try {
+      final chatId = await _service.findOrCreateChat(
+        otherUserId: ownerId,
+        propertyId: propertyId,
       );
-      notifyListeners();
-    }
 
-    return chatId;
+      if (chatById(chatId) == null) {
+        _chats.insert(
+          0,
+          ChatModel(
+            id: chatId,
+            userName: ownerName,
+            userImage: ownerImage,
+            lastMessage: '',
+            lastMessageTime: DateTime.now(),
+          ),
+        );
+        notifyListeners();
+      }
+      return chatId;
+    } catch (_) {
+      return null;
+    }
   }
 
-  void deleteConversation(String chatId) {
+  Future<void> deleteConversation(String chatId) async {
     _chats.removeWhere((chat) => chat.id == chatId);
     _messagesByChatId.remove(chatId);
-
     if (_activeChatId == chatId) {
       _activeChatId = null;
       _activeMessages.clear();
     }
-
     notifyListeners();
+    try {
+      await _service.deleteChat(chatId);
+    } catch (_) {
+      await refreshChats();
+    }
   }
 
-  void muteConversation(String chatId, bool muted) {
-    _updateConversation(chatId, (chat) => chat.copyWith(isMuted: muted));
+  Future<void> muteConversation(String chatId, bool muted) async {
+    _replaceChat(chatId, (chat) => chat.copyWith(isMuted: muted));
+    try {
+      await _service.setMuted(chatId, muted);
+    } catch (_) {
+      _replaceChat(chatId, (chat) => chat.copyWith(isMuted: !muted));
+    }
   }
 
-  void togglePriorityConversation(String chatId) {
-    final chat = chatById(chatId);
-    if (chat == null) {
-      return;
+  Future<void> togglePriorityConversation(String chatId) async {
+    final current = chatById(chatId);
+    if (current == null) return;
+    final next = !current.isPriority;
+    _replaceChat(chatId, (chat) => chat.copyWith(isPriority: next));
+    try {
+      await _service.setPriority(chatId, next);
+    } catch (_) {
+      _replaceChat(chatId, (chat) => chat.copyWith(isPriority: !next));
     }
-
-    _updateConversation(
-        chatId, (item) => item.copyWith(isPriority: !chat.isPriority));
   }
 
-  void markConversationRead(String chatId) {
-    final messages = _messagesByChatId[chatId];
-    if (messages == null || messages.isEmpty) {
-      _updateConversation(chatId, (chat) => chat.copyWith(unreadCount: 0));
-      return;
+  Future<void> markConversationRead(String chatId) async {
+    _replaceChat(chatId, (chat) => chat.copyWith(unreadCount: 0));
+    try {
+      await _service.markRead(chatId);
+    } catch (_) {
+      // The badge reappears on the next refresh if this did not land.
     }
-
-    for (var index = 0; index < messages.length; index += 1) {
-      final message = messages[index];
-      if (message.senderId != _currentUserId && !message.isRead) {
-        messages[index] = message.copyWith(isRead: true);
-      }
-    }
-
-    _updateConversation(chatId, (chat) => chat.copyWith(unreadCount: 0));
-
-    if (_activeChatId == chatId) {
-      _syncActiveMessages(chatId);
-    }
-
-    notifyListeners();
   }
 
+  /// Local-only typing indicator. Not shared with the other participant —
+  /// that needs Realtime presence, which is not wired up.
   void setTypingStatus(String chatId, bool isTyping) {
-    _updateConversation(chatId, (chat) => chat.copyWith(isTyping: isTyping));
+    _isTyping = isTyping;
+    _replaceChat(chatId, (chat) => chat.copyWith(isTyping: isTyping));
   }
 
-  /// Loads conversation logs for matching room ID.
-  void loadChatHistory(String chatId) {
-    _activeChatId = chatId;
-    final messages = _messagesByChatId[chatId];
+  // ── sending ────────────────────────────────────────────────────────────
 
-    if (messages == null || messages.isEmpty) {
-      _messagesByChatId[chatId] = [
-        ChatMessageModel(
-          id: 'seed-$chatId-1',
-          chatId: chatId,
-          senderId: _otherUserId,
-          message: 'Hello, is this place still available?',
-          isRead: false,
-          createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-        ),
-      ];
-    }
-
-    _syncActiveMessages(chatId);
-    notifyListeners();
-  }
-
-  /// Appends a message of any [type] to the thread.
+  /// [senderId] is accepted for call-site compatibility but ignored: the
+  /// sender is taken from the session, and the database enforces that a
+  /// message can only be inserted as its own sender.
   void sendMessage(
     String chatId,
     String senderId,
@@ -303,10 +229,15 @@ class ChatProvider with ChangeNotifier {
     double? latitude,
     double? longitude,
   }) {
-    final message = ChatMessageModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+    final me = _service.currentUserId;
+    if (me == null) return;
+
+    // Shown straight away under a temporary id, then swapped for the stored
+    // row once the insert returns.
+    final pending = ChatMessageModel(
+      id: 'pending-${DateTime.now().microsecondsSinceEpoch}',
       chatId: chatId,
-      senderId: senderId,
+      senderId: me,
       message: text,
       attachmentUrl: attachmentUrl,
       type: type,
@@ -317,14 +248,25 @@ class ChatProvider with ChangeNotifier {
       createdAt: DateTime.now(),
     );
 
-    final messages = _messagesByChatId.putIfAbsent(chatId, () => []);
-    messages.add(message);
-    _syncActiveMessages(chatId);
-    _updateConversationFromMessage(chatId, message);
-    notifyListeners();
+    _appendMessage(pending);
 
-    // Trigger typing suggestion response simulation
-    _simulateOwnerResponse(chatId);
+    _service
+        .sendMessage(
+      chatId: chatId,
+      text: text,
+      attachmentUrl: attachmentUrl,
+      type: type,
+      durationMs: durationMs,
+      latitude: latitude,
+      longitude: longitude,
+    )
+        .then((saved) {
+      _replaceMessage(pending.id, saved);
+    }).catchError((_) {
+      // The send failed, so drop the optimistic bubble instead of leaving a
+      // message on screen that nobody received.
+      _removeMessage(chatId, pending.id);
+    });
   }
 
   /// Sends an image / pdf / document attachment picked from the device.
@@ -335,13 +277,7 @@ class ChatProvider with ChangeNotifier {
     required String fileName,
     required MessageType type,
   }) {
-    sendMessage(
-      chatId,
-      senderId,
-      fileName,
-      attachmentUrl: path,
-      type: type,
-    );
+    sendMessage(chatId, senderId, fileName, attachmentUrl: path, type: type);
   }
 
   /// Sends a recorded voice note.
@@ -395,127 +331,112 @@ class ChatProvider with ChangeNotifier {
     );
   }
 
-  Future<void> _simulateOwnerResponse(String chatId) async {
-    _isTyping = true;
-    setTypingStatus(chatId, true);
-    notifyListeners();
+  // ── realtime ───────────────────────────────────────────────────────────
 
-    await Future.delayed(const Duration(seconds: 2));
+  void _listenForMessages() {
+    _messagesChannel = _service.subscribeToAllMessages(_onRemoteMessage);
+  }
 
-    _isTyping = false;
-    setTypingStatus(chatId, false);
-    final message = ChatMessageModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      chatId: chatId,
-      senderId: _otherUserId,
-      message: 'Sure, I have attached the flat outline map below.',
-      attachmentUrl: 'Gulshan_Penthouse_FloorPlan.pdf',
-      type: MessageType.pdf,
-      isRead: false,
-      createdAt: DateTime.now(),
-    );
+  void _onRemoteMessage(ChatMessageModel message) {
+    final me = _service.currentUserId;
 
-    final messages = _messagesByChatId.putIfAbsent(chatId, () => []);
+    // The sender already has this one on screen from the optimistic insert.
+    if (message.senderId == me) return;
+
+    _appendMessage(message);
+    if (message.chatId == _activeChatId) {
+      markConversationRead(message.chatId);
+    } else {
+      _replaceChat(
+        message.chatId,
+        (chat) => chat.copyWith(unreadCount: chat.unreadCount + 1),
+      );
+    }
+  }
+
+  // ── internals ──────────────────────────────────────────────────────────
+
+  void _appendMessage(ChatMessageModel message) {
+    final messages = _messagesByChatId.putIfAbsent(message.chatId, () => []);
+    if (messages.any((m) => m.id == message.id)) return;
     messages.add(message);
+    _syncActiveMessages(message.chatId);
+    _replaceChat(
+      message.chatId,
+      (chat) => chat.copyWith(
+        lastMessage: _previewFor(message),
+        lastMessageTime: message.createdAt,
+        lastMessageSenderId: message.senderId,
+        lastMessageType: message.type.name,
+      ),
+    );
+    notifyListeners();
+  }
+
+  void _replaceMessage(String pendingId, ChatMessageModel saved) {
+    final messages = _messagesByChatId[saved.chatId];
+    if (messages == null) return;
+    final index = messages.indexWhere((m) => m.id == pendingId);
+    if (index == -1) return;
+    messages[index] = saved;
+    _syncActiveMessages(saved.chatId);
+    notifyListeners();
+  }
+
+  void _removeMessage(String chatId, String messageId) {
+    _messagesByChatId[chatId]?.removeWhere((m) => m.id == messageId);
     _syncActiveMessages(chatId);
-    _updateConversationFromMessage(chatId, message);
+    notifyListeners();
+  }
+
+  /// Applies [update] to one conversation in place. Does nothing when the
+  /// chat is not loaded — the next refresh will pick it up.
+  void _replaceChat(String chatId, ChatModel Function(ChatModel) update) {
+    final index = _chats.indexWhere((chat) => chat.id == chatId);
+    if (index == -1) return;
+    _chats[index] = update(_chats[index]);
     notifyListeners();
   }
 
   List<ChatModel> _buildConversationList() {
-    final filteredChats = _searchQuery.isEmpty
+    final query = _searchQuery.trim().toLowerCase();
+    final visible = query.isEmpty
         ? List<ChatModel>.from(_chats)
-        : _chats.where((chat) {
-            final query = _searchQuery;
-            return chat.userName.toLowerCase().contains(query) ||
-                chat.lastMessage.toLowerCase().contains(query);
-          }).toList();
+        : _chats
+            .where((chat) =>
+                chat.userName.toLowerCase().contains(query) ||
+                chat.lastMessage.toLowerCase().contains(query))
+            .toList();
 
-    filteredChats.sort((left, right) {
-      if (left.isPriority != right.isPriority) {
-        return left.isPriority ? -1 : 1;
-      }
-
-      final leftUnread = left.unreadCount > 0;
-      final rightUnread = right.unreadCount > 0;
-      if (leftUnread != rightUnread) {
-        return leftUnread ? -1 : 1;
-      }
-
-      return right.lastMessageTime.compareTo(left.lastMessageTime);
+    // Priority threads first, then most recent activity.
+    visible.sort((a, b) {
+      if (a.isPriority != b.isPriority) return a.isPriority ? -1 : 1;
+      return b.lastMessageTime.compareTo(a.lastMessageTime);
     });
-
-    return filteredChats;
+    return visible;
   }
 
-  void _updateConversation(
-      String chatId, ChatModel Function(ChatModel chat) updater) {
-    final index = _chats.indexWhere((chat) => chat.id == chatId);
-    if (index == -1) {
-      return;
-    }
-
-    _chats[index] = updater(_chats[index]);
-    notifyListeners();
-  }
-
-  void _updateConversationFromMessage(String chatId, ChatMessageModel message) {
-    final index = _chats.indexWhere((chat) => chat.id == chatId);
-    final existingChat = index == -1 ? null : _chats[index];
-
-    if (existingChat == null) {
-      _chats.add(
-        ChatModel(
-          id: chatId,
-          userName: 'New Conversation',
-          lastMessage: message.message,
-          lastMessageTime: message.createdAt,
-          unreadCount: message.senderId == _currentUserId ? 0 : 1,
-          isOnline: false,
-          lastMessageSenderId: message.senderId,
-          lastMessageType:
-              message.attachmentUrl != null ? 'attachment' : 'text',
-          messageCount: 1,
-        ),
-      );
-      return;
-    }
-
-    final updatedUnreadCount = message.senderId == _currentUserId
-        ? existingChat.unreadCount
-        : existingChat.unreadCount + 1;
-
-    _chats[index] = existingChat.copyWith(
-      lastMessage: _previewFor(message),
-      lastMessageTime: message.createdAt,
-      unreadCount: updatedUnreadCount,
-      isTyping: false,
-      lastMessageSenderId: message.senderId,
-      lastMessageType: message.type.name,
-      messageCount: existingChat.messageCount + 1,
-    );
-  }
-
-  /// Short inbox preview text for a message based on its type.
   String _previewFor(ChatMessageModel message) {
     switch (message.type) {
       case MessageType.image:
         return '📷 Photo';
       case MessageType.pdf:
+        return '📄 PDF';
       case MessageType.file:
-        return '📄 ${message.message.isEmpty ? 'Document' : message.message}';
+        return '📎 File';
       case MessageType.voice:
         return '🎤 Voice message';
       case MessageType.location:
         return '📍 Location';
       case MessageType.sticker:
-        return message.message.isEmpty ? 'Sticker' : message.message;
+        return message.message.isEmpty ? '💬 Sticker' : message.message;
       case MessageType.text:
         return message.message;
     }
   }
 
   void _syncActiveMessages(String chatId) {
+    if (_activeChatId != chatId) return;
     _activeMessages
       ..clear()
       ..addAll(_messagesByChatId[chatId] ?? const []);
