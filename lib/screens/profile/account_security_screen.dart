@@ -82,11 +82,26 @@ class AccountSecurityScreen extends StatelessWidget {
       return;
     }
 
+    // Captured before the awaits: after context.go the messenger looked up
+    // from this context is gone, and the confirmation has to outlive the
+    // screen that triggered it.
+    final messenger = ScaffoldMessenger.of(context);
+
     context.read<SavedPropertiesProvider>().clear();
     context.read<RecentlyViewedProvider>().clear();
     await context.read<AuthProvider>().logout();
     if (!context.mounted) return;
+
     context.go('/login');
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Account deleted successfully. Register again to use DwellWise.',
+        ),
+        backgroundColor: Color(0xff10B981),
+        duration: Duration(seconds: 5),
+      ),
+    );
   }
 
   /// [value] shows the verified data point (email/phone/masked ID) as a
