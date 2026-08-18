@@ -229,29 +229,7 @@ class ChatProvider with ChangeNotifier {
     double? latitude,
     double? longitude,
   }) {
-    final me = _service.currentUserId;
-    if (me == null) return;
-
-    // Shown straight away under a temporary id, then swapped for the stored
-    // row once the insert returns.
-    final pending = ChatMessageModel(
-      id: 'pending-${DateTime.now().microsecondsSinceEpoch}',
-      chatId: chatId,
-      senderId: me,
-      message: text,
-      attachmentUrl: attachmentUrl,
-      type: type,
-      durationMs: durationMs,
-      latitude: latitude,
-      longitude: longitude,
-      isRead: false,
-      createdAt: DateTime.now(),
-    );
-
-    _appendMessage(pending);
-
-    _service
-        .sendMessage(
+    _dispatch(
       chatId: chatId,
       text: text,
       attachmentUrl: attachmentUrl,
@@ -259,17 +237,14 @@ class ChatProvider with ChangeNotifier {
       durationMs: durationMs,
       latitude: latitude,
       longitude: longitude,
-    )
-        .then((saved) {
-      _replaceMessage(pending.id, saved);
-    }).catchError((_) {
-      // The send failed, so drop the optimistic bubble instead of leaving a
-      // message on screen that nobody received.
-      _removeMessage(chatId, pending.id);
-    });
+    );
   }
 
-  /// Sends an image / pdf / document attachment picked from the device.
+  /// Sends an image / pdf / document picked from the device.
+  ///
+  /// The picker hands back a path on this phone, which is meaningless to the
+  /// other participant, so the file is uploaded and the stored URL is what
+  /// goes into the message.
   void sendAttachment(
     String chatId,
     String senderId, {
@@ -277,23 +252,28 @@ class ChatProvider with ChangeNotifier {
     required String fileName,
     required MessageType type,
   }) {
-    sendMessage(chatId, senderId, fileName, attachmentUrl: path, type: type);
+    _dispatch(
+      chatId: chatId,
+      text: fileName,
+      type: type,
+      localPath: path,
+    );
   }
 
-  /// Sends a recorded voice note.
+  /// Sends a recorded voice note. Uploaded for the same reason as any other
+  /// attachment.
   void sendVoiceMessage(
     String chatId,
     String senderId, {
     required String path,
     required int durationMs,
   }) {
-    sendMessage(
-      chatId,
-      senderId,
-      '',
-      attachmentUrl: path,
+    _dispatch(
+      chatId: chatId,
+      text: '',
       type: MessageType.voice,
       durationMs: durationMs,
+      localPath: path,
     );
   }
 
@@ -304,10 +284,9 @@ class ChatProvider with ChangeNotifier {
     required double latitude,
     required double longitude,
   }) {
-    sendMessage(
-      chatId,
-      senderId,
-      'Shared location',
+    _dispatch(
+      chatId: chatId,
+      text: 'Shared location',
       type: MessageType.location,
       latitude: latitude,
       longitude: longitude,
@@ -316,19 +295,83 @@ class ChatProvider with ChangeNotifier {
 
   /// Sends a sticker — either a bundled gif asset ([assetPath]) or an
   /// emoji-based sticker ([emoji]).
+  ///
+  /// [assetPath] is deliberately not uploaded: it points into the app bundle,
+  /// so it already resolves on the other person's device.
   void sendSticker(
     String chatId,
     String senderId, {
     String? assetPath,
     String? emoji,
   }) {
-    sendMessage(
-      chatId,
-      senderId,
-      emoji ?? '',
+    _dispatch(
+      chatId: chatId,
+      text: emoji ?? '',
       attachmentUrl: assetPath,
       type: MessageType.sticker,
     );
+  }
+
+  /// Shows the message straight away under a temporary id, then swaps it for
+  /// the stored row.
+  ///
+  /// [localPath] is a file on this device: it is displayed immediately so the
+  /// thread does not wait on an upload, then replaced by the uploaded URL
+  /// before the message row is written.
+  void _dispatch({
+    required String chatId,
+    required String text,
+    String? attachmentUrl,
+    String? localPath,
+    MessageType type = MessageType.text,
+    int? durationMs,
+    double? latitude,
+    double? longitude,
+  }) {
+    final me = _service.currentUserId;
+    if (me == null) return;
+
+    final pending = ChatMessageModel(
+      id: 'pending-${DateTime.now().microsecondsSinceEpoch}',
+      chatId: chatId,
+      senderId: me,
+      message: text,
+      attachmentUrl: localPath ?? attachmentUrl,
+      type: type,
+      durationMs: durationMs,
+      latitude: latitude,
+      longitude: longitude,
+      isRead: false,
+      createdAt: DateTime.now(),
+    );
+
+    _appendMessage(pending);
+
+    Future<void> send() async {
+      var url = attachmentUrl;
+      if (localPath != null) {
+        url = await _service.uploadAttachment(localPath);
+        if (url == null) {
+          // Nothing was stored, so a message pointing at it would be broken
+          // on the other side. Drop the bubble rather than send a dead link.
+          _removeMessage(chatId, pending.id);
+          return;
+        }
+      }
+
+      final saved = await _service.sendMessage(
+        chatId: chatId,
+        text: text,
+        attachmentUrl: url,
+        type: type,
+        durationMs: durationMs,
+        latitude: latitude,
+        longitude: longitude,
+      );
+      _replaceMessage(pending.id, saved);
+    }
+
+    send().catchError((_) => _removeMessage(chatId, pending.id));
   }
 
   // ── realtime ───────────────────────────────────────────────────────────
