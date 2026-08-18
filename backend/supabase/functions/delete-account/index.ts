@@ -9,6 +9,13 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
+const BUCKETS = [
+  "avatars",
+  "verification-docs",
+  "chat-attachments",
+  "property-images",
+];
+
 const json = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), {
     status,
@@ -56,6 +63,25 @@ Deno.serve(async (req) => {
   const { error: authError } = await admin.auth.admin.deleteUser(userId);
   if (authError) {
     return json({ error: "auth_delete_failed", detail: authError.message }, 500);
+  }
+
+  // Uploaded files are not reached by the cascade from profiles, so they would
+  // outlive the account. Every bucket stores objects under a folder named
+  // after the uploader, which is what makes this sweep possible.
+  //
+  // Best effort on purpose: the account is already gone by this point, and
+  // failing the request now would tell the user their deletion did not work.
+  for (const bucket of BUCKETS) {
+    try {
+      const { data: files } = await admin.storage.from(bucket).list(userId);
+      if (files && files.length > 0) {
+        await admin.storage
+          .from(bucket)
+          .remove(files.map((f) => `${userId}/${f.name}`));
+      }
+    } catch (_) {
+      // Leave the orphaned objects rather than report a failed deletion.
+    }
   }
 
   return json({ deleted: true }, 200);
