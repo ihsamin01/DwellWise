@@ -27,7 +27,10 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  static const String _currentUserId = 'tenant1';
+  /// Taken from the session: message bubbles compare against it to decide
+  /// which side of the thread they sit on, and the server records the
+  /// sender itself, so a hardcoded id would put every bubble on one side.
+  String get _currentUserId => _provider.currentUserId ?? '';
 
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();

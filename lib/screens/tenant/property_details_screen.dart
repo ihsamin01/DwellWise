@@ -520,13 +520,27 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                   // Message Button
                   Expanded(
                     child: GestureDetector(
-                      onTap: () {
-                        final chatId = context
+                      onTap: () async {
+                        // The chat row has to exist before it can be opened,
+                        // so both sides land on the same conversation id.
+                        final messenger = ScaffoldMessenger.of(context);
+                        final chatId = await context
                             .read<ChatProvider>()
                             .startConversationWithOwner(
                               ownerId: property.ownerId,
                               ownerName: owner.name,
+                              propertyId: property.id,
                             );
+                        if (!context.mounted) return;
+                        if (chatId == null) {
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('Could not open the conversation.'),
+                              backgroundColor: Color(0xffDC2626),
+                            ),
+                          );
+                          return;
+                        }
                         context.push('/chat/$chatId');
                       },
                       child: Container(

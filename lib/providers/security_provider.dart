@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../services/auth_service.dart';
 
 /// A single device/session/history entry shown on the Account & Security page.
 class SecurityLogEntry {
@@ -13,6 +16,13 @@ class SecurityLogEntry {
 class SecurityProvider with ChangeNotifier {
   bool _isEmailVerified = true;
   bool _isPhoneVerified = true;
+
+  final AuthService _authService = AuthService();
+
+  String? _errorMessage;
+
+  /// Why the last [changePassword] or [deleteAccount] call failed.
+  String? get errorMessage => _errorMessage;
 
   bool _twoFactorEnabled = false;
   bool _biometricEnabled = false;
@@ -44,21 +54,45 @@ class SecurityProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Simulates a password change round-trip. Always succeeds since there is
-  /// no backend; the caller is responsible for validating the new password.
+  /// Changes the account password. Returns false and sets [errorMessage] when
+  /// the current password is wrong or Supabase refuses the new one.
   Future<bool> changePassword({
     required String currentPassword,
     required String newPassword,
   }) async {
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    return true;
+    _errorMessage = null;
+    try {
+      await _authService.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return true;
+    } on AuthException catch (e) {
+      _errorMessage = e.message;
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    }
   }
 
-  /// Simulates account deletion. No backend to call — just clears local flags.
-  Future<void> deleteAccount() async {
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-    _isEmailVerified = false;
-    _isPhoneVerified = false;
-    notifyListeners();
+  /// Permanently deletes the account. Returns false and sets [errorMessage]
+  /// if the server refused, so the UI never claims a deletion that did not
+  /// happen.
+  Future<bool> deleteAccount() async {
+    _errorMessage = null;
+    try {
+      await _authService.deleteAccount();
+      _isEmailVerified = false;
+      _isPhoneVerified = false;
+      notifyListeners();
+      return true;
+    } on AuthException catch (e) {
+      _errorMessage = e.message;
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    }
   }
 }

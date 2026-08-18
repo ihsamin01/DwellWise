@@ -73,10 +73,16 @@ class AuthService {
     required String phone,
     required String password,
   }) async {
+    // Ordered by created_at: nothing stops two profiles sharing a phone (older
+    // rows predate the duplicate check in findAccountConflict), and without an
+    // order the database is free to return either one. Whichever account was
+    // registered first stays the one this phone signs into, rather than the
+    // choice flipping between sessions.
     final rows = await _client
         .from('profiles')
         .select('email')
         .eq('phone_number', phone)
+        .order('created_at', ascending: true)
         .limit(1);
 
     if (rows.isEmpty) {
@@ -220,6 +226,32 @@ class AuthService {
     }
   }
 
+  /// Changes the signed-in user's password, after checking the current one.
+  ///
+  /// Supabase will set a new password for whoever holds a valid session, so
+  /// without this re-authentication an unlocked phone would be enough to take
+  /// an account over. Throws an [AuthException] the caller can surface.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final email = currentUser?.email;
+    if (email == null) {
+      throw const AuthException('You need to be signed in to change your password.');
+    }
+
+    try {
+      await _client.auth.signInWithPassword(
+        email: email,
+        password: currentPassword,
+      );
+    } on AuthException {
+      throw const AuthException('Your current password is incorrect.');
+    }
+
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
+  }
+
   /// Step 1 of recovery: emails a 6-digit code to [email] (only if an account
   /// with that email exists).
   Future<void> sendPasswordResetCode(String email) async {
@@ -245,6 +277,29 @@ class AuthService {
       UserAttributes(password: newPassword),
     );
     await _client.auth.signOut();
+  }
+
+  /// Permanently deletes the signed-in user's account.
+  ///
+  /// Removing a row from `auth.users` needs the service_role key, which must
+  /// never ship in the app, so the work happens in the `delete-account` edge
+  /// function. It identifies the caller from their own access token, so a user
+  /// can only delete themselves.
+  Future<void> deleteAccount() async {
+    if (currentUser == null) {
+      throw const AuthException('You need to be signed in to delete your account.');
+    }
+
+    final response = await _client.functions.invoke('delete-account');
+    if (response.status != 200) {
+      final data = response.data;
+      final detail = data is Map && data['error'] != null
+          ? data['error'].toString()
+          : 'status ${response.status}';
+      throw AuthException('Could not delete the account ($detail).');
+    }
+
+    await signOut();
   }
 
   Future<void> signOut() async {

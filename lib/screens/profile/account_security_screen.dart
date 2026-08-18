@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/security_provider.dart';
-import '../../providers/locale_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/user_provider.dart';
@@ -66,9 +65,23 @@ class AccountSecurityScreen extends StatelessWidget {
 
     if (confirmed != true || !context.mounted) return;
 
-    await context.read<SecurityProvider>().deleteAccount();
+    final security = context.read<SecurityProvider>();
+    final deleted = await security.deleteAccount();
     if (!context.mounted) return;
-    context.read<LocaleProvider>().reset();
+
+    // Only tear the session down if the account really went. Signing the user
+    // out of an account that still exists would look identical to success.
+    if (!deleted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text(security.errorMessage ?? 'Could not delete the account.'),
+          backgroundColor: const Color(0xffDC2626),
+        ),
+      );
+      return;
+    }
+
     context.read<SavedPropertiesProvider>().clear();
     context.read<RecentlyViewedProvider>().clear();
     await context.read<AuthProvider>().logout();

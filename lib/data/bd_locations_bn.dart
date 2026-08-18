@@ -6,36 +6,79 @@
 /// match. Call [bnPlace] at render time and nowhere else.
 library bd_locations_bn;
 
-/// Suffixes that are composed rather than listed, so 'Bagerhat Sadar' does not
-/// need its own entry alongside 'Bagerhat'.
+/// Suffixes composed from a known base, so 'Bagerhat Sadar' does not need its
+/// own entry alongside 'Bagerhat'.
 const Map<String, String> _suffixes = {
   ' Sadar': ' সদর',
   ' Bazar': ' বাজার',
+  ' Road': ' রোড',
+  ' Mor': ' মোড়',
+  ' Para': ' পাড়া',
+  ' Nagar': ' নগর',
+  ' Area': ' এলাকা',
+  ' Colony': ' কলোনি',
+  ' Housing': ' হাউজিং',
+  ' Ghat': ' ঘাট',
+  ' Gate': ' গেট',
 };
+
+const List<String> _banglaDigits = [
+  '০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯',
+];
+
+/// Rewrites ASCII digits as Bangla ones, so 'Mirpur 10' reads 'মিরপুর ১০'
+/// rather than leaving a Latin number inside Bangla text.
+String _banglaNumber(String input) {
+  final buffer = StringBuffer();
+  for (final rune in input.runes) {
+    final char = String.fromCharCode(rune);
+    final digit = int.tryParse(char);
+    buffer.write(digit == null ? char : _banglaDigits[digit]);
+  }
+  return buffer.toString();
+}
+
+String? _lookup(String english) =>
+    bnPlaceNames[english] ?? bnAreaNames[english];
 
 /// Bangla for [english], or [english] itself when no Bangla name is known.
 ///
-/// Handles three shapes beyond a direct hit:
-///   'Bagerhat Sadar'      -> 'বাগেরহাট সদর'   (composed suffix)
-///   'Kotwali (Barishal)'  -> 'কোতোয়ালী (বরিশাল)' (both parts translated)
-///   'Rupatoli'            -> 'Rupatoli'        (unknown, left as-is)
+/// Beyond a direct hit the name is taken apart and put back together, which is
+/// what keeps the tables to base names instead of every combination:
+///   'Bagerhat Sadar'     -> 'বাগেরহাট সদর'      (composed suffix)
+///   'Mirpur 10'          -> 'মিরপুর ১০'          (number in Bangla digits)
+///   'Kotwali (Barishal)' -> 'কোতোয়ালী (বরিশাল)'  (both parts resolved)
+///   'Rupatoli'           -> 'Rupatoli'          (unknown, left as-is)
+///
+/// Each rule strips something before recursing, so the composition always
+/// terminates.
 String bnPlace(String english) {
-  final direct = bnPlaceNames[english];
+  final direct = _lookup(english);
   if (direct != null) return direct;
 
-  // 'Thana (Division)' — translate the name and the qualifier separately.
+  // 'Name (Qualifier)' — resolve each side on its own.
   final paren = RegExp(r'^(.+?) \((.+)\)$').firstMatch(english);
   if (paren != null) {
-    final base = bnPlaceNames[paren.group(1)!];
-    final qualifier = bnPlaceNames[paren.group(2)!];
-    if (base != null) return '$base (${qualifier ?? paren.group(2)!})';
+    final base = bnPlace(paren.group(1)!);
+    if (base != paren.group(1)) {
+      return '$base (${bnPlace(paren.group(2)!)})';
+    }
+  }
+
+  // 'Mirpur 11', 'Sector 13', 'Mirpur 11.5'.
+  final numbered = RegExp(r'^(.+?) (\d+(?:\.\d+)?)$').firstMatch(english);
+  if (numbered != null) {
+    final base = bnPlace(numbered.group(1)!);
+    if (base != numbered.group(1)) {
+      return '$base ${_banglaNumber(numbered.group(2)!)}';
+    }
   }
 
   for (final entry in _suffixes.entries) {
     if (!english.endsWith(entry.key)) continue;
-    final base =
-        bnPlaceNames[english.substring(0, english.length - entry.key.length)];
-    if (base != null) return '$base${entry.value}';
+    final stem = english.substring(0, english.length - entry.key.length);
+    final base = bnPlace(stem);
+    if (base != stem) return '$base${entry.value}';
   }
 
   return english;
@@ -610,4 +653,351 @@ const Map<String, String> bnPlaceNames = {
   'Wazirpur': 'ওয়াজিরপুর',
   'Zajira': 'জাজিরা',
   'Zakiganj': 'জকিগঞ্জ',
+};
+
+/// Bangla for the neighbourhood ("area") level — the fourth step of the search
+/// filter, under division → district → thana.
+///
+/// Kept separate from [bnPlaceNames] because these are informal
+/// neighbourhood names rather than administrative units. Names that are just a
+/// known place plus a number ('Mirpur 11', 'Sector 13') are composed by
+/// [bnPlace] instead of being listed.
+const Map<String, String> bnAreaNames = {
+  // Bases the number rule builds on.
+  'Sector': 'সেক্টর',
+  'Nikunja': 'নিকুঞ্জ',
+
+  'Abdul Hamid Road': 'আব্দুল হামিদ রোড',
+  'Academy Area': 'একাডেমি এলাকা',
+  'Adalat Para': 'আদালত পাড়া',
+  'Adamjee EPZ Area': 'আদমজী ইপিজেড এলাকা',
+  'Aftabnagar': 'আফতাবনগর',
+  'Agargaon': 'আগারগাঁও',
+  'Agrabad': 'আগ্রাবাদ',
+  'Agrabad Access Road': 'আগ্রাবাদ অ্যাক্সেস রোড',
+  'Ahmedbag': 'আহমেদবাগ',
+  'Airport Road': 'বিমানবন্দর রোড',
+  'Akhalia': 'আখালিয়া',
+  'Alampur': 'আলমপুর',
+  'Alekanda': 'আলেকান্দা',
+  'Alipur': 'আলীপুর',
+  'Alu Bazar': 'আলু বাজার',
+  'Alubdi': 'আলুবদী',
+  'Alupatti': 'আলুপট্টি',
+  'Ambagan': 'আমবাগান',
+  'Ambarkhana': 'আম্বরখানা',
+  'Amlapara': 'আমলাপাড়া',
+  'Anderkilla': 'আন্দরকিল্লা',
+  'Arambagh': 'আরামবাগ',
+  'Ashkona': 'আশকোনা',
+  'Ashrafabad': 'আশরাফাবাদ',
+  'Ashulia': 'আশুলিয়া',
+  'Ati Bazar': 'আটি বাজার',
+  'Azimpur': 'আজিমপুর',
+  'BIDC Road': 'বিআইডিসি রোড',
+  'Babubazar': 'বাবুবাজার',
+  'Bagichagaon': 'বাগিচাগাঁও',
+  'Bahaddarhat': 'বহদ্দারহাট',
+  'Bahadur Bazar': 'বাহাদুর বাজার',
+  'Baharchhara': 'বাহারছড়া',
+  'Bailey Road': 'বেইলি রোড',
+  'Baitul Aman Housing': 'বায়তুল আমান হাউজিং',
+  'Bakshibazar': 'বকশীবাজার',
+  'Balubari': 'বালুবাড়ি',
+  'Balughat': 'বালুঘাট',
+  'Banani Block E': 'বনানী ব্লক ই',
+  'Banani Block H': 'বনানী ব্লক এইচ',
+  'Banani DOHS': 'বনানী ডিওএইচএস',
+  'Banasree': 'বনশ্রী',
+  'Bandarbazar': 'বন্দরবাজার',
+  'Bania Nagar': 'বানিয়া নগর',
+  'Baraipara': 'বড়ইপাড়া',
+  'Baridhara Diplomatic Zone': 'বারিধারা কূটনৈতিক এলাকা',
+  'Baridhara J Block': 'বারিধারা জে ব্লক',
+  'Basabo': 'বাসাবো',
+  'Bashundhara R/A': 'বসুন্ধরা আবাসিক এলাকা',
+  'Baya': 'বায়া',
+  'Bayazid Bostami': 'বায়েজিদ বোস্তামী',
+  'Begum Bazar': 'বেগম বাজার',
+  'Beribadh': 'বেড়িবাঁধ',
+  'Bhawal': 'ভাওয়াল',
+  'Binodpur': 'বিনোদপুর',
+  'Biswa Colony': 'বিশ্ব কলোনি',
+  'Board Bazar': 'বোর্ড বাজার',
+  'Bogura Road': 'বগুড়া রোড',
+  'Bosila': 'বসিলা',
+  'Boyra': 'বয়রা',
+  'Chandgaon R/A': 'চান্দগাঁও আবাসিক এলাকা',
+  'Charpara': 'চরপাড়া',
+  'Chashara': 'চাষাঢ়া',
+  'Cherag Ali': 'চেরাগ আলী',
+  'Chitra Mor': 'চিত্রা মোড়',
+  'Chittagong Road': 'চিটাগাং রোড',
+  'Choto Bazar': 'ছোট বাজার',
+  'Chowdhurypara': 'চৌধুরীপাড়া',
+  'Chowhatta': 'চৌহাট্টা',
+  'Chowkidekhi': 'চৌকিদেখি',
+  'Chowmatha': 'চৌমাথা',
+  'Chowmuhani': 'চৌমুহনী',
+  'Chowrasta': 'চৌরাস্তা',
+  'City Gate': 'সিটি গেট',
+  'Coca-Cola Mor': 'কোকা-কোলা মোড়',
+  'College Gate': 'কলেজ গেট',
+  'College Para': 'কলেজ পাড়া',
+  'Company Ghat': 'কোম্পানি ঘাট',
+  'Court Area': 'কোর্ট এলাকা',
+  'Court Road': 'কোর্ট রোড',
+  'Courtpara': 'কোর্টপাড়া',
+  'Crescent Road': 'ক্রিসেন্ট রোড',
+  'Dakbangla': 'ডাকবাংলা',
+  'Damalkot': 'দামালকোট',
+  'Dapdapia': 'দপদপিয়া',
+  'Dattapara': 'দত্তপাড়া',
+  'Datterhat': 'দত্তেরহাট',
+  'Dewanhat': 'দেওয়ানহাট',
+  'Dewanpara': 'দেওয়ানপাড়া',
+  'Dhaka Cantonment': 'ঢাকা সেনানিবাস',
+  'Dhania': 'ধনিয়া',
+  'Dhanmondi 8A': 'ধানমন্ডি ৮এ',
+  'Dhap': 'ধাপ',
+  'Dharampur': 'ধরমপুর',
+  'Dholairpar': 'ধোলাইরপাড়',
+  'Dhormotola': 'ধর্মতলা',
+  'Dhour': 'ধউর',
+  'Diabari': 'দিয়াবাড়ি',
+  'Dilkusha': 'দিলকুশা',
+  'ECB Chattar': 'ইসিবি চত্বর',
+  'EPZ Area': 'ইপিজেড এলাকা',
+  'East Rampura': 'পূর্ব রামপুরা',
+  'Eastern Housing': 'ইস্টার্ন হাউজিং',
+  'Eastern Housing 2nd Phase': 'ইস্টার্ন হাউজিং ২য় পর্ব',
+  'Elephant Road': 'এলিফ্যান্ট রোড',
+  'Ershad Nagar': 'এরশাদ নগর',
+  'Eskaton': 'ইস্কাটন',
+  'Fakirapool': 'ফকিরাপুল',
+  'Farashganj': 'ফরাশগঞ্জ',
+  'Faridabad': 'ফরিদাবাদ',
+  'Farmgate': 'ফার্মগেট',
+  'Fayedabad': 'ফায়েদাবাদ',
+  'Ferry Ghat': 'ফেরি ঘাট',
+  'Firingee Bazar': 'ফিরিঙ্গি বাজার',
+  'Firozshah Colony': 'ফিরোজশাহ কলোনি',
+  "Foy's Lake Area": 'ফয়েজ লেক এলাকা',
+  'Ganginar Par': 'গাঙ্গিনার পাড়',
+  'Gawair': 'গাওয়াইর',
+  'Genda': 'গেন্ডা',
+  'Goalchamot': 'গোয়ালচামট',
+  'Goalkhali': 'গোয়ালখালী',
+  'Gollamari': 'গল্লামারী',
+  'Gonoktuli': 'গণকটুলি',
+  'Goran': 'গোড়ান',
+  'Green Model Town': 'গ্রিন মডেল টাউন',
+  'Gudaraghat': 'গুদারাঘাট',
+  'Gulshan Avenue': 'গুলশান অ্যাভিনিউ',
+  'Halishahar Housing Estate': 'হালিশহর হাউজিং এস্টেট',
+  'Hasnabad': 'হাসনাবাদ',
+  'Hatirpool': 'হাতিরপুল',
+  'Hemayetpur': 'হেমায়েতপুর',
+  'Hill View R/A': 'হিল ভিউ আবাসিক এলাকা',
+  'Hirajheel': 'হীরাঝিল',
+  'Holan': 'হোলান',
+  'Horogram': 'হড়গ্রাম',
+  'Housing Estate': 'হাউজিং এস্টেট',
+  'Humayun Rashid Chattar': 'হুমায়ুন রশিদ চত্বর',
+  'Ibrahimpur': 'ইব্রাহিমপুর',
+  'Iqbal Road': 'ইকবাল রোড',
+  'Isdair': 'ইসদাইর',
+  'Islambagh': 'ইসলামবাগ',
+  'Jahaj Company Mor': 'জাহাজ কোম্পানি মোড়',
+  'Jahangirnagar': 'জাহাঙ্গীরনগর',
+  'Jaleshwaritola': 'জলেশ্বরীতলা',
+  'Jamal Khan': 'জামাল খান',
+  'Jhauchar': 'ঝাউচর',
+  'Jhautola': 'ঝাউতলা',
+  'Jhilongja': 'ঝিলংজা',
+  'Jhiltuli': 'ঝিলটুলি',
+  'Jigatola': 'জিগাতলা',
+  'Joydebpur': 'জয়দেবপুর',
+  'Jurain': 'জুরাইন',
+  'Jurain Rail Gate': 'জুরাইন রেল গেট',
+  'Kachari': 'কাছারি',
+  'Kachukhet': 'কচুক্ষেত',
+  'Kajla': 'কাজলা',
+  'Kakoli': 'কাকলী',
+  'Kakrail': 'কাকরাইল',
+  'Kalir Bazar': 'কালির বাজার',
+  'Kalshi': 'কালশী',
+  'Kamalapur': 'কমলাপুর',
+  'Kamarpara': 'কামারপাড়া',
+  'Kandirpar': 'কান্দিরপাড়',
+  'Kaptai Rastar Matha': 'কাপ্তাই রাস্তার মাথা',
+  'Karimullabag': 'করিমুল্লাবাগ',
+  'Kataban Mor': 'কাঁটাবন মোড়',
+  'Katabon': 'কাঁটাবন',
+  'Katalganj': 'কাতালগঞ্জ',
+  'Katgar': 'কাটগড়',
+  'Katgor': 'কাটগড়',
+  'Kautoli': 'কাউতলী',
+  'Kazipara': 'কাজীপাড়া',
+  'Kazla': 'কাজলা',
+  'Khadimnagar': 'খাদিমনগর',
+  'Khandar': 'খান্দার',
+  'Khanpur': 'খানপুর',
+  'Khilbarirtek': 'খিলবাড়িরটেক',
+  'Kholamora': 'খোলামোড়া',
+  'Kolatoli': 'কলাতলী',
+  'Komlapur': 'কমলাপুর',
+  'Konapara': 'কোনাপাড়া',
+  'Krishi Market': 'কৃষি মার্কেট',
+  'Lake Circus': 'লেক সার্কাস',
+  'Lake City Concord': 'লেক সিটি কনকর্ড',
+  'Lalbag': 'লালবাগ',
+  'Laldighir Par': 'লালদীঘির পাড়',
+  'Lalkhan Bazar': 'লালখান বাজার',
+  'Lamabazar': 'লামাবাজার',
+  'Larmini Street': 'লারমিনি স্ট্রিট',
+  'Launch Ghat Area': 'লঞ্চ ঘাট এলাকা',
+  'Laxmibazar': 'লক্ষ্মীবাজার',
+  'Laxmipur': 'লক্ষ্মীপুর',
+  'MK Road': 'এমকে রোড',
+  'Madartek': 'মাদারটেক',
+  'Madhubag': 'মধুবাগ',
+  'Maijdee Bazar': 'মাইজদী বাজার',
+  'Maijdee Court': 'মাইজদী কোর্ট',
+  'Mandail': 'মান্ডাইল',
+  'Manikdi': 'মানিকদী',
+  'Manipuri Para': 'মণিপুরী পাড়া',
+  'Masdair': 'মাসদাইর',
+  'Matikata': 'মাটিকাটা',
+  'Mausair': 'মাউসাইর',
+  'Meradia': 'মেরাদিয়া',
+  'Merul Badda': 'মেরুল বাড্ডা',
+  'Miah Khan Nagar': 'মিয়া খান নগর',
+  'Middle Badda': 'মধ্য বাড্ডা',
+  'Minto Road': 'মিন্টো রোড',
+  'Mirbagh': 'মীরবাগ',
+  'Mirpur DOHS': 'মিরপুর ডিওএইচএস',
+  'Mirpur Mazar Road': 'মিরপুর মাজার রোড',
+  'Mizan Road': 'মিজান রোড',
+  'Modern Mor': 'মডার্ন মোড়',
+  'Moghbazar': 'মগবাজার',
+  'Mohammadia Housing': 'মোহাম্মদিয়া হাউজিং',
+  'Mohara': 'মোহরা',
+  'Mojompur': 'মজমপুর',
+  'Monsurabad': 'মনসুরাবাদ',
+  'Muhsin Mor': 'মহসিন মোড়',
+  'Munshefpara': 'মুন্সেফপাড়া',
+  'Munshipara': 'মুন্সিপাড়া',
+  'Muradpur': 'মুরাদপুর',
+  'NS Road': 'এনএস রোড',
+  'Nakhalpara': 'নাখালপাড়া',
+  'Namapara': 'নামাপাড়া',
+  'Naodapara': 'নওদাপাড়া',
+  'Nasirabad': 'নাসিরাবাদ',
+  'Nathullabad': 'নথুল্লাবাদ',
+  'Naya Paltan': 'নয়া পল্টন',
+  'Nayanagar': 'নয়ানগর',
+  'Nayatola': 'নয়াটোলা',
+  'Nazira Bazar': 'নাজিরা বাজার',
+  'Niketan': 'নিকেতন',
+  'Nilkhet': 'নীলক্ষেত',
+  'Nimtala': 'নিমতলা',
+  'Nirala': 'নিরালা',
+  'Niralapara': 'নিরালাপাড়া',
+  'North Badda': 'উত্তর বাড্ডা',
+  'Notun Bazar': 'নতুন বাজার',
+  'Nurjahan Road': 'নূরজাহান রোড',
+  'O R Nizam Road': 'ও আর নিজাম রোড',
+  'Oxygen': 'অক্সিজেন',
+  'PTI Mor': 'পিটিআই মোড়',
+  'Pabla': 'পাবলা',
+  'Paikpara': 'পাইকপাড়া',
+  'Panchabati': 'পঞ্চবটি',
+  'Panchlaish R/A': 'পাঁচলাইশ আবাসিক এলাকা',
+  'Panthapath': 'পান্থপথ',
+  'Paribagh': 'পরীবাগ',
+  'Pathantula': 'পাঠানটুলা',
+  'Patuatuli': 'পাটুয়াটুলী',
+  'Port Road': 'পোর্ট রোড',
+  'Postogola': 'পোস্তগোলা',
+  'Purana Paltan': 'পুরানা পল্টন',
+  'Racecourse': 'রেসকোর্স',
+  'Radhanagar': 'রাধানগর',
+  'Radio Colony': 'রেডিও কলোনি',
+  'Rahattarpool': 'রাহাত্তারপুল',
+  'Railgate': 'রেলগেট',
+  'Rajarbag': 'রাজারবাগ',
+  'Rajuk Uttara': 'রাজউক উত্তরা',
+  'Rana Bhola': 'রানা ভোলা',
+  'Ranibazar': 'রানীবাজার',
+  'Rankin Street': 'র‍্যাংকিন স্ট্রিট',
+  'Rayerbag': 'রায়েরবাগ',
+  'Royal Mor': 'রয়েল মোড়',
+  'Rupnagar': 'রূপনগর',
+  'SSK Road': 'এসএসকে রোড',
+  'Sadar Road': 'সদর রোড',
+  'Sadarghat': 'সদরঘাট',
+  'Sagorika': 'সাগরিকা',
+  'Sagorpara': 'সাগরপাড়া',
+  'Salna': 'সালনা',
+  'Saltgola': 'সল্টগোলা',
+  'Sangsad Bhaban Area': 'সংসদ ভবন এলাকা',
+  'Sarulia': 'সারুলিয়া',
+  'Satmatha': 'সাতমাথা',
+  'Sayedabad': 'সায়েদাবাদ',
+  'Segunbagicha': 'সেগুনবাগিচা',
+  'Senpara Parbata': 'সেনপাড়া পর্বতা',
+  'Shah Ali Bag': 'শাহ আলী বাগ',
+  'Shaheb Bazar': 'সাহেব বাজার',
+  'Shahid Nagar': 'শহীদ নগর',
+  'Shalgaria': 'শালগাড়িয়া',
+  'Shankar': 'শঙ্কর',
+  'Shantidham Mor': 'শান্তিধাম মোড়',
+  'Shekhertek': 'শেখেরটেক',
+  'Sheorapara': 'শেওড়াপাড়া',
+  'Sherpur Road': 'শেরপুর রোড',
+  'Shibbari': 'শিববাড়ি',
+  'Sholoshohor': 'ষোলশহর',
+  'Shonir Akhra': 'শনির আখড়া',
+  'Shyamoli': 'শ্যামলী',
+  'Siddheswari': 'সিদ্ধেশ্বরী',
+  'Siddique Bazar': 'সিদ্দিক বাজার',
+  'Sobhanbag': 'সোবহানবাগ',
+  'Sonadanga R/A': 'সোনাডাঙ্গা আবাসিক এলাকা',
+  'Sonapur': 'সোনাপুর',
+  'South Badda': 'দক্ষিণ বাড্ডা',
+  'South Khulshi': 'দক্ষিণ খুলশী',
+  'Staff Quarter': 'স্টাফ কোয়ার্টার',
+  'Station Road': 'স্টেশন রোড',
+  'Steel Mill Bazar': 'স্টিল মিল বাজার',
+  'Subid Bazar': 'সুবিদ বাজার',
+  'Suihari': 'সুইহারী',
+  'Sutrapur Road': 'সূত্রাপুর রোড',
+  'Tajmahal Road': 'তাজমহল রোড',
+  'Talaimari': 'তালাইমারী',
+  'Taltala': 'তালতলা',
+  'Taltola': 'তালতলা',
+  'Tanbazar': 'টানবাজার',
+  'Tejgaon Industrial Area': 'তেজগাঁও শিল্প এলাকা',
+  'Tejkunipara': 'তেজকুনিপাড়া',
+  'Tejturi Bazar': 'তেজতুরী বাজার',
+  'Tekpara': 'টেকপাড়া',
+  'Terokhadia': 'তেরখাদিয়া',
+  'Thanapara': 'থানাপাড়া',
+  'Tikatuli': 'টিকাটুলি',
+  'Tilagor': 'টিলাগড়',
+  'Tilpapara': 'তিলপাপাড়া',
+  'Tolarbag': 'তোলারবাগ',
+  'Town Hall Mor': 'টাউন হল মোড়',
+  'Trunk Road': 'ট্রাঙ্ক রোড',
+  'Ulon': 'উলন',
+  'Uposhohor': 'উপশহর',
+  'Urdu Road': 'উর্দু রোড',
+  'Vashantek Road': 'ভাষানটেক রোড',
+  'Victoria Road': 'ভিক্টোরিয়া রোড',
+  'Wapda Road': 'ওয়াপদা রোড',
+  'West Kafrul': 'পশ্চিম কাফরুল',
+  'West Rampura': 'পশ্চিম রামপুরা',
+  'Zindabazar': 'জিন্দাবাজার',
+  'Zinzira': 'জিনজিরা',
 };
