@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/chat_message_model.dart';
@@ -136,6 +138,30 @@ class ChatService {
         .single();
 
     return inserted['id'] as String;
+  }
+
+  /// Uploads a chat attachment and returns its public URL.
+  ///
+  /// Sending the sender's local file path instead — which is what used to
+  /// happen — left the recipient with a path that does not exist on their
+  /// device. Stored under the sender's own id, which is what the bucket
+  /// policies key off.
+  Future<String?> uploadAttachment(String localPath) async {
+    final me = currentUserId;
+    if (me == null) return null;
+
+    final file = File(localPath);
+    if (!file.existsSync()) return null;
+
+    final ext = localPath.contains('.') ? localPath.split('.').last : 'bin';
+    final objectPath = '$me/${DateTime.now().millisecondsSinceEpoch}.$ext';
+
+    try {
+      await _client.storage.from('chat-attachments').upload(objectPath, file);
+      return _client.storage.from('chat-attachments').getPublicUrl(objectPath);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<List<ChatMessageModel>> fetchMessages(String chatId) async {
