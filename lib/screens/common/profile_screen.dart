@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../config/app_colors.dart';
 import '../../config/app_strings.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/locale_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/user_provider.dart';
@@ -155,7 +154,6 @@ class ProfileScreen extends StatelessWidget {
     );
 
     if (shouldLogout == true && context.mounted) {
-      context.read<LocaleProvider>().reset();
       context.read<SavedPropertiesProvider>().clear();
       context.read<RecentlyViewedProvider>().clear();
       await context.read<AuthProvider>().logout();
