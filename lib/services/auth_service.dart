@@ -73,10 +73,16 @@ class AuthService {
     required String phone,
     required String password,
   }) async {
+    // Ordered by created_at: nothing stops two profiles sharing a phone (older
+    // rows predate the duplicate check in findAccountConflict), and without an
+    // order the database is free to return either one. Whichever account was
+    // registered first stays the one this phone signs into, rather than the
+    // choice flipping between sessions.
     final rows = await _client
         .from('profiles')
         .select('email')
         .eq('phone_number', phone)
+        .order('created_at', ascending: true)
         .limit(1);
 
     if (rows.isEmpty) {
