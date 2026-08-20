@@ -15,7 +15,15 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
+/// Which sign-in the user started.
+///
+/// AuthProvider.isLoading is shared by both paths, so driving the spinner
+/// from it made the Sign In button spin when Google was tapped. Tracking
+/// the method here keeps the spinner on the button that was pressed.
+enum _SignInMethod { none, password, google }
+
 class _LoginScreenState extends State<LoginScreen> {
+  _SignInMethod _inFlight = _SignInMethod.none;
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -53,10 +61,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleGoogleSignIn() async {
+    if (_inFlight != _SignInMethod.none) return;
+    setState(() => _inFlight = _SignInMethod.google);
+
     final authProvider = context.read<AuthProvider>();
     final userProvider = context.read<UserProvider>();
     final result = await authProvider.signInWithGoogle();
     if (!mounted) return;
+    setState(() => _inFlight = _SignInMethod.none);
 
     switch (result.outcome) {
       case GoogleSignInOutcome.success:
@@ -90,7 +102,8 @@ class _LoginScreenState extends State<LoginScreen> {
       case GoogleSignInOutcome.failed:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authProvider.errorMessage ?? 'Google sign-in failed.'),
+            content:
+                Text(authProvider.errorMessage ?? 'Google sign-in failed.'),
             backgroundColor: const Color(0xffDC2626),
           ),
         );
@@ -100,6 +113,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
+      if (_inFlight != _SignInMethod.none) return;
+      setState(() => _inFlight = _SignInMethod.password);
+
       final authProvider = context.read<AuthProvider>();
       final userProvider = context.read<UserProvider>();
 
@@ -108,13 +124,16 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
 
+      if (mounted) setState(() => _inFlight = _SignInMethod.none);
+
       if (success && mounted) {
         await authProvider.setKeepSignedIn(_keepMeSignedIn);
         await userProvider.loadCurrentUserProfile();
         if (!mounted) return;
         context.go('/tenant-home');
       } else if (mounted) {
-        final errorMsg = authProvider.errorMessage ?? 'Login failed. Please check credentials.';
+        final errorMsg = authProvider.errorMessage ??
+            'Login failed. Please check credentials.';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMsg),
@@ -135,7 +154,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    final isLoading = context.watch<AuthProvider>().isLoading;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -208,7 +226,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     hintStyle: TextStyle(color: colors.textSecondary),
                     fillColor: colors.surface,
                     filled: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
                     prefixIcon: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -250,7 +269,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     focusedErrorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xffDC2626), width: 1.5),
+                      borderSide: const BorderSide(
+                          color: Color(0xffDC2626), width: 1.5),
                     ),
                   ),
                   validator: _validatePhone,
@@ -276,11 +296,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     hintStyle: TextStyle(color: colors.textSecondary),
                     fillColor: colors.surface,
                     filled: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    prefixIcon: Icon(Icons.lock_outline, color: colors.textSecondary),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
+                    prefixIcon:
+                        Icon(Icons.lock_outline, color: colors.textSecondary),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
                         color: colors.textSecondary,
                       ),
                       onPressed: () {
@@ -307,7 +331,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     focusedErrorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xffDC2626), width: 1.5),
+                      borderSide: const BorderSide(
+                          color: Color(0xffDC2626), width: 1.5),
                     ),
                   ),
                   validator: _validatePassword,
@@ -361,7 +386,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Sign In Button
                 _CTAButton(
                   text: 'Sign In',
-                  isLoading: isLoading,
+                  isLoading: _inFlight == _SignInMethod.password,
                   onPressed: _handleSignIn,
                 ),
                 const SizedBox(height: 24),
@@ -388,6 +413,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // Google sign-in button ONLY (No Facebook button)
                 _GoogleSignInButton(
+                  isLoading: _inFlight == _SignInMethod.google,
                   onTap: _handleGoogleSignIn,
                 ),
                 const SizedBox(height: 32),
@@ -398,7 +424,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text(
                       "Don't have an account? ",
-                      style: TextStyle(fontSize: 14, color: colors.textSecondary),
+                      style:
+                          TextStyle(fontSize: 14, color: colors.textSecondary),
                     ),
                     GestureDetector(
                       onTap: () => context.push('/register'),
@@ -450,9 +477,12 @@ class _CTAButtonState extends State<_CTAButton> {
     }
 
     return GestureDetector(
-      onTapDown: widget.isLoading ? null : (_) => setState(() => _isPressed = true),
-      onTapUp: widget.isLoading ? null : (_) => setState(() => _isPressed = false),
-      onTapCancel: widget.isLoading ? null : () => setState(() => _isPressed = false),
+      onTapDown:
+          widget.isLoading ? null : (_) => setState(() => _isPressed = true),
+      onTapUp:
+          widget.isLoading ? null : (_) => setState(() => _isPressed = false),
+      onTapCancel:
+          widget.isLoading ? null : () => setState(() => _isPressed = false),
       onTap: widget.isLoading ? null : widget.onPressed,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 100),
@@ -486,16 +516,18 @@ class _CTAButtonState extends State<_CTAButton> {
 
 class _GoogleSignInButton extends StatelessWidget {
   final VoidCallback onTap;
+  final bool isLoading;
 
   const _GoogleSignInButton({
     Key? key,
     required this.onTap,
+    this.isLoading = false,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       child: Container(
         height: 52,
         decoration: BoxDecoration(
@@ -511,28 +543,39 @@ class _GoogleSignInButton extends StatelessWidget {
           ],
         ),
         alignment: Alignment.center,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
-              'assets/icons/google_g.svg',
-              width: 20,
-              height: 20,
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'Continue with Google',
-              style: TextStyle(
-                // Google brand guideline text colour (dark grey), fixed
-                // regardless of app theme so the button reads as official.
-                color: Color(0xff3C4043),
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                fontFamily: 'Roboto',
+        child: isLoading
+            // Sized to the Google 'G' so swapping it for the spinner does not
+            // shift the button's height.
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xff3C4043)),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/google_g.svg',
+                    width: 20,
+                    height: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Continue with Google',
+                    style: TextStyle(
+                      // Google brand guideline text colour (dark grey), fixed
+                      // regardless of app theme so the button reads as official.
+                      color: Color(0xff3C4043),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'Roboto',
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
