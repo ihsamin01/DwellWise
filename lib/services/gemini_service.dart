@@ -37,6 +37,15 @@ class GeminiService {
     }
   }
 
+  /// The initialised model, or null when no API key is available.
+  ///
+  /// Exposed so other features (the assistant) reuse this one key-loading
+  /// path instead of repeating it.
+  Future<GenerativeModel?> model() async {
+    await _ensureInitialised();
+    return _model;
+  }
+
   /// Asks Gemini to rank [candidates] for a user living at [userLocation] and
   /// returns the property ids ordered from most to least relevant. Returns an
   /// empty list on any error so the caller can fall back to local ranking.
