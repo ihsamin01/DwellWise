@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/property_model.dart';
@@ -285,6 +286,62 @@ class SupabaseService {
   /// Persists a favorite. Non-fatal: the local save already reflects the
   /// change even if this write is rejected (e.g. a demo property that has no
   /// matching row in the `properties` table).
+  /// Approved listings whose area name contains [area].
+  ///
+  /// The first thing the assistant tries: someone asking for ECB means the
+  /// neighbourhood by name, not a radius around a point.
+  Future<List<PropertyModel>> getApprovedPropertiesInArea(
+    String area, {
+    int limit = 200,
+  }) async {
+    final client = _client;
+    if (client == null || area.trim().isEmpty) return [];
+
+    final rows = await client
+        .from('properties')
+        .select()
+        .eq('status', 'approved')
+        .ilike('area', '%${area.trim()}%')
+        .limit(limit);
+
+    return [
+      for (final row in rows) PropertyModel.fromJson(row),
+    ];
+  }
+
+  /// Approved listings inside a bounding box around a point.
+  ///
+  /// A box rather than a true radius because the database has no PostGIS
+  /// support; the caller narrows it to a real circle with [distanceKm]. One
+  /// degree of latitude is ~111 km, and longitude is scaled by the latitude so
+  /// the box does not stretch east-west.
+  Future<List<PropertyModel>> getApprovedPropertiesNear({
+    required double latitude,
+    required double longitude,
+    required double radiusKm,
+    int limit = 300,
+  }) async {
+    final client = _client;
+    if (client == null) return [];
+
+    final latSpan = radiusKm / 111.0;
+    final lngSpan = radiusKm / (111.0 * math.cos(latitude * math.pi / 180).abs());
+
+    final rows = await client
+        .from('properties')
+        .select()
+        .eq('status', 'approved')
+        .gte('latitude', latitude - latSpan)
+        .lte('latitude', latitude + latSpan)
+        .gte('longitude', longitude - lngSpan)
+        .lte('longitude', longitude + lngSpan)
+        .limit(limit);
+
+    return [
+      for (final row in rows) PropertyModel.fromJson(row),
+    ];
+  }
+
   /// The signed-in user's saved properties, newest save first.
   ///
   /// Joined against `properties` in one query rather than filtered out of the
