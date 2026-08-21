@@ -8,6 +8,12 @@ import '../utils/property_matcher.dart';
 import 'gemini_service.dart';
 import 'supabase_service.dart';
 
+/// Thrown when Gemini could not be reached at all, so the caller can say
+/// the service is unavailable instead of blaming the user's wording.
+class AssistantUnavailable implements Exception {
+  const AssistantUnavailable();
+}
+
 /// Listings found for an intent, plus how far the search had to reach.
 class AssistantSearchResult {
   const AssistantSearchResult({
@@ -95,14 +101,32 @@ Rules:
 User message: "${_clean(message)}"
 ''';
 
-    try {
-      final response = await model
-          .generateContent([Content.text(prompt)])
-          .timeout(const Duration(seconds: 15));
-      return _parseIntent(response.text ?? '', previous);
-    } catch (_) {
-      return null;
+    final text = await _generate(model, prompt);
+    if (text == null) throw const AssistantUnavailable();
+    return _parseIntent(text, previous);
+  }
+
+  /// Runs [prompt], retrying a couple of times before giving up.
+  ///
+  /// The free tier answers with 503 often enough that a single failure is not
+  /// evidence of anything — retrying turns most of them into an answer instead
+  /// of an error the user has to interpret.
+  Future<String?> _generate(GenerativeModel model, String prompt) async {
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        final response = await model
+            .generateContent([Content.text(prompt)])
+            .timeout(const Duration(seconds: 20));
+        final text = response.text?.trim();
+        if (text != null && text.isNotEmpty) return text;
+      } catch (_) {
+        // Fall through to the next attempt.
+      }
+      if (attempt < 2) {
+        await Future<void>.delayed(Duration(milliseconds: 400 * (attempt + 1)));
+      }
     }
+    return null;
   }
 
   SearchIntent? _parseIntent(String text, SearchIntent? previous) {
@@ -279,17 +303,10 @@ Listings found:
 $listings$cheaper
 ''';
 
-    try {
-      final response = await model
-          .generateContent([Content.text(prompt)])
-          .timeout(const Duration(seconds: 20));
-      final text = response.text?.trim();
-      return (text == null || text.isEmpty)
-          ? _fallbackReply(intent, result)
-          : text;
-    } catch (_) {
-      return _fallbackReply(intent, result);
-    }
+    // A failure here is survivable: the listings are already found, so the
+    // fallback still answers with them, just in plainer words.
+    final text = await _generate(model, prompt);
+    return text ?? _fallbackReply(intent, result);
   }
 
   String _describe(MatchResult m) {

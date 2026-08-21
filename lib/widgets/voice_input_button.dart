@@ -5,10 +5,9 @@ import '../config/app_colors.dart';
 
 /// Mic button that dictates into a text field.
 ///
-/// Speech recognition runs on the device rather than through Gemini: it costs
-/// no API quota, works without a round trip, and the text lands in the same
-/// field typing would fill — so voice and typing are the same path from here
-/// on, and the user can correct a mis-heard word before sending.
+/// Recognition runs on the device rather than through Gemini: it costs no API
+/// quota, needs no round trip, and the text lands in the same field typing
+/// fills — so a mis-heard word can be corrected before sending.
 class VoiceInputButton extends StatefulWidget {
   const VoiceInputButton({
     super.key,
@@ -24,7 +23,7 @@ class VoiceInputButton extends StatefulWidget {
   final AppColors colors;
 
   /// Which language to listen for, e.g. 'bn_BD'. Falls back to the device
-  /// default when the locale is not installed.
+  /// default when that locale is not installed.
   final String? localeId;
 
   final bool enabled;
@@ -51,8 +50,6 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
       _checked = true;
       _available = await _speech.initialize(
         onStatus: (status) {
-          // The recogniser stops itself after a pause; reflect that on the
-          // button instead of leaving it looking like it is still listening.
           if (status == 'done' || status == 'notListening') {
             if (mounted) setState(() => _listening = false);
           }
@@ -79,10 +76,15 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
     final locale = await _resolveLocale();
     await _speech.listen(
       onResult: (result) => widget.onResult(result.recognizedWords),
+      // The platform default cuts off after about three seconds of silence,
+      // which ends the sentence while someone is still thinking. These give
+      // room to pause mid-request without losing the recording.
+      pauseFor: const Duration(seconds: 8),
+      listenFor: const Duration(minutes: 1),
       listenOptions: SpeechListenOptions(
         localeId: locale,
-        // Partial results make the field fill as the user speaks, which is
-        // what makes it feel like dictation rather than a recording.
+        // Partial results fill the field as the user speaks, which is what
+        // makes it feel like dictation rather than a recording.
         partialResults: true,
         cancelOnError: true,
       ),
@@ -91,14 +93,24 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
     if (mounted) setState(() => _listening = true);
   }
 
-  /// The requested locale if the device has it, otherwise its default — asking
-  /// for a missing locale fails outright on some devices.
+  /// The requested locale if the device has it, otherwise its default —
+  /// asking for a missing locale fails outright on some devices.
   Future<String?> _resolveLocale() async {
     final wanted = widget.localeId;
     if (wanted == null) return null;
     final locales = await _speech.locales();
     final match = locales.any((l) => l.localeId == wanted);
-    return match ? wanted : null;
+    if (match) return wanted;
+
+    // 'bn_BD' may be installed as 'bn-BD' or plain 'bn' depending on the
+    // device, so fall back to any locale in the same language.
+    final language = wanted.split(RegExp('[_-]')).first.toLowerCase();
+    for (final locale in locales) {
+      if (locale.localeId.toLowerCase().startsWith(language)) {
+        return locale.localeId;
+      }
+    }
+    return null;
   }
 
   @override
@@ -127,6 +139,50 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
           _listening ? Icons.stop : Icons.mic_none,
           size: 20,
           color: _listening ? Colors.white : colors.textSecondary,
+        ),
+      ),
+    );
+  }
+}
+
+/// Picks which language the mic listens in.
+///
+/// Android's recogniser is told one language up front — it cannot detect
+/// Bangla and English on its own, and asking for the wrong one is what turns
+/// spoken Bangla into Latin letters. So the choice is the user's, sitting next
+/// to the mic where the consequence is visible.
+class SpeechLanguageToggle extends StatelessWidget {
+  const SpeechLanguageToggle({
+    super.key,
+    required this.isBangla,
+    required this.onChanged,
+    required this.colors,
+  });
+
+  final bool isBangla;
+  final ValueChanged<bool> onChanged;
+  final AppColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!isBangla),
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: colors.background,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: colors.border),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          isBangla ? 'বাং' : 'EN',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: colors.textSecondary,
+          ),
         ),
       ),
     );
