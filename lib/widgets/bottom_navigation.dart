@@ -35,12 +35,15 @@ class BottomNavigation extends StatelessWidget {
         context.go('/search');
         break;
       case 2:
-        context.go('/saved');
+        context.go('/assistant');
         break;
       case 3:
-        context.go('/messages');
+        context.go('/saved');
         break;
       case 4:
+        context.go('/messages');
+        break;
+      case 5:
         context.go('/profile');
         break;
     }
@@ -64,6 +67,10 @@ class BottomNavigation extends StatelessWidget {
           icon: Icons.search_outlined,
           activeIcon: Icons.search,
           label: AppStrings.t(context, 'search')),
+      _NavBtn(
+          icon: Icons.auto_awesome_outlined,
+          activeIcon: Icons.auto_awesome,
+          label: AppStrings.t(context, 'assistant')),
       _NavBtn(
           icon: Icons.favorite_border_outlined,
           activeIcon: Icons.favorite,

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 // Screen imports
 import '../screens/common/splash_screen.dart';
 import '../screens/common/onboarding_screen.dart';
+import '../screens/assistant/ai_assistant_screen.dart';
 import '../screens/common/main_tabs_shell.dart';
 import '../screens/common/notifications_screen.dart';
 import '../screens/auth/login_screen.dart';
@@ -60,7 +61,7 @@ class AppRoutes {
       ),
       GoRoute(
         path: '/profile',
-        builder: (context, state) => const MainTabsShell(initialIndex: 4),
+        builder: (context, state) => const MainTabsShell(initialIndex: 5),
       ),
       GoRoute(
         path: '/notifications',
@@ -132,8 +133,12 @@ class AppRoutes {
         builder: (context, state) => const TenantSavedScreen(),
       ),
       GoRoute(
-        path: '/saved',
+        path: '/assistant',
         builder: (context, state) => const MainTabsShell(initialIndex: 2),
+      ),
+      GoRoute(
+        path: '/saved',
+        builder: (context, state) => const MainTabsShell(initialIndex: 3),
       ),
       GoRoute(
         path: '/recently-viewed',
@@ -145,7 +150,7 @@ class AppRoutes {
       ),
       GoRoute(
         path: '/messages',
-        builder: (context, state) => const MainTabsShell(initialIndex: 3),
+        builder: (context, state) => const MainTabsShell(initialIndex: 4),
       ),
 
       // Owner routes

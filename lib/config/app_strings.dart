@@ -17,6 +17,7 @@ class AppStrings {
       // Bottom navigation
       'home': 'Home',
       'search': 'Search',
+      'assistant': 'Assistant',
       'saved': 'Saved',
       'messages': 'Messages',
       'profile': 'Profile',
@@ -276,6 +277,7 @@ class AppStrings {
       // Bottom navigation
       'home': 'হোম',
       'search': 'সার্চ',
+      'assistant': 'সহকারী',
       'saved': 'সেভড',
       'messages': 'মেসেজ',
       'profile': 'প্রোফাইল',
