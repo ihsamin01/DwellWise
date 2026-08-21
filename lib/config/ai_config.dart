@@ -20,5 +20,9 @@ class AiConfig {
   /// Asset that holds the local key.
   static const String secretsAsset = 'assets/secrets/gemini.json';
 
-  static const String geminiModel = 'gemini-flash-latest';
+  /// Pinned rather than the '-latest' alias: that alias points at whichever
+  /// model is newest and busiest, and it returned 503 on roughly one call in
+  /// three during testing, which surfaced to the user as the assistant not
+  /// understanding them.
+  static const String geminiModel = 'gemini-3.5-flash';
 }

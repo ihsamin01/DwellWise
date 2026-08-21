@@ -82,9 +82,13 @@ class AssistantProvider with ChangeNotifier {
       final intent = await _service.extractIntent(message, previous: _intent);
 
       if (intent == null) {
-        _replacePending(const AssistantMessage(
+        // Reached the service but could not make sense of the reply — this one
+        // really is about the wording.
+        _replacePending(AssistantMessage(
           role: AssistantRole.assistant,
-          text: 'Sorry, I could not understand that. Could you say it again?',
+          text: (_intent?.isBangla ?? false)
+              ? 'ঠিক বুঝতে পারিনি। আরেকবার বলবেন?'
+              : 'Sorry, I could not understand that. Could you say it again?',
         ));
         return;
       }
@@ -111,6 +115,15 @@ class AssistantProvider with ChangeNotifier {
         matches: result.matches.take(AssistantService.displayLimit).toList(),
         cheaperNearby: result.cheaperNearby,
         requirements: intent,
+      ));
+    } on AssistantUnavailable {
+      // Never reached the service: say so, rather than telling the user their
+      // request was unclear when it was the connection that failed.
+      _replacePending(AssistantMessage(
+        role: AssistantRole.assistant,
+        text: (_intent?.isBangla ?? false)
+            ? 'এই মুহূর্তে সংযোগ পাওয়া যাচ্ছে না। ইন্টারনেট দেখে আবার চেষ্টা করুন।'
+            : 'I cannot reach the service right now. Check your connection and try again.',
       ));
     } catch (_) {
       _replacePending(AssistantMessage(

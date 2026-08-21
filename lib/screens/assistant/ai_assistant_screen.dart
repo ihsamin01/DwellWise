@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../../config/app_colors.dart';
 import '../../providers/assistant_provider.dart';
-import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/property_matcher.dart';
 import '../../widgets/voice_input_button.dart';
@@ -105,12 +104,6 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
             colors: colors,
             enabled: !assistant.isBusy,
             onSend: _send,
-            // Listen in whichever language the app is showing; the user can
-            // still type the other one.
-            speechLocale:
-                context.watch<LocaleProvider>().languageCode == 'bn'
-                    ? 'bn_BD'
-                    : 'en_US',
           ),
         ],
       ),
@@ -428,23 +421,34 @@ class _TypingDots extends StatelessWidget {
   }
 }
 
-class _Composer extends StatelessWidget {
+class _Composer extends StatefulWidget {
   const _Composer({
     required this.controller,
     required this.colors,
     required this.enabled,
     required this.onSend,
-    required this.speechLocale,
   });
 
   final TextEditingController controller;
   final AppColors colors;
   final bool enabled;
   final VoidCallback onSend;
-  final String speechLocale;
+
+  @override
+  State<_Composer> createState() => _ComposerState();
+}
+
+class _ComposerState extends State<_Composer> {
+  /// Bangla by default — this is a Bangladeshi rental app, and it is the
+  /// language most requests arrive in.
+  bool _speechBangla = true;
 
   @override
   Widget build(BuildContext context) {
+    final controller = widget.controller;
+    final colors = widget.colors;
+    final enabled = widget.enabled;
+    final onSend = widget.onSend;
     return Container(
       padding: EdgeInsets.fromLTRB(
         12,
@@ -490,11 +494,17 @@ class _Composer extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
+          SpeechLanguageToggle(
+            isBangla: _speechBangla,
+            colors: colors,
+            onChanged: (value) => setState(() => _speechBangla = value),
+          ),
+          const SizedBox(width: 6),
           VoiceInputButton(
             colors: colors,
             enabled: enabled,
-            localeId: speechLocale,
+            localeId: _speechBangla ? 'bn_BD' : 'en_US',
             onResult: (text) {
               // Dictation writes into the same field typing uses, so a
               // mis-heard word can be corrected before sending.
