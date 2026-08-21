@@ -87,10 +87,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
         children: [
           Expanded(
             child: messages.isEmpty
-                ? _EmptyState(colors: colors, onPick: (text) {
-                    _controller.text = text;
-                    _send();
-                  })
+                ? _EmptyState(colors: colors)
                 : ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -114,16 +111,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
 /// Shown before the first message: examples do more than instructions for
 /// someone who does not yet know what the assistant can be asked.
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.colors, required this.onPick});
+  const _EmptyState({required this.colors});
 
   final AppColors colors;
-  final ValueChanged<String> onPick;
-
-  static const List<String> _examples = [
-    'আমার ৩ রুমের ফ্যামিলি বাসা দরকার ইসিবির আশেপাশে',
-    'Bachelor room in Mirpur 10 under 8000',
-    'গ্যাস আর লিফট আছে এমন বাসা বনানীতে',
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -147,38 +137,6 @@ class _EmptyState extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 14, color: colors.textSecondary),
         ),
-        const SizedBox(height: 28),
-        for (final example in _examples)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: GestureDetector(
-              onTap: () => onPick(example),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colors.border),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        example,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: colors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    Icon(Icons.north_east,
-                        size: 16, color: colors.textSecondary),
-                  ],
-                ),
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -439,10 +397,6 @@ class _Composer extends StatefulWidget {
 }
 
 class _ComposerState extends State<_Composer> {
-  /// Bangla by default — this is a Bangladeshi rental app, and it is the
-  /// language most requests arrive in.
-  bool _speechBangla = true;
-
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
@@ -494,17 +448,10 @@ class _ComposerState extends State<_Composer> {
               ),
             ),
           ),
-          const SizedBox(width: 6),
-          SpeechLanguageToggle(
-            isBangla: _speechBangla,
-            colors: colors,
-            onChanged: (value) => setState(() => _speechBangla = value),
-          ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           VoiceInputButton(
             colors: colors,
             enabled: enabled,
-            localeId: _speechBangla ? 'bn_BD' : 'en_US',
             onResult: (text) {
               // Dictation writes into the same field typing uses, so a
               // mis-heard word can be corrected before sending.

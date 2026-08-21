@@ -1,189 +1,133 @@
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart';
 
 import '../config/app_colors.dart';
+import '../services/assistant_service.dart';
+import '../services/chat_attachment_service.dart';
 
 /// Mic button that dictates into a text field.
 ///
-/// Recognition runs on the device rather than through Gemini: it costs no API
-/// quota, needs no round trip, and the text lands in the same field typing
-/// fills — so a mis-heard word can be corrected before sending.
+/// The recording is transcribed by Gemini rather than the device recogniser.
+/// Android has to be told which language to expect and cannot work it out
+/// itself, so the on-device route needed the user to declare Bangla or English
+/// before speaking — and getting it wrong wrote Bangla in Latin letters.
+/// Gemini hears which language is spoken and writes it in that script, so
+/// there is nothing to set.
+///
+/// The transcript lands in the same field typing fills, so a mis-heard word
+/// can still be corrected before sending.
 class VoiceInputButton extends StatefulWidget {
   const VoiceInputButton({
     super.key,
     required this.onResult,
     required this.colors,
-    this.localeId,
     this.enabled = true,
   });
 
-  /// Called with the transcript as it grows, so the field fills while talking.
+  /// Called once with the finished transcript.
   final ValueChanged<String> onResult;
 
   final AppColors colors;
-
-  /// Which language to listen for, e.g. 'bn_BD'. Falls back to the device
-  /// default when that locale is not installed.
-  final String? localeId;
-
   final bool enabled;
 
   @override
   State<VoiceInputButton> createState() => _VoiceInputButtonState();
 }
 
-class _VoiceInputButtonState extends State<VoiceInputButton> {
-  final SpeechToText _speech = SpeechToText();
+enum _MicState { idle, recording, transcribing }
 
-  bool _available = false;
-  bool _listening = false;
-  bool _checked = false;
+class _VoiceInputButtonState extends State<VoiceInputButton> {
+  final ChatAttachmentService _recorder = ChatAttachmentService();
+  final AssistantService _assistant = AssistantService();
+
+  _MicState _state = _MicState.idle;
 
   Future<void> _toggle() async {
-    if (_listening) {
-      await _speech.stop();
-      if (mounted) setState(() => _listening = false);
-      return;
+    switch (_state) {
+      case _MicState.transcribing:
+        return; // Already working; another tap would start a second request.
+      case _MicState.recording:
+        await _finish();
+      case _MicState.idle:
+        await _start();
     }
+  }
 
-    if (!_checked) {
-      _checked = true;
-      _available = await _speech.initialize(
-        onStatus: (status) {
-          if (status == 'done' || status == 'notListening') {
-            if (mounted) setState(() => _listening = false);
-          }
-        },
-        onError: (_) {
-          if (mounted) setState(() => _listening = false);
-        },
-      );
-    }
+  Future<void> _start() async {
+    final started = await _recorder.startVoiceRecording();
+    if (!mounted) return;
 
-    if (!_available) {
-      if (!mounted) return;
+    if (!started) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Speech recognition is not available on this device. '
-            'You can type instead.',
-          ),
+          content: Text('Microphone permission is needed to speak your request.'),
         ),
       );
       return;
     }
-
-    final locale = await _resolveLocale();
-    await _speech.listen(
-      onResult: (result) => widget.onResult(result.recognizedWords),
-      // The platform default cuts off after about three seconds of silence,
-      // which ends the sentence while someone is still thinking. These give
-      // room to pause mid-request without losing the recording.
-      pauseFor: const Duration(seconds: 8),
-      listenFor: const Duration(minutes: 1),
-      listenOptions: SpeechListenOptions(
-        localeId: locale,
-        // Partial results fill the field as the user speaks, which is what
-        // makes it feel like dictation rather than a recording.
-        partialResults: true,
-        cancelOnError: true,
-      ),
-    );
-
-    if (mounted) setState(() => _listening = true);
+    setState(() => _state = _MicState.recording);
   }
 
-  /// The requested locale if the device has it, otherwise its default —
-  /// asking for a missing locale fails outright on some devices.
-  Future<String?> _resolveLocale() async {
-    final wanted = widget.localeId;
-    if (wanted == null) return null;
-    final locales = await _speech.locales();
-    final match = locales.any((l) => l.localeId == wanted);
-    if (match) return wanted;
+  Future<void> _finish() async {
+    setState(() => _state = _MicState.transcribing);
 
-    // 'bn_BD' may be installed as 'bn-BD' or plain 'bn' depending on the
-    // device, so fall back to any locale in the same language.
-    final language = wanted.split(RegExp('[_-]')).first.toLowerCase();
-    for (final locale in locales) {
-      if (locale.localeId.toLowerCase().startsWith(language)) {
-        return locale.localeId;
-      }
+    final recording = await _recorder.stopVoiceRecording();
+    if (recording == null) {
+      if (mounted) setState(() => _state = _MicState.idle);
+      return;
     }
-    return null;
+
+    final text = await _assistant.transcribe(recording.path);
+    if (!mounted) return;
+
+    setState(() => _state = _MicState.idle);
+
+    if (text == null || text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not catch that. Please try again.')),
+      );
+      return;
+    }
+    widget.onResult(text);
   }
 
   @override
   void dispose() {
-    _speech.stop();
+    _recorder.cancelVoiceRecording();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = widget.colors;
+    final recording = _state == _MicState.recording;
+    final busy = _state == _MicState.transcribing;
 
     return GestureDetector(
-      onTap: widget.enabled ? _toggle : null,
+      onTap: widget.enabled && !busy ? _toggle : null,
       child: Container(
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: _listening ? const Color(0xffDC2626) : colors.background,
+          color: recording ? const Color(0xffDC2626) : colors.background,
           shape: BoxShape.circle,
           border: Border.all(
-            color: _listening ? const Color(0xffDC2626) : colors.border,
+            color: recording ? const Color(0xffDC2626) : colors.border,
           ),
         ),
-        child: Icon(
-          _listening ? Icons.stop : Icons.mic_none,
-          size: 20,
-          color: _listening ? Colors.white : colors.textSecondary,
-        ),
-      ),
-    );
-  }
-}
-
-/// Picks which language the mic listens in.
-///
-/// Android's recogniser is told one language up front — it cannot detect
-/// Bangla and English on its own, and asking for the wrong one is what turns
-/// spoken Bangla into Latin letters. So the choice is the user's, sitting next
-/// to the mic where the consequence is visible.
-class SpeechLanguageToggle extends StatelessWidget {
-  const SpeechLanguageToggle({
-    super.key,
-    required this.isBangla,
-    required this.onChanged,
-    required this.colors,
-  });
-
-  final bool isBangla;
-  final ValueChanged<bool> onChanged;
-  final AppColors colors;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged(!isBangla),
-      child: Container(
-        height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: colors.background,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: colors.border),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          isBangla ? 'বাং' : 'EN',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: colors.textSecondary,
-          ),
-        ),
+        child: busy
+            ? Padding(
+                padding: const EdgeInsets.all(12),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(colors.textSecondary),
+                ),
+              )
+            : Icon(
+                recording ? Icons.stop : Icons.mic_none,
+                size: 20,
+                color: recording ? Colors.white : colors.textSecondary,
+              ),
       ),
     );
   }
