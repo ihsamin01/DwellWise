@@ -107,7 +107,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   void _handleSaveToggle(BuildContext context,
       SavedPropertiesProvider savedProvider, PropertyModel property) {
     final isSaved = savedProvider.isSaved(property.id);
-    savedProvider.toggleSave(property.id);
+    savedProvider.toggleSave(property.id, property: property);
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

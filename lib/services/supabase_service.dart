@@ -285,6 +285,38 @@ class SupabaseService {
   /// Persists a favorite. Non-fatal: the local save already reflects the
   /// change even if this write is rejected (e.g. a demo property that has no
   /// matching row in the `properties` table).
+  /// The signed-in user's saved properties, newest save first.
+  ///
+  /// Joined against `properties` in one query rather than filtered out of the
+  /// in-memory feed: the feed only holds a slice of the catalogue, so a save
+  /// whose property is not in that slice would vanish from the list even
+  /// though the row is still in the database.
+  ///
+  /// Deliberately does not swallow errors — the caller has to tell a failed
+  /// fetch apart from an empty list, or a dropped request looks like the user
+  /// having saved nothing.
+  Future<List<PropertyModel>> getSavedProperties({int limit = 100}) async {
+    final client = _client;
+    final uid = client?.auth.currentUser?.id;
+    if (client == null || uid == null) return [];
+
+    final rows = await client
+        .from('saved_properties')
+        .select('property_id, created_at, properties(*)')
+        .eq('user_id', uid)
+        .order('created_at', ascending: false)
+        .limit(limit);
+
+    final saved = <PropertyModel>[];
+    for (final row in rows) {
+      final property = row['properties'];
+      if (property is Map<String, dynamic>) {
+        saved.add(PropertyModel.fromJson(property));
+      }
+    }
+    return saved;
+  }
+
   Future<void> saveProperty(String propertyId) async {
     final client = _client;
     final uid = client?.auth.currentUser?.id;

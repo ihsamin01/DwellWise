@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_colors.dart';
 import '../../config/app_strings.dart';
-import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
 import '../../models/property_model.dart';
@@ -32,7 +31,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
     // Pull the signed-in user's saved properties from the database, so
     // favorites survive logging out and back in.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<SavedPropertiesProvider>().loadSavedIds();
+      if (mounted) context.read<SavedPropertiesProvider>().loadSaved();
     });
   }
 
@@ -69,15 +68,12 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    final propertyProvider = context.watch<PropertyProvider>();
     final savedProvider = context.watch<SavedPropertiesProvider>();
 
-    final allProperties = propertyProvider.lookupPool;
-    final savedIds = savedProvider.savedIds;
-
-    // Filter properties list dynamically based on SavedProvider IDs
-    final savedList =
-        allProperties.where((p) => savedIds.contains(p.id)).toList();
+    // Straight from the provider, which loads them from the database. Filtering
+    // the home feed by id used to drop any save whose property was not in the
+    // slice the feed happened to hold.
+    final savedList = savedProvider.savedProperties;
 
     return Scaffold(
       backgroundColor: colors.background,
