@@ -29,7 +29,7 @@ class TenantInquiriesScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const BottomNavigation(currentIndex: 3),
+      bottomNavigationBar: const BottomNavigation(currentIndex: 4),
     );
   }
 

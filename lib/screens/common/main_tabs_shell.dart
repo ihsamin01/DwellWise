@@ -8,6 +8,7 @@ import '../../widgets/bottom_navigation.dart';
 import '../../widgets/exit_confirmation.dart';
 import '../chat/chats_screen.dart';
 import '../common/profile_screen.dart';
+import '../assistant/ai_assistant_screen.dart';
 import '../tenant/home_screen.dart';
 import '../tenant/saved_screen.dart';
 import '../tenant/search_screen.dart';
@@ -31,7 +32,7 @@ class _MainTabsShellState extends State<MainTabsShell> {
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex.clamp(0, 4);
+    _currentIndex = widget.initialIndex.clamp(0, 5);
     // Load the signed-in user's profile (covers restored "keep me signed in"
     // sessions where login handlers didn't run).
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -64,6 +65,7 @@ class _MainTabsShellState extends State<MainTabsShell> {
           children: const [
             TenantHomeScreen(showBottomNavigation: false),
             TenantSearchScreen(showBottomNavigation: false),
+            AiAssistantScreen(),
             TenantSavedScreen(showBottomNavigation: false),
             ChatsScreen(),
             ProfileScreen(),

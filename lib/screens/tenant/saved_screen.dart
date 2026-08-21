@@ -149,7 +149,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
         ],
       ),
       bottomNavigationBar: widget.showBottomNavigation
-          ? const BottomNavigation(currentIndex: 2)
+          ? const BottomNavigation(currentIndex: 3)
           : null,
     );
   }
