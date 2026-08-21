@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 
 import '../../config/app_colors.dart';
 import '../../providers/assistant_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/property_matcher.dart';
+import '../../widgets/voice_input_button.dart';
 
 /// Conversational way into the app for someone who does not want to learn the
 /// filters: they describe the home they want and get real listings back.
@@ -103,6 +105,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
             colors: colors,
             enabled: !assistant.isBusy,
             onSend: _send,
+            // Listen in whichever language the app is showing; the user can
+            // still type the other one.
+            speechLocale:
+                context.watch<LocaleProvider>().languageCode == 'bn'
+                    ? 'bn_BD'
+                    : 'en_US',
           ),
         ],
       ),
@@ -426,12 +434,14 @@ class _Composer extends StatelessWidget {
     required this.colors,
     required this.enabled,
     required this.onSend,
+    required this.speechLocale,
   });
 
   final TextEditingController controller;
   final AppColors colors;
   final bool enabled;
   final VoidCallback onSend;
+  final String speechLocale;
 
   @override
   Widget build(BuildContext context) {
@@ -479,6 +489,20 @@ class _Composer extends StatelessWidget {
                 ),
               ),
             ),
+          ),
+          const SizedBox(width: 8),
+          VoiceInputButton(
+            colors: colors,
+            enabled: enabled,
+            localeId: speechLocale,
+            onResult: (text) {
+              // Dictation writes into the same field typing uses, so a
+              // mis-heard word can be corrected before sending.
+              controller.value = TextEditingValue(
+                text: text,
+                selection: TextSelection.collapsed(offset: text.length),
+              );
+            },
           ),
           const SizedBox(width: 8),
           GestureDetector(
