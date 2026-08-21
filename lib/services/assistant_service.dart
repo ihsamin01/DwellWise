@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:google_generative_ai/google_generative_ai.dart';
 
@@ -157,6 +158,49 @@ User message: "${_clean(message)}"
     } catch (_) {
       return null;
     }
+  }
+
+  /// Transcribes a recording, writing each language in its own script.
+  ///
+  /// Done here rather than with the device recogniser because Android has to
+  /// be told which language to expect and cannot detect it — asking for the
+  /// wrong one is what turns spoken Bangla into Latin letters. Gemini hears
+  /// which language is being spoken and writes it accordingly, so speaking
+  /// Bangla produces Bangla text and English produces English, with nothing
+  /// for the user to set.
+  Future<String?> transcribe(String audioPath) async {
+    final model = await _gemini.model();
+    if (model == null) return null;
+
+    final file = File(audioPath);
+    if (!file.existsSync()) return null;
+
+    final bytes = await file.readAsBytes();
+
+    const prompt = 'Transcribe this audio exactly as spoken. '
+        'Write it in the script of the language being spoken: Bangla speech '
+        'in Bangla script, English speech in English. Do not translate, '
+        'explain or add anything. If there is no speech, reply with nothing.';
+
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        final response = await model.generateContent([
+          Content.multi([
+            TextPart(prompt),
+            DataPart('audio/mp4', bytes),
+          ])
+        ]).timeout(const Duration(seconds: 40));
+
+        final text = response.text?.trim();
+        if (text != null && text.isNotEmpty) return text;
+        return null;
+      } catch (_) {
+        if (attempt == 0) {
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+        }
+      }
+    }
+    return null;
   }
 
   // ── finding real listings ──────────────────────────────────────────────
