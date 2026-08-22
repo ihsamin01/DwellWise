@@ -137,6 +137,11 @@ class ChatProvider with ChangeNotifier {
     if (_service.currentUserId == null) return null;
     if (_service.currentUserId == ownerId) return null;
 
+    // Seeded demo listings carry ids like 'o10' rather than a user id. A chat
+    // needs a real profile on the other side, so there is nobody to open a
+    // conversation with — caught here so the screen can say why.
+    if (!_looksLikeUserId(ownerId)) return null;
+
     try {
       final chatId = await _service.findOrCreateChat(
         otherUserId: ownerId,
@@ -373,6 +378,13 @@ class ChatProvider with ChangeNotifier {
 
     send().catchError((_) => _removeMessage(chatId, pending.id));
   }
+
+  static final RegExp _uuid = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  );
+
+  /// Whether [id] is a real account id rather than a seeded placeholder.
+  static bool _looksLikeUserId(String id) => _uuid.hasMatch(id);
 
   // ── realtime ───────────────────────────────────────────────────────────
 

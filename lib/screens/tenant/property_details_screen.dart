@@ -588,7 +588,10 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                         if (chatId == null) {
                           messenger.showSnackBar(
                             const SnackBar(
-                              content: Text('Could not open the conversation.'),
+                              content: Text(
+                                'This owner is not on DwellWise yet, so the '
+                                'conversation cannot be opened.',
+                              ),
                               backgroundColor: Color(0xffDC2626),
                             ),
                           );

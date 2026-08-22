@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../config/app_colors.dart';
+import '../../config/app_strings.dart';
 import '../../models/chat_message_model.dart';
 import '../../models/chat_model.dart';
 import '../../providers/chat_provider.dart';
@@ -494,6 +496,17 @@ class _ChatScreenState extends State<ChatScreen> {
                     },
                   ),
           ),
+          // Offered, not sent: an empty thread is the hardest message to
+          // write, so the opening line is there for one tap — and stays a
+          // suggestion until it is tapped.
+          if (messages.isEmpty)
+            _SuggestedOpener(
+              text: _openerSuggestion(context),
+              onTap: () {
+                _messageController.text = _openerSuggestion(context);
+                _sendTextMessage();
+              },
+            ),
           if (chat?.isTyping == true || provider.isTyping)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -525,6 +538,13 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+  }
+
+  /// The same opening line for everyone, in the language the app is showing.
+  String _openerSuggestion(BuildContext context) {
+    return AppStrings.isBangla(context)
+        ? 'আসসালামু আলাইকুম, আমি বাসাটি ভাড়া নিতে আগ্রহী। এখনো খালি আছে কি?'
+        : 'Hello, I am interested in renting this property. Is it still available?';
   }
 
   List<_TimelineEntry> _buildTimelineEntries(List<ChatMessageModel> messages) {
@@ -1337,4 +1357,47 @@ String _formatTime(DateTime dateTime) {
   final minute = dateTime.minute.toString().padLeft(2, '0');
   final period = dateTime.hour >= 12 ? 'PM' : 'AM';
   return '$hour:$minute $period';
+}
+
+/// A ready opening message shown above the composer on an empty thread.
+///
+/// Drawn like a message the app is offering rather than one already sent, so
+/// nothing leaves until the user taps it.
+class _SuggestedOpener extends StatelessWidget {
+  const _SuggestedOpener({required this.text, required this.onTap});
+
+  final String text;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: colors.primaryTint,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: colors.primary.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  text,
+                  style: TextStyle(fontSize: 13, color: colors.primary),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(Icons.send, size: 16, color: colors.primary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
