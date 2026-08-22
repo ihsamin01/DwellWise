@@ -106,9 +106,19 @@ class MatchResult {
 const double _wBeds = 30;
 const double _wBaths = 15;
 const double _wBalcony = 10;
-const double _wType = 15;
 const double _wFacility = 10;
 const double _wBudget = 25;
+
+/// Whether [property] is the kind of place the user asked for.
+///
+/// Kept out of the score on purpose: someone asking for a sublet does not want
+/// a family flat ranked slightly lower, they want it left out, and to be told
+/// plainly if there are none.
+bool matchesType(PropertyModel property, SearchIntent intent) {
+  final wanted = intent.propertyType;
+  if (wanted == null) return true;
+  return property.propertyType.toLowerCase() == wanted.toLowerCase();
+}
 
 /// Credit for a count that is close but not exact — one short still answers
 /// most of what was asked, three short does not.
@@ -170,16 +180,11 @@ MatchResult scoreProperty(PropertyModel property, SearchIntent intent) {
     }
   }
 
+  // Property type is filtered before scoring, not weighted here: asking for a
+  // sublet and being shown family flats is not a near miss, it is the wrong
+  // thing. See matchesType.
   if (intent.propertyType != null) {
-    possible += _wType;
-    final same = property.propertyType.toLowerCase() ==
-        intent.propertyType!.toLowerCase();
-    earned += same ? _wType : 0;
-    if (same) {
-      matched.add(property.propertyType);
-    } else {
-      shortfalls.add('${property.propertyType}, not ${intent.propertyType}');
-    }
+    matched.add(property.propertyType);
   }
 
   final facilities = property.facilities.map((f) => f.toUpperCase()).toSet();
@@ -227,7 +232,8 @@ List<MatchResult> rankProperties(
   double threshold = 50,
 }) {
   final results = [
-    for (final property in properties) scoreProperty(property, intent),
+    for (final property in properties)
+      if (matchesType(property, intent)) scoreProperty(property, intent),
   ]..removeWhere((r) => r.score < threshold);
 
   results.sort((a, b) {

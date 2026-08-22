@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../config/app_colors.dart';
 import '../config/app_strings.dart';
 import '../providers/auth_provider.dart';
 import '../providers/user_provider.dart';
@@ -132,7 +133,10 @@ class AppDrawer extends StatelessWidget {
                       final confirmed = await showDialog<bool>(
                         context: context,
                         builder: (dialogContext) => AlertDialog(
-                          backgroundColor: Colors.white,
+                          // Was hardcoded white, which left the title and body
+                          // invisible in dark mode: the surface stayed white
+                          // while the theme's text turned light.
+                          backgroundColor: AppColors.of(dialogContext).surface,
                           elevation: 8,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(24),
@@ -148,10 +152,16 @@ class AppDrawer extends StatelessWidget {
                           title: Text(
                             AppStrings.t(dialogContext, 'logout_confirm_title'),
                             textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.of(dialogContext).textPrimary,
+                            ),
                           ),
                           content: Text(
                             AppStrings.t(dialogContext, 'logout_confirm_message'),
                             textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.of(dialogContext).textSecondary,
+                            ),
                           ),
                           actionsAlignment: MainAxisAlignment.center,
                           actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),

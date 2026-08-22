@@ -103,6 +103,8 @@ const Map<String, (double, double)> bdAreaCoordinates = {
   'kazipara': (23.7970, 90.3720),
   'sheorapara': (23.7930, 90.3720),
   'kafrul': (23.7920, 90.3860),
+  'ecb chattar': (23.8320, 90.3980),
+  'ecb': (23.8320, 90.3980),
   'ibrahimpur': (23.7975, 90.3855),
   'bhashantek': (23.8095, 90.3900),
   'cantonment': (23.7997, 90.3966),

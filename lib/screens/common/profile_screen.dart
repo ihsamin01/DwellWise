@@ -105,7 +105,9 @@ class ProfileScreen extends StatelessWidget {
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.white,
+        // Theme surface, not white: a hardcoded white dialog hid its own text
+        // in dark mode.
+        backgroundColor: AppColors.of(dialogContext).surface,
         elevation: 8,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
@@ -121,10 +123,16 @@ class ProfileScreen extends StatelessWidget {
         title: Text(
           AppStrings.t(dialogContext, 'logout_confirm_title'),
           textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.of(dialogContext).textPrimary,
+          ),
         ),
         content: Text(
           AppStrings.t(dialogContext, 'logout_confirm_message'),
           textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.of(dialogContext).textSecondary,
+          ),
         ),
         actionsAlignment: MainAxisAlignment.center,
         actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),

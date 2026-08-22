@@ -88,6 +88,32 @@ void main() {
     });
   });
 
+  group('property type', () {
+    const wantsSublet = SearchIntent(area: 'ECB Chattar', propertyType: 'Sublet');
+
+    test('leaves out the wrong kind of place entirely', () {
+      final ranked = rankProperties(
+        [
+          makeProperty(id: 'family', type: 'Family'),
+          makeProperty(id: 'sublet', type: 'Sublet'),
+        ],
+        wantsSublet,
+      );
+
+      // A family flat is not a near miss for a sublet request — it is the
+      // wrong thing, so it should not appear at all.
+      expect(ranked.map((r) => r.property.id), ['sublet']);
+    });
+
+    test('returns nothing when the area has none of that kind', () {
+      final ranked = rankProperties(
+        [makeProperty(id: 'family', type: 'Family')],
+        wantsSublet,
+      );
+      expect(ranked, isEmpty);
+    });
+  });
+
   group('budget', () {
     const budget = SearchIntent(area: 'ECB Chattar', maxRent: 20000);
 

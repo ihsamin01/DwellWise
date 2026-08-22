@@ -324,9 +324,13 @@ User message: "${_clean(message)}"
             'English letters.'
         : 'Reply in English.';
 
+    final kind = intent.propertyType == null
+        ? 'matching'
+        : '${intent.propertyType} ';
     final widened = result.widened
-        ? 'Nothing matched in ${intent.area} itself. These are within '
-            '${result.radiusKm?.toInt()} km. Say so plainly in the first line.'
+        ? 'There are no ${kind}listings in ${intent.area} itself. These are '
+            'within ${result.radiusKm?.toInt()} km of it. Say that plainly in '
+            'the first line before listing anything.'
         : '';
 
     final prompt = '''
