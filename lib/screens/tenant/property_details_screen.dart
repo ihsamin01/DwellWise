@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_colors.dart';
 import '../../providers/property_provider.dart';
+import '../../services/supabase_service.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../models/property_model.dart';
@@ -29,6 +30,63 @@ class TenantPropertyDetailsScreen extends StatefulWidget {
 
 class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScreen> {
   bool _isDescriptionExpanded = false;
+
+  /// Loaded straight from the database when the feed does not hold this
+  /// property — the normal case for an assistant result, a saved item or a
+  /// deep link, since the feed only ever holds a slice of the catalogue.
+  PropertyModel? _fetched;
+  bool _loading = false;
+  bool _notFound = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureLoaded());
+  }
+
+  Future<void> _ensureLoaded() async {
+    if (!mounted) return;
+    final pool = context.read<PropertyProvider>().lookupPool;
+    if (pool.any((p) => p.id == widget.propertyId)) return;
+
+    setState(() => _loading = true);
+    final property = await SupabaseService().getPropertyById(widget.propertyId);
+    if (!mounted) return;
+    setState(() {
+      _fetched = property;
+      _notFound = property == null;
+      _loading = false;
+    });
+  }
+
+  /// Shown while the row is being fetched, and if it turns out not to exist.
+  Widget _buildPlaceholder(AppColors colors) {
+    return Scaffold(
+      backgroundColor: colors.background,
+      appBar: AppBar(
+        backgroundColor: colors.surface,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: colors.primary),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+      ),
+      body: Center(
+        child: _notFound
+            ? Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text(
+                  'This property is no longer available.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: colors.textSecondary, fontSize: 15),
+                ),
+              )
+            : CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
+              ),
+      ),
+    );
+  }
 
   /// Opens the native Android share sheet (WhatsApp, Messenger, Bluetooth,
   /// Instagram, etc.) with a description and a deep link that reopens this
@@ -100,28 +158,23 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
 
     final allProperties = propertyProvider.lookupPool;
 
-    // Find matching property model
-    final property = allProperties.firstWhere(
-      (p) => p.id == widget.propertyId,
-      orElse: () => PropertyModel(
-        id: widget.propertyId,
-        title: 'Serene Sky Terrace',
-        description: 'Experience luxury living in the heart of Gulshan. This semi-furnished apartment offers north-facing windows providing exceptional natural light. Features include a modern modular kitchen, dedicated servant\'s quarters, and high-quality fittings throughout. Within walking distance to top-tier cafes and the diplomatic zone.',
-        price: 85000,
-        area: 'Bashundhara R/A',
-        address: 'Bashundhara R/A, Dhaka',
-        latitude: 23.8223,
-        longitude: 90.4272,
-        beds: 3,
-        baths: 2,
-        sizeSqFt: 1850,
-        imageUrls: ['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80'],
-        isVerified: true,
-        ownerId: 'o3',
-        facilities: ['Wifi', 'Parking', 'Gym', 'Security'],
-        createdAt: DateTime.now(),
-      ),
-    );
+    // The feed first, then whatever was fetched by id. There is deliberately
+    // no stand-in here: this used to fall back to a hardcoded flat, so every
+    // listing the feed did not hold opened that same invented property.
+    PropertyModel? found;
+    for (final p in allProperties) {
+      if (p.id == widget.propertyId) {
+        found = p;
+        break;
+      }
+    }
+
+    // Final so the null check below promotes it inside the callbacks further
+    // down, which a reassignable local would not.
+    final property = found ?? _fetched;
+    if (property == null) {
+      return _buildPlaceholder(colors);
+    }
 
     final isSaved = savedProvider.isSaved(property.id);
     final owner = OwnerDirectory.forId(property.ownerId);

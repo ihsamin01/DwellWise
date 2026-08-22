@@ -286,6 +286,21 @@ class SupabaseService {
   /// Persists a favorite. Non-fatal: the local save already reflects the
   /// change even if this write is rejected (e.g. a demo property that has no
   /// matching row in the `properties` table).
+  /// One listing by id, or null when it does not exist.
+  ///
+  /// Needed because a property can be opened from somewhere that never loaded
+  /// the feed — an assistant result, a deep link, a saved item — and the feed
+  /// only holds a slice of the catalogue.
+  Future<PropertyModel?> getPropertyById(String id) async {
+    final client = _client;
+    if (client == null || id.isEmpty) return null;
+
+    final rows =
+        await client.from('properties').select().eq('id', id).limit(1);
+    if (rows.isEmpty) return null;
+    return PropertyModel.fromJson(rows.first);
+  }
+
   /// Approved listings whose area name contains [area].
   ///
   /// The first thing the assistant tries: someone asking for ECB means the
