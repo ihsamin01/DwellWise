@@ -88,6 +88,21 @@ class _ChatScreenState extends State<ChatScreen> {
     _provider.sendMessage(widget.chatId, _currentUserId, text);
     _messageController.clear();
     _scrollToBottom();
+
+    // The send is optimistic, so a rejection arrives after the bubble is
+    // already on screen and used to remove it with no explanation.
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      final error = _provider.lastSendError;
+      if (error == null) return;
+      _provider.lastSendError = null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Message not sent: $error'),
+          backgroundColor: const Color(0xffDC2626),
+        ),
+      );
+    });
   }
 
   void _scrollToBottom() {

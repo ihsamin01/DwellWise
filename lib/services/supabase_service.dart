@@ -286,6 +286,28 @@ class SupabaseService {
   /// Persists a favorite. Non-fatal: the local save already reflects the
   /// change even if this write is rejected (e.g. a demo property that has no
   /// matching row in the `properties` table).
+  /// Public display details for a listing's owner.
+  ///
+  /// Returns null when the owner is not an account, which is the case for the
+  /// seeded placeholder ids — the caller then falls back to the local
+  /// directory rather than showing a blank owner.
+  Future<Map<String, dynamic>?> getOwnerProfile(String ownerId) async {
+    final client = _client;
+    if (client == null || ownerId.isEmpty) return null;
+
+    try {
+      final rows = await client
+          .from('profiles')
+          .select('id, name, phone_number, verification_status')
+          .eq('id', ownerId)
+          .limit(1);
+      return rows.isEmpty ? null : rows.first;
+    } catch (_) {
+      // Not a uuid, so not an account: nothing to show.
+      return null;
+    }
+  }
+
   /// One listing by id, or null when it does not exist.
   ///
   /// Needed because a property can be opened from somewhere that never loaded

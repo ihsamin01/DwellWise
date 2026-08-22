@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../config/app_colors.dart';
@@ -6,15 +8,14 @@ import '../services/chat_attachment_service.dart';
 
 /// Mic button that dictates into a text field.
 ///
-/// The recording is transcribed by Gemini rather than the device recogniser.
-/// Android has to be told which language to expect and cannot work it out
-/// itself, so the on-device route needed the user to declare Bangla or English
-/// before speaking — and getting it wrong wrote Bangla in Latin letters.
-/// Gemini hears which language is spoken and writes it in that script, so
-/// there is nothing to set.
+/// Tap once and talk. It stops on its own after a few seconds of silence,
+/// transcribes, and drops the text into the field — sending stays a separate,
+/// deliberate tap, so a mis-heard word can be fixed first.
 ///
-/// The transcript lands in the same field typing fills, so a mis-heard word
-/// can still be corrected before sending.
+/// Transcription goes through Gemini rather than the device recogniser, which
+/// has to be told which language to expect and cannot work it out: asking for
+/// the wrong one is what wrote spoken Bangla in Latin letters. Gemini hears
+/// the language and writes it in its own script.
 class VoiceInputButton extends StatefulWidget {
   const VoiceInputButton({
     super.key,
@@ -33,19 +34,29 @@ class VoiceInputButton extends StatefulWidget {
   State<VoiceInputButton> createState() => _VoiceInputButtonState();
 }
 
-enum _MicState { idle, recording, transcribing }
+enum _MicState { idle, listening, transcribing }
 
 class _VoiceInputButtonState extends State<VoiceInputButton> {
   final ChatAttachmentService _recorder = ChatAttachmentService();
   final AssistantService _assistant = AssistantService();
 
+  StreamSubscription<dynamic>? _amplitude;
+  Timer? _silenceTimer;
   _MicState _state = _MicState.idle;
+
+  /// How long a pause ends the recording. Long enough to think mid-sentence,
+  /// short enough not to sit there recording nothing.
+  static const Duration _silenceLimit = Duration(seconds: 5);
+
+  /// Amplitude in dB above which the mic counts as hearing speech. Silence
+  /// sits near -60 and quiet speech around -30.
+  static const double _speechThreshold = -35;
 
   Future<void> _toggle() async {
     switch (_state) {
       case _MicState.transcribing:
-        return; // Already working; another tap would start a second request.
-      case _MicState.recording:
+        return;
+      case _MicState.listening:
         await _finish();
       case _MicState.idle:
         await _start();
@@ -59,16 +70,37 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
     if (!started) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Microphone permission is needed to speak your request.'),
+          content:
+              Text('Microphone permission is needed to speak your request.'),
         ),
       );
       return;
     }
-    setState(() => _state = _MicState.recording);
+
+    setState(() => _state = _MicState.listening);
+    _restartSilenceTimer();
+
+    // Every burst of sound pushes the deadline back, so the recording ends a
+    // few seconds after the user actually stops talking rather than after a
+    // fixed length.
+    _amplitude = _recorder.amplitudeStream().listen((amplitude) {
+      if (amplitude.current > _speechThreshold) _restartSilenceTimer();
+    });
+  }
+
+  void _restartSilenceTimer() {
+    _silenceTimer?.cancel();
+    _silenceTimer = Timer(_silenceLimit, () {
+      if (_state == _MicState.listening) _finish();
+    });
   }
 
   Future<void> _finish() async {
-    setState(() => _state = _MicState.transcribing);
+    _silenceTimer?.cancel();
+    await _amplitude?.cancel();
+    _amplitude = null;
+
+    if (mounted) setState(() => _state = _MicState.transcribing);
 
     final recording = await _recorder.stopVoiceRecording();
     if (recording == null) {
@@ -83,7 +115,8 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
 
     if (text == null || text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not catch that. Please try again.')),
+        const SnackBar(
+            content: Text('Could not catch that. Please try again.')),
       );
       return;
     }
@@ -92,6 +125,8 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
 
   @override
   void dispose() {
+    _silenceTimer?.cancel();
+    _amplitude?.cancel();
     _recorder.cancelVoiceRecording();
     super.dispose();
   }
@@ -99,7 +134,7 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
   @override
   Widget build(BuildContext context) {
     final colors = widget.colors;
-    final recording = _state == _MicState.recording;
+    final listening = _state == _MicState.listening;
     final busy = _state == _MicState.transcribing;
 
     return GestureDetector(
@@ -108,10 +143,13 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: recording ? const Color(0xffDC2626) : colors.background,
+          // Listening is shown with the app's own accent, not an alarm colour:
+          // dictating is a normal thing to be doing, not a warning.
+          color: listening ? colors.primaryTint : colors.background,
           shape: BoxShape.circle,
           border: Border.all(
-            color: recording ? const Color(0xffDC2626) : colors.border,
+            color: listening ? colors.primary : colors.border,
+            width: listening ? 1.5 : 1,
           ),
         ),
         child: busy
@@ -124,9 +162,9 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
                 ),
               )
             : Icon(
-                recording ? Icons.stop : Icons.mic_none,
+                listening ? Icons.graphic_eq : Icons.mic_none,
                 size: 20,
-                color: recording ? Colors.white : colors.textSecondary,
+                color: listening ? colors.primary : colors.textSecondary,
               ),
       ),
     );

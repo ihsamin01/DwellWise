@@ -38,6 +38,11 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
   bool _loading = false;
   bool _notFound = false;
 
+  /// The owner's own profile, when the listing belongs to a real account.
+  /// Without it the screen showed a name invented from the owner id, which
+  /// then disagreed with the name on the conversation.
+  Map<String, dynamic>? _ownerProfile;
+
   @override
   void initState() {
     super.initState();
@@ -47,7 +52,12 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
   Future<void> _ensureLoaded() async {
     if (!mounted) return;
     final pool = context.read<PropertyProvider>().lookupPool;
-    if (pool.any((p) => p.id == widget.propertyId)) return;
+    for (final p in pool) {
+      if (p.id == widget.propertyId) {
+        _loadOwner(p.ownerId);
+        return;
+      }
+    }
 
     setState(() => _loading = true);
     final property = await SupabaseService().getPropertyById(widget.propertyId);
@@ -57,6 +67,14 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
       _notFound = property == null;
       _loading = false;
     });
+
+    if (property != null) _loadOwner(property.ownerId);
+  }
+
+  Future<void> _loadOwner(String ownerId) async {
+    final profile = await SupabaseService().getOwnerProfile(ownerId);
+    if (!mounted || profile == null) return;
+    setState(() => _ownerProfile = profile);
   }
 
   /// Shown while the row is being fetched, and if it turns out not to exist.
@@ -177,7 +195,21 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
     }
 
     final isSaved = savedProvider.isSaved(property.id);
-    final owner = OwnerDirectory.forId(property.ownerId);
+    final directory = OwnerDirectory.forId(property.ownerId);
+    final profileName = (_ownerProfile?['name'] as String?)?.trim();
+    final owner = profileName == null || profileName.isEmpty
+        ? directory
+        : OwnerInfo(
+            id: property.ownerId,
+            name: profileName,
+            rating: directory.rating,
+            reviewCount: directory.reviewCount,
+            isVerified: _ownerProfile?['verification_status'] == 'verified',
+            phone: (_ownerProfile?['phone_number'] as String?)?.isNotEmpty ==
+                    true
+                ? _ownerProfile!['phone_number'] as String
+                : directory.phone,
+          );
 
     return Scaffold(
       backgroundColor: colors.background,

@@ -26,6 +26,10 @@ class ChatProvider with ChangeNotifier {
 
   RealtimeChannel? _messagesChannel;
 
+  /// Why the last send failed, for the screen to show. A send that quietly
+  /// disappears is impossible to diagnose from the outside.
+  String? lastSendError;
+
   bool _isTyping = false;
   bool _isLoading = false;
   String _searchQuery = '';
@@ -334,7 +338,12 @@ class ChatProvider with ChangeNotifier {
     double? longitude,
   }) {
     final me = _service.currentUserId;
-    if (me == null) return;
+    if (me == null) {
+      lastSendError = 'You are signed out, so the message was not sent.';
+      notifyListeners();
+      return;
+    }
+    lastSendError = null;
 
     final pending = ChatMessageModel(
       id: 'pending-${DateTime.now().microsecondsSinceEpoch}',
@@ -359,6 +368,7 @@ class ChatProvider with ChangeNotifier {
         if (url == null) {
           // Nothing was stored, so a message pointing at it would be broken
           // on the other side. Drop the bubble rather than send a dead link.
+          lastSendError = 'The attachment could not be uploaded.';
           _removeMessage(chatId, pending.id);
           return;
         }
@@ -376,7 +386,10 @@ class ChatProvider with ChangeNotifier {
       _replaceMessage(pending.id, saved);
     }
 
-    send().catchError((_) => _removeMessage(chatId, pending.id));
+    send().catchError((Object error) {
+      lastSendError = error.toString();
+      _removeMessage(chatId, pending.id);
+    });
   }
 
   static final RegExp _uuid = RegExp(

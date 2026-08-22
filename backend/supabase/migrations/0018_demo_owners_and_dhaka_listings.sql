@@ -53,8 +53,10 @@ values
    '{"name":"Jashim Uddin"}')
 on conflict (id) do nothing;
 
--- The profile trigger only fires on sign-up through the API, so the rows are
--- written here too.
+-- The live database has a trigger on auth.users that creates the profile with
+-- defaults, so these rows usually exist by the time this runs. Upserting
+-- rather than skipping is what fills in the role, phone and verified badge
+-- the trigger has no way to know about.
 insert into public.profiles (id, email, name, phone_number, role, verification_status)
 values
   ('d0000000-0000-4000-8000-000000000001', 'rumana.owner@dwellwise.demo',
@@ -65,7 +67,11 @@ values
    'Shirin Akter', '+8801711000003', 'owner', 'unverified'),
   ('d0000000-0000-4000-8000-000000000004', 'jashim.owner@dwellwise.demo',
    'Jashim Uddin', '+8801711000004', 'owner', 'verified')
-on conflict (id) do nothing;
+on conflict (id) do update set
+  name                = excluded.name,
+  phone_number        = excluded.phone_number,
+  role                = excluded.role,
+  verification_status = excluded.verification_status;
 
 -- ── listings ─────────────────────────────────────────────────────────────
 -- Fixed ids again, so re-running updates nothing and duplicates nothing.
