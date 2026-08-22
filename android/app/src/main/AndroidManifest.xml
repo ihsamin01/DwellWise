@@ -96,6 +96,11 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Android 11+ hides other packages unless declared, and the speech
+             recogniser has to be findable for dictation to work at all. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
+        </intent>
         <!-- Lets url_launcher open web/geo links in an external app. -->
         <intent>
             <action android:name="android.intent.action.VIEW" />

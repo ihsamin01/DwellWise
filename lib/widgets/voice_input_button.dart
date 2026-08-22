@@ -1,21 +1,18 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 import '../config/app_colors.dart';
-import '../services/assistant_service.dart';
-import '../services/chat_attachment_service.dart';
 
-/// Mic button that dictates into a text field.
+/// Mic button that dictates straight into a text field.
 ///
-/// Tap once and talk. It stops on its own after a few seconds of silence,
-/// transcribes, and drops the text into the field — sending stays a separate,
-/// deliberate tap, so a mis-heard word can be fixed first.
+/// Tap once and talk: the words appear in the field as they are spoken, and it
+/// stops on its own a few seconds after the talking does. Sending stays a
+/// separate tap, so a mis-heard word can be fixed first.
 ///
-/// Transcription goes through Gemini rather than the device recogniser, which
-/// has to be told which language to expect and cannot work it out: asking for
-/// the wrong one is what wrote spoken Bangla in Latin letters. Gemini hears
-/// the language and writes it in its own script.
+/// Recognition runs on the device rather than through Gemini. Gemini can tell
+/// which language is being spoken, but only once the recording is finished —
+/// live text is worth more here than perfect language detection, and it costs
+/// no API quota.
 class VoiceInputButton extends StatefulWidget {
   const VoiceInputButton({
     super.key,
@@ -24,7 +21,7 @@ class VoiceInputButton extends StatefulWidget {
     this.enabled = true,
   });
 
-  /// Called once with the finished transcript.
+  /// Called repeatedly as the transcript grows, then once when it settles.
   final ValueChanged<String> onResult;
 
   final AppColors colors;
@@ -34,138 +31,118 @@ class VoiceInputButton extends StatefulWidget {
   State<VoiceInputButton> createState() => _VoiceInputButtonState();
 }
 
-enum _MicState { idle, listening, transcribing }
-
 class _VoiceInputButtonState extends State<VoiceInputButton> {
-  final ChatAttachmentService _recorder = ChatAttachmentService();
-  final AssistantService _assistant = AssistantService();
+  final SpeechToText _speech = SpeechToText();
 
-  StreamSubscription<dynamic>? _amplitude;
-  Timer? _silenceTimer;
-  _MicState _state = _MicState.idle;
+  bool _available = false;
+  bool _initialised = false;
+  bool _listening = false;
 
-  /// How long a pause ends the recording. Long enough to think mid-sentence,
-  /// short enough not to sit there recording nothing.
-  static const Duration _silenceLimit = Duration(seconds: 5);
-
-  /// Amplitude in dB above which the mic counts as hearing speech. Silence
-  /// sits near -60 and quiet speech around -30.
-  static const double _speechThreshold = -35;
+  /// Bangla first: this is a Bangladeshi rental app, and Google's Bangla model
+  /// also copes with the English words that get mixed into everyday speech
+  /// here. Falls back to whatever the device has if bn is not installed.
+  static const List<String> _preferredLocales = ['bn_BD', 'bn-BD', 'bn'];
 
   Future<void> _toggle() async {
-    switch (_state) {
-      case _MicState.transcribing:
-        return;
-      case _MicState.listening:
-        await _finish();
-      case _MicState.idle:
-        await _start();
+    if (_listening) {
+      await _speech.stop();
+      if (mounted) setState(() => _listening = false);
+      return;
     }
-  }
 
-  Future<void> _start() async {
-    final started = await _recorder.startVoiceRecording();
-    if (!mounted) return;
+    if (!_initialised) {
+      _initialised = true;
+      _available = await _speech.initialize(
+        onStatus: (status) {
+          // The recogniser ends the session itself once the speaker stops.
+          if (status == 'done' || status == 'notListening') {
+            if (mounted) setState(() => _listening = false);
+          }
+        },
+        onError: (_) {
+          if (mounted) setState(() => _listening = false);
+        },
+      );
+    }
 
-    if (!started) {
+    if (!_available) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content:
-              Text('Microphone permission is needed to speak your request.'),
+          content: Text(
+            'Speech recognition is not available on this device. '
+            'You can type instead.',
+          ),
         ),
       );
       return;
     }
 
-    setState(() => _state = _MicState.listening);
-    _restartSilenceTimer();
+    await _speech.listen(
+      onResult: (result) => widget.onResult(result.recognizedWords),
+      // Ends a few seconds after the speaker does. The platform default is
+      // about three seconds, which cuts people off mid-thought.
+      pauseFor: const Duration(seconds: 5),
+      listenFor: const Duration(minutes: 1),
+      listenOptions: SpeechListenOptions(
+        localeId: await _resolveLocale(),
+        // This is what puts the words in the field while they are being
+        // spoken rather than after.
+        partialResults: true,
+        cancelOnError: true,
+      ),
+    );
 
-    // Every burst of sound pushes the deadline back, so the recording ends a
-    // few seconds after the user actually stops talking rather than after a
-    // fixed length.
-    _amplitude = _recorder.amplitudeStream().listen((amplitude) {
-      if (amplitude.current > _speechThreshold) _restartSilenceTimer();
-    });
+    if (mounted) setState(() => _listening = true);
   }
 
-  void _restartSilenceTimer() {
-    _silenceTimer?.cancel();
-    _silenceTimer = Timer(_silenceLimit, () {
-      if (_state == _MicState.listening) _finish();
-    });
-  }
+  /// The first preferred locale the device actually has, or its default.
+  /// Asking for one that is not installed fails outright on some devices.
+  Future<String?> _resolveLocale() async {
+    final installed = await _speech.locales();
+    final ids = installed.map((l) => l.localeId).toList();
 
-  Future<void> _finish() async {
-    _silenceTimer?.cancel();
-    await _amplitude?.cancel();
-    _amplitude = null;
-
-    if (mounted) setState(() => _state = _MicState.transcribing);
-
-    final recording = await _recorder.stopVoiceRecording();
-    if (recording == null) {
-      if (mounted) setState(() => _state = _MicState.idle);
-      return;
+    for (final wanted in _preferredLocales) {
+      for (final id in ids) {
+        if (id.toLowerCase() == wanted.toLowerCase()) return id;
+      }
     }
-
-    final text = await _assistant.transcribe(recording.path);
-    if (!mounted) return;
-
-    setState(() => _state = _MicState.idle);
-
-    if (text == null || text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Could not catch that. Please try again.')),
-      );
-      return;
+    for (final id in ids) {
+      if (id.toLowerCase().startsWith('bn')) return id;
     }
-    widget.onResult(text);
+    return null;
   }
 
   @override
   void dispose() {
-    _silenceTimer?.cancel();
-    _amplitude?.cancel();
-    _recorder.cancelVoiceRecording();
+    _speech.stop();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = widget.colors;
-    final listening = _state == _MicState.listening;
-    final busy = _state == _MicState.transcribing;
 
     return GestureDetector(
-      onTap: widget.enabled && !busy ? _toggle : null,
+      onTap: widget.enabled ? _toggle : null,
       child: Container(
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          // Listening is shown with the app's own accent, not an alarm colour:
-          // dictating is a normal thing to be doing, not a warning.
-          color: listening ? colors.primaryTint : colors.background,
+          // The app's own accent while listening, not an alarm colour —
+          // dictating is a normal thing to be doing.
+          color: _listening ? colors.primaryTint : colors.background,
           shape: BoxShape.circle,
           border: Border.all(
-            color: listening ? colors.primary : colors.border,
-            width: listening ? 1.5 : 1,
+            color: _listening ? colors.primary : colors.border,
+            width: _listening ? 1.5 : 1,
           ),
         ),
-        child: busy
-            ? Padding(
-                padding: const EdgeInsets.all(12),
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(colors.textSecondary),
-                ),
-              )
-            : Icon(
-                listening ? Icons.graphic_eq : Icons.mic_none,
-                size: 20,
-                color: listening ? colors.primary : colors.textSecondary,
-              ),
+        child: Icon(
+          _listening ? Icons.graphic_eq : Icons.mic_none,
+          size: 20,
+          color: _listening ? colors.primary : colors.textSecondary,
+        ),
       ),
     );
   }

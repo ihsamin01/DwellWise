@@ -52,6 +52,7 @@ dependencies:
   google_sign_in: 6.2.1
   shared_preferences: ^2.5.5
   fl_chart: ^1.2.0
+  speech_to_text: ^7.4.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
