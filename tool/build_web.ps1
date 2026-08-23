@@ -58,6 +58,9 @@ if ($key -and (Select-String -Path "build/web/**/*" -Pattern ([regex]::Escape($k
     Write-Error "The API key is present in build/web. Do not publish it."
 }
 
+# Deploying the folder on its own means the repo-root config is not picked up.
+Copy-Item "vercel.json" "build/web/vercel.json" -Force -ErrorAction SilentlyContinue
+
 Write-Host ""
 Write-Host "Built into build/web with base href $BaseHref" -ForegroundColor Cyan
 Write-Host "Deploy with:  npx vercel deploy --prod build/web"
