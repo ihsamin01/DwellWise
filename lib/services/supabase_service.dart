@@ -280,6 +280,16 @@ class SupabaseService {
     }
   }
 
+  /// Listings for [ids], in one query.
+  Future<List<PropertyModel>> getPropertiesByIds(List<String> ids) async {
+    final client = _client;
+    if (client == null || ids.isEmpty) return [];
+
+    final rows =
+        await client.from('properties').select().inFilter('id', ids);
+    return [for (final row in rows) PropertyModel.fromJson(row)];
+  }
+
   /// One listing by id, or null when it does not exist.
   Future<PropertyModel?> getPropertyById(String id) async {
     final client = _client;

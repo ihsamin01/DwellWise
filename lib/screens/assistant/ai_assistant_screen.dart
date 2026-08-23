@@ -19,6 +19,15 @@ class AiAssistantScreen extends StatefulWidget {
 class _AiAssistantScreenState extends State<AiAssistantScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AssistantProvider>().loadRecent();
+    });
+  }
 
   @override
   void dispose() {
@@ -55,7 +64,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     final messages = assistant.messages;
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: colors.background,
+      endDrawer: _HistoryPanel(colors: colors),
       appBar: AppBar(
         backgroundColor: colors.surface,
         elevation: 0,
@@ -74,12 +85,14 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
           ],
         ),
         actions: [
-          if (messages.isNotEmpty)
-            IconButton(
-              tooltip: 'New chat',
-              icon: Icon(Icons.add_comment_outlined, color: colors.primary),
-              onPressed: () => context.read<AssistantProvider>().reset(),
-            ),
+          IconButton(
+            tooltip: 'History',
+            icon: Icon(Icons.add_comment_outlined, color: colors.primary),
+            onPressed: () {
+              context.read<AssistantProvider>().loadRecent();
+              _scaffoldKey.currentState?.openEndDrawer();
+            },
+          ),
         ],
       ),
       body: Column(
@@ -472,6 +485,105 @@ class _ComposerState extends State<_Composer> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Past conversations, opened from the app bar.
+class _HistoryPanel extends StatelessWidget {
+  const _HistoryPanel({required this.colors});
+
+  final AppColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    final assistant = context.watch<AssistantProvider>();
+    final recent = assistant.recent;
+
+    return Drawer(
+      backgroundColor: colors.surface,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  Text(
+                    'Chats',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: colors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: () {
+                      context.read<AssistantProvider>().reset();
+                      Navigator.of(context).pop();
+                    },
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('New'),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: recent.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'No past chats yet.',
+                          style: TextStyle(color: colors.textSecondary),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: recent.length,
+                      itemBuilder: (context, index) {
+                        final chat = recent[index];
+                        final active = chat.id == assistant.conversationId;
+
+                        return ListTile(
+                          selected: active,
+                          selectedTileColor: colors.primaryTint,
+                          leading: Icon(Icons.chat_bubble_outline,
+                              size: 18, color: colors.textSecondary),
+                          title: Text(
+                            chat.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: colors.textPrimary,
+                            ),
+                          ),
+                          trailing: IconButton(
+                            tooltip: 'Delete',
+                            icon: Icon(Icons.delete_outline,
+                                size: 18, color: colors.textSecondary),
+                            onPressed: () => context
+                                .read<AssistantProvider>()
+                                .deleteConversation(chat.id),
+                          ),
+                          onTap: () {
+                            context
+                                .read<AssistantProvider>()
+                                .openConversation(chat.id);
+                            Navigator.of(context).pop();
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

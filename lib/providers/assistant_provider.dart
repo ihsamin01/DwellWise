@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../models/property_model.dart';
+import '../services/assistant_history_service.dart';
 import '../services/assistant_service.dart';
+import '../services/supabase_service.dart';
 import '../utils/language_detect.dart';
 import '../utils/property_matcher.dart';
 
@@ -33,6 +38,8 @@ class AssistantMessage {
 /// Conversation state for the AI assistant tab.
 class AssistantProvider with ChangeNotifier {
   final AssistantService _service = AssistantService();
+  final AssistantHistoryService _history = AssistantHistoryService();
+  final SupabaseService _db = SupabaseService();
 
   final List<AssistantMessage> _messages = [];
   SearchIntent? _intent;
@@ -40,6 +47,16 @@ class AssistantProvider with ChangeNotifier {
 
   /// Whether the last message was Bangla, in either script.
   bool isBangla = false;
+
+  /// The conversation being written to, created on the first message.
+  String? _conversationId;
+
+  List<AssistantConversation> _recent = const [];
+
+  /// Past conversations, most recently used first.
+  List<AssistantConversation> get recent => _recent;
+
+  String? get conversationId => _conversationId;
 
   List<AssistantMessage> get messages => List.unmodifiable(_messages);
   SearchIntent? get intent => _intent;
@@ -65,6 +82,7 @@ class AssistantProvider with ChangeNotifier {
       role: AssistantRole.user,
       text: message,
     ));
+    unawaited(_remember(role: 'user', content: message));
     _messages.add(const AssistantMessage(
       role: AssistantRole.assistant,
       text: '',
@@ -93,6 +111,7 @@ class AssistantProvider with ChangeNotifier {
           role: AssistantRole.assistant,
           text: reading.reply!,
         ));
+        unawaited(_remember(role: 'assistant', content: reading.reply!));
         return;
       }
 
@@ -112,12 +131,18 @@ class AssistantProvider with ChangeNotifier {
       final result = await _service.search(intent);
       final reply = await _service.writeReply(intent: intent, result: result);
 
+      final shown = result.matches.take(AssistantService.displayLimit).toList();
       _replacePending(AssistantMessage(
         role: AssistantRole.assistant,
         text: reply,
-        matches: result.matches.take(AssistantService.displayLimit).toList(),
+        matches: shown,
         cheaperNearby: result.cheaperNearby,
         requirements: intent,
+      ));
+      unawaited(_remember(
+        role: 'assistant',
+        content: reply,
+        propertyIds: [for (final m in shown) m.property.id],
       ));
     } on AssistantUnavailable {
       // Never reached the service.
@@ -140,11 +165,102 @@ class AssistantProvider with ChangeNotifier {
     }
   }
 
-  /// Starts over — used by "new chat".
+  /// Starts a fresh conversation. The old one stays in the history.
   void reset() {
     _messages.clear();
     _intent = null;
+    _conversationId = null;
     notifyListeners();
+  }
+
+  /// Reloads the history list shown in the side panel.
+  Future<void> loadRecent() async {
+    try {
+      _recent = await _history.recent();
+      notifyListeners();
+    } catch (_) {
+      // Leave whatever is already listed.
+    }
+  }
+
+  /// Reopens a past conversation.
+  Future<void> openConversation(String conversationId) async {
+    _conversationId = conversationId;
+    _messages.clear();
+    _isBusy = true;
+    notifyListeners();
+
+    try {
+      final stored = await _history.messages(conversationId);
+
+      // One query for every listing mentioned across the conversation, so the
+      // cards come back with the replies that showed them.
+      final ids = <String>{
+        for (final m in stored) ...m.propertyIds,
+      };
+      final properties = <String, PropertyModel>{
+        for (final p in await _db.getPropertiesByIds(ids.toList())) p.id: p,
+      };
+
+      for (final m in stored) {
+        _messages.add(AssistantMessage(
+          role: m.isUser ? AssistantRole.user : AssistantRole.assistant,
+          text: m.content,
+          matches: [
+            for (final id in m.propertyIds)
+              if (properties[id] != null)
+                MatchResult(
+                  property: properties[id]!,
+                  score: 100,
+                  matched: const [],
+                  shortfalls: const [],
+                ),
+          ],
+        ));
+      }
+    } catch (_) {
+      _messages.add(const AssistantMessage(
+        role: AssistantRole.assistant,
+        text: 'Could not load that conversation.',
+      ));
+    } finally {
+      _isBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteConversation(String conversationId) async {
+    _recent = [for (final c in _recent) if (c.id != conversationId) c];
+    if (_conversationId == conversationId) reset();
+    notifyListeners();
+    try {
+      await _history.delete(conversationId);
+    } catch (_) {
+      await loadRecent();
+    }
+  }
+
+  /// Writes a turn to the current conversation, starting one if needed.
+  Future<void> _remember({
+    required String role,
+    required String content,
+    List<String> propertyIds = const [],
+  }) async {
+    try {
+      _conversationId ??= await _history.create(content);
+      final id = _conversationId;
+      if (id == null) return;
+
+      await _history.addMessage(
+        conversationId: id,
+        role: role,
+        content: content,
+        propertyIds: propertyIds,
+      );
+      await loadRecent();
+    } catch (_) {
+      // History is a convenience; a failure here must not break the reply.
+    }
   }
 
   String _askForArea(SearchIntent intent, String? profileAddress) {
