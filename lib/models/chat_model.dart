@@ -11,8 +11,7 @@ class ChatModel {
   final bool isTyping;
   final String? lastMessageSenderId;
 
-  /// The person on the other side — their account id and phone, so the thread
-  /// can place a call without looking anything up again.
+  /// The person on the other side — their account id and phone.
   final String? otherUserId;
   final String? otherUserPhone;
   final String? lastMessageType;

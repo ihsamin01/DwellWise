@@ -16,10 +16,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 /// Which sign-in the user started.
-///
-/// AuthProvider.isLoading is shared by both paths, so driving the spinner
-/// from it made the Sign In button spin when Google was tapped. Tracking
-/// the method here keeps the spinner on the button that was pressed.
 enum _SignInMethod { none, password, google }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -42,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (value == null || value.trim().isEmpty) {
       return 'Please enter your phone number';
     }
-    // Matches 10 digits after +880 (e.g. 1712345678)
+    // Matches 10 digits after +880 (e.g.
     final phoneRegex = RegExp(r'^1[3-9]\d{8}$');
     if (!phoneRegex.hasMatch(value.trim())) {
       return 'Please enter a valid mobile number (e.g. 1712345678)';
@@ -85,8 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
             backgroundColor: const Color(0xffDC2626),
           ),
         );
-        // Carry the Google email/name across so the account is registered under
-        // the exact same address the next Google sign-in will look up.
+        // Carry the Google email/name across so the account is registered under.
         context.push(
           Uri(
             path: '/register',
@@ -168,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 40), // Top Spacing
 
-                // Centered Logo
+                // Centered Logo.
                 Center(
                   child: Container(
                     width: 80,
@@ -186,7 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Welcome Headings
+                // Welcome Headings.
                 Text(
                   'Welcome Back',
                   style: TextStyle(
@@ -207,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Form section - Phone Number
+                // Form section - Phone Number.
                 Text(
                   'PHONE NUMBER',
                   style: TextStyle(
@@ -277,7 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20), // Form vertical gap
 
-                // Password Field
+                // Password Field.
                 Text(
                   'PASSWORD',
                   style: TextStyle(
@@ -339,7 +334,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Keep me signed in & Forgot password row
+                // Keep me signed in & Forgot password row.
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -383,7 +378,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24), // Section gap
 
-                // Sign In Button
+                // Sign In Button.
                 _CTAButton(
                   text: 'Sign In',
                   isLoading: _inFlight == _SignInMethod.password,
@@ -391,7 +386,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // OR Continue section
+                // OR Continue section.
                 Row(
                   children: [
                     Expanded(child: Divider(color: colors.border)),
@@ -411,14 +406,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Google sign-in button ONLY (No Facebook button)
+                // Google sign-in button ONLY (No Facebook button).
                 _GoogleSignInButton(
                   isLoading: _inFlight == _SignInMethod.google,
                   onTap: _handleGoogleSignIn,
                 ),
                 const SizedBox(height: 32),
 
-                // Bottom register section
+                // Bottom register section.
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -544,8 +539,7 @@ class _GoogleSignInButton extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: isLoading
-            // Sized to the Google 'G' so swapping it for the spinner does not
-            // shift the button's height.
+            // Sized to the Google 'G' so swapping it for the spinner does not.
             ? const SizedBox(
                 width: 20,
                 height: 20,
@@ -566,8 +560,7 @@ class _GoogleSignInButton extends StatelessWidget {
                   const Text(
                     'Continue with Google',
                     style: TextStyle(
-                      // Google brand guideline text colour (dark grey), fixed
-                      // regardless of app theme so the button reads as official.
+                      // Google brand guideline text colour (dark grey).
                       color: Color(0xff3C4043),
                       fontSize: 15,
                       fontWeight: FontWeight.w500,

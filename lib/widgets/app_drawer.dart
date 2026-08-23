@@ -9,8 +9,7 @@ import '../providers/user_provider.dart';
 import '../providers/recently_viewed_provider.dart';
 import '../providers/saved_properties_provider.dart';
 
-/// App-wide navigation drawer opened from the hamburger icon, listing
-/// account/profile/settings destinations.
+/// App-wide navigation drawer opened from the hamburger icon.
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
@@ -20,9 +19,7 @@ class AppDrawer extends StatelessWidget {
     final user = context.watch<UserProvider>().userModel;
 
     void navigateTo(String path) {
-      // Deliberately not closing the drawer first: leaving it open means
-      // popping back from the destination screen reveals Home with the
-      // sidebar still open, instead of dropping the user on bare Home.
+      // Deliberately not closing the drawer first.
       context.push(path);
     }
 
@@ -91,8 +88,7 @@ class AppDrawer extends StatelessWidget {
                     label: AppStrings.t(context, 'menu_notifications'),
                     onTap: () => navigateTo('/profile/notifications'),
                   ),
-                  // Language lives in the home app bar now, as a one-tap
-                  // toggle rather than a menu item behind two screens.
+                  // Language lives in the home app bar now.
                   _DrawerTile(
                     icon: Icons.dark_mode_outlined,
                     label: AppStrings.t(context, 'menu_dark_mode'),
@@ -133,9 +129,7 @@ class AppDrawer extends StatelessWidget {
                       final confirmed = await showDialog<bool>(
                         context: context,
                         builder: (dialogContext) => AlertDialog(
-                          // Was hardcoded white, which left the title and body
-                          // invisible in dark mode: the surface stayed white
-                          // while the theme's text turned light.
+                          // Was hardcoded white, which left the title and body.
                           backgroundColor: AppColors.of(dialogContext).surface,
                           elevation: 8,
                           shape: RoundedRectangleBorder(

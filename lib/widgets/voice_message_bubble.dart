@@ -3,8 +3,7 @@ import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
-/// Playable voice-note bubble. Plays a locally recorded `.m4a` file with a
-/// play/pause button and a seek progress bar.
+/// Playable voice-note bubble.
 class VoiceMessageBubble extends StatefulWidget {
   const VoiceMessageBubble({
     super.key,
@@ -62,8 +61,6 @@ class _VoiceMessageBubbleState extends State<VoiceMessageBubble> {
       await _player.pause();
     } else {
       // Attachments are uploaded now, so the path is usually an https URL.
-      // Treating it as a file made every sent voice note unplayable, even for
-      // the person who recorded it.
       if (widget.path.startsWith('http')) {
         await _player.play(UrlSource(widget.path));
         return;

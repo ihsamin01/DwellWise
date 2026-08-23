@@ -11,9 +11,7 @@ import '../../providers/search_filters_provider.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/property_card.dart';
 
-/// Dedicated results page reached from the Search screen. Shows a compact
-/// summary of the selected filters with a sort control, and the matching
-/// (dummy) rental listings below.
+/// Dedicated results page reached from the Search screen.
 class SearchResultsScreen extends StatefulWidget {
   const SearchResultsScreen({super.key});
 
@@ -54,8 +52,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       debugPrint('Search failed: $e');
     }
 
-    // Include anything already loaded locally that matches (e.g. a listing the
-    // user just posted), without duplicating rows the query already returned.
+    // Include anything already loaded locally that matches (e.g.
     final locality = (fp.area.isNotEmpty
             ? fp.area
             : fp.thana.isNotEmpty
@@ -127,7 +124,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
 
     final results = _sorted(filterProvider.sortBy);
 
-    // Selected filter chips (compact): location parts + type.
+    // Selected filter chips (compact).
     final chips = <String>[
       if (filterProvider.division.isNotEmpty) filterProvider.division,
       if (filterProvider.district.isNotEmpty) filterProvider.district,
@@ -179,7 +176,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           ),
           Container(height: 1, color: colors.border),
 
-          // Results
+          // Results.
           Expanded(
             child: results.isEmpty
                 ? Center(

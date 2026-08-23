@@ -7,10 +7,6 @@ import '../config/ai_config.dart';
 import '../models/property_model.dart';
 
 /// Service interfacing with Google Gemini for the AI Recommended feed.
-///
-/// The API key is loaded lazily: a `--dart-define` override first, otherwise
-/// the gitignored `assets/secrets/gemini.json`. If neither is available the
-/// service stays disabled and callers fall back to the offline ranking.
 class GeminiService {
   GenerativeModel? _model;
   bool _initialised = false;
@@ -38,17 +34,12 @@ class GeminiService {
   }
 
   /// The initialised model, or null when no API key is available.
-  ///
-  /// Exposed so other features (the assistant) reuse this one key-loading
-  /// path instead of repeating it.
   Future<GenerativeModel?> model() async {
     await _ensureInitialised();
     return _model;
   }
 
-  /// Asks Gemini to rank [candidates] for a user living at [userLocation] and
-  /// returns the property ids ordered from most to least relevant. Returns an
-  /// empty list on any error so the caller can fall back to local ranking.
+  /// Asks Gemini to rank [candidates] for a user living at [userLocation] and.
   Future<List<String>> recommendPropertyIds({
     required String userLocation,
     required List<PropertyModel> candidates,

@@ -31,16 +31,12 @@ class TenantPropertyDetailsScreen extends StatefulWidget {
 class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScreen> {
   bool _isDescriptionExpanded = false;
 
-  /// Loaded straight from the database when the feed does not hold this
-  /// property — the normal case for an assistant result, a saved item or a
-  /// deep link, since the feed only ever holds a slice of the catalogue.
+  /// Loaded straight from the database when the feed does not hold this.
   PropertyModel? _fetched;
   bool _loading = false;
   bool _notFound = false;
 
   /// The owner's own profile, when the listing belongs to a real account.
-  /// Without it the screen showed a name invented from the owner id, which
-  /// then disagreed with the name on the conversation.
   Map<String, dynamic>? _ownerProfile;
 
   @override
@@ -106,12 +102,9 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
     );
   }
 
-  /// Opens the native Android share sheet (WhatsApp, Messenger, Bluetooth,
-  /// Instagram, etc.) with a description and a deep link that reopens this
-  /// exact property inside the app.
+  /// Opens the native Android share sheet (WhatsApp, Messenger.
   Future<void> _shareProperty(BuildContext context, PropertyModel property) async {
-    // Clickable https link (works in WhatsApp/Messenger/etc). The hosted page
-    // redirects to the dwellwise://property/<id> deep link and opens the app.
+    // Clickable https link (works in WhatsApp/Messenger/etc).
     final link = 'https://ihsamin01.github.io/DwellWise/?id=${property.id}';
     final price =
         '৳${property.price.toInt()}${property.priceFor.isNotEmpty ? ' / ${property.priceFor}' : ''}';
@@ -176,9 +169,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
 
     final allProperties = propertyProvider.lookupPool;
 
-    // The feed first, then whatever was fetched by id. There is deliberately
-    // no stand-in here: this used to fall back to a hardcoded flat, so every
-    // listing the feed did not hold opened that same invented property.
+    // The feed first, then whatever was fetched by id.
     PropertyModel? found;
     for (final p in allProperties) {
       if (p.id == widget.propertyId) {
@@ -187,8 +178,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
       }
     }
 
-    // Final so the null check below promotes it inside the callbacks further
-    // down, which a reassignable local would not.
+    // Final so the null check below promotes it inside the callbacks further.
     final property = found ?? _fetched;
     if (property == null) {
       return _buildPlaceholder(colors);
@@ -260,13 +250,13 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 1. IMAGE CAROUSEL SECTION (300px height)
+            // 1.
             SizedBox(
               height: 300,
               child: Stack(
                 children: [
                   _DetailsCarousel(imageUrls: property.imageUrls),
-                  // Verified Badge (top-left)
+                  // Verified Badge (top-left).
                   if (property.isVerified)
                     Positioned(
                       top: 16,
@@ -298,7 +288,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
               ),
             ),
 
-            // 2. PROPERTY INFO SECTION (white card, no border)
+            // 2.
             Container(
               color: colors.surface,
               padding: const EdgeInsets.all(20.0),
@@ -350,7 +340,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
             ),
             const SizedBox(height: 8),
 
-            // 3. LOCATION SECTION (white card)
+            // 3.
             Container(
               color: colors.surface,
               padding: const EdgeInsets.all(20.0),
@@ -387,7 +377,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
             ),
             const SizedBox(height: 8),
 
-            // 4. KEY INFO ROW (white card)
+            // 4.
             Container(
               color: colors.surface,
               padding: const EdgeInsets.all(20.0),
@@ -402,7 +392,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
             ),
             const SizedBox(height: 8),
 
-            // 5. KEY FACILITIES SECTION (white card)
+            // 5.
             Container(
               color: colors.surface,
               padding: const EdgeInsets.all(20.0),
@@ -424,7 +414,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
             ),
             const SizedBox(height: 8),
 
-            // 6. ABOUT PROPERTY SECTION (white card)
+            // 6.
             Container(
               color: colors.surface,
               padding: const EdgeInsets.all(20.0),
@@ -471,7 +461,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
             ),
             const SizedBox(height: 8),
 
-            // 7. LOCATION MAP SECTION (white card)
+            // 7.
             Container(
               color: colors.surface,
               padding: const EdgeInsets.all(20.0),
@@ -516,7 +506,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
             ),
             const SizedBox(height: 8),
 
-            // 8. PROPERTY OWNER SECTION (white card with border left)
+            // 8.
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 0),
               decoration: BoxDecoration(
@@ -540,7 +530,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      // Owner Photo circle
+                      // Owner Photo circle.
                       Container(
                         width: 48,
                         height: 48,
@@ -551,7 +541,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                         child: Icon(Icons.person, color: colors.primary, size: 28),
                       ),
                       const SizedBox(width: 12),
-                      // Details
+                      // Details.
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -596,18 +586,17 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
             ),
             const SizedBox(height: 8),
 
-            // 9. CONTACT SECTION (white card buttons)
+            // 9.
             Container(
               color: colors.surface,
               padding: const EdgeInsets.all(20.0),
               child: Row(
                 children: [
-                  // Message Button
+                  // Message Button.
                   Expanded(
                     child: GestureDetector(
                       onTap: () async {
-                        // The chat row has to exist before it can be opened,
-                        // so both sides land on the same conversation id.
+                        // The chat row has to exist before it can be opened,.
                         final messenger = ScaffoldMessenger.of(context);
                         final chatId = await context
                             .read<ChatProvider>()
@@ -657,7 +646,7 @@ class _TenantPropertyDetailsScreenState extends State<TenantPropertyDetailsScree
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Contact Owner Phone Button
+                  // Contact Owner Phone Button.
                   Expanded(
                     child: GestureDetector(
                       onTap: () => _callOwner(context, owner.phone),
@@ -831,8 +820,7 @@ class GridItemFacilities extends StatelessWidget {
     final colors = AppColors.of(context);
     final list = facilities.isEmpty ? ['WiFi', 'Parking', 'Gym', 'Security'] : facilities;
 
-    // Render facilities as rows of two so the card wraps its content exactly
-    // (a shrink-wrapped GridView reserves extra vertical space).
+    // Render facilities as rows of two so the card wraps its content exactly.
     final rows = <Widget>[];
     for (var i = 0; i < list.length; i += 2) {
       final hasSecond = i + 1 < list.length;

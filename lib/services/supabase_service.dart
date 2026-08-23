@@ -30,12 +30,7 @@ class SupabaseService {
         .toList();
   }
 
-  /// Fetches listings in [area] — used for the location-aware AI Recommended
-  /// feed.
-  ///
-  /// [city] disambiguates place names that exist in more than one division
-  /// (e.g. Chawkbazar is in both Dhaka and Chattogram): when given, only
-  /// listings whose address also mentions that city are returned.
+  /// Fetches listings in [area].
   Future<List<PropertyModel>> getPropertiesByArea(
     String area, {
     String? city,
@@ -62,10 +57,7 @@ class SupabaseService {
         .toList();
   }
 
-  /// Searches approved listings by location. Matching is done on the address,
-  /// which holds "<thana/area>, <district>", so an area, a thana or a whole
-  /// district all resolve. [district] narrows names that repeat across the
-  /// country (Kotwali, New Market, Sadar …).
+  /// Searches approved listings by location.
   Future<List<PropertyModel>> searchProperties({
     String? area,
     String? thana,
@@ -99,9 +91,7 @@ class SupabaseService {
           .toList();
     }
 
-    // Most specific first, widening until something matches: a neighbourhood
-    // like "Kalai Sadar" has no listings of its own, so fall back to its thana
-    // ("Kalai") and then to the district.
+    // Most specific first, widening until something matches.
     for (final locality in [area, thana, district]) {
       final term = locality?.trim() ?? '';
       if (term.isEmpty) continue;
@@ -111,9 +101,7 @@ class SupabaseService {
     return [];
   }
 
-  /// Fetches the listings posted by the signed-in user (newest first), so
-  /// "My properties" survives an app restart. Includes listings of any status
-  /// because Row Level Security lets an owner see their own rows.
+  /// Fetches the listings posted by the signed-in user (newest first).
   Future<List<PropertyModel>> getMyProperties() async {
     final client = _client;
     final uid = client?.auth.currentUser?.id;
@@ -135,13 +123,11 @@ class SupabaseService {
     try {
       await client.from('properties').delete().eq('id', propertyId);
     } catch (_) {
-      // Non-fatal: it still disappears from this session's list.
+      // Non-fatal.
     }
   }
 
-  /// Uploads listing photos to the public `property-images` bucket and returns
-  /// their public URLs, so the same images render on every device. Files that
-  /// fail to upload are skipped rather than failing the whole post.
+  /// Uploads listing photos to the public `property-images` bucket and returns.
   Future<List<String>> uploadPropertyImages(List<File> files) async {
     final client = _client;
     if (client == null || files.isEmpty) return [];
@@ -165,10 +151,7 @@ class SupabaseService {
     return urls;
   }
 
-  /// Inserts a new property listing. Row Level Security only accepts rows owned
-  /// by the signed-in user, so the caller's owner id is replaced with their auth
-  /// id. Failures are non-fatal: the listing still appears locally for the
-  /// session, it just isn't persisted.
+  /// Inserts a new property listing.
   Future<void> createProperty(PropertyModel property) async {
     final client = _client;
     if (client == null) return;
@@ -198,9 +181,7 @@ class SupabaseService {
     }
   }
 
-  /// Uploads NID/passport photos to the private `verification-docs` bucket and
-  /// returns their storage paths. Failures are skipped so a flaky upload does
-  /// not block the verification itself.
+  /// Uploads NID/passport photos to the private `verification-docs` bucket and.
   Future<List<String>> uploadVerificationDocs(List<File> files) async {
     final client = _client;
     final uid = client?.auth.currentUser?.id;
@@ -222,8 +203,7 @@ class SupabaseService {
     return paths;
   }
 
-  /// Records the verification request and marks the profile verified. The app
-  /// has no admin review step, so payment completes the process immediately.
+  /// Records the verification request and marks the profile verified.
   Future<bool> submitVerification({
     required String fullName,
     required String governmentId,
@@ -242,7 +222,7 @@ class SupabaseService {
         'status': 'verified',
       });
     } catch (_) {
-      // Keep going: the profile flag below is what the UI reads.
+      // Keep going.
     }
 
     try {
@@ -264,8 +244,7 @@ class SupabaseService {
     }
   }
 
-  /// Fetches the ids of properties the signed-in user has saved/favorited, so
-  /// the saved list survives logging out and back in (or reinstalling).
+  /// Fetches the ids of properties the signed-in user has saved/favorited.
   Future<Set<String>> getSavedPropertyIds() async {
     final client = _client;
     final uid = client?.auth.currentUser?.id;
@@ -283,14 +262,7 @@ class SupabaseService {
     }
   }
 
-  /// Persists a favorite. Non-fatal: the local save already reflects the
-  /// change even if this write is rejected (e.g. a demo property that has no
-  /// matching row in the `properties` table).
-  /// Public display details for a listing's owner.
-  ///
-  /// Returns null when the owner is not an account, which is the case for the
-  /// seeded placeholder ids — the caller then falls back to the local
-  /// directory rather than showing a blank owner.
+  /// Persists a favorite.
   Future<Map<String, dynamic>?> getOwnerProfile(String ownerId) async {
     final client = _client;
     if (client == null || ownerId.isEmpty) return null;
@@ -303,16 +275,12 @@ class SupabaseService {
           .limit(1);
       return rows.isEmpty ? null : rows.first;
     } catch (_) {
-      // Not a uuid, so not an account: nothing to show.
+      // Not a uuid, so not an account.
       return null;
     }
   }
 
   /// One listing by id, or null when it does not exist.
-  ///
-  /// Needed because a property can be opened from somewhere that never loaded
-  /// the feed — an assistant result, a deep link, a saved item — and the feed
-  /// only holds a slice of the catalogue.
   Future<PropertyModel?> getPropertyById(String id) async {
     final client = _client;
     if (client == null || id.isEmpty) return null;
@@ -324,9 +292,6 @@ class SupabaseService {
   }
 
   /// Approved listings whose area name contains [area].
-  ///
-  /// The first thing the assistant tries: someone asking for ECB means the
-  /// neighbourhood by name, not a radius around a point.
   Future<List<PropertyModel>> getApprovedPropertiesInArea(
     String area, {
     int limit = 200,
@@ -347,11 +312,6 @@ class SupabaseService {
   }
 
   /// Approved listings inside a bounding box around a point.
-  ///
-  /// A box rather than a true radius because the database has no PostGIS
-  /// support; the caller narrows it to a real circle with [distanceKm]. One
-  /// degree of latitude is ~111 km, and longitude is scaled by the latitude so
-  /// the box does not stretch east-west.
   Future<List<PropertyModel>> getApprovedPropertiesNear({
     required double latitude,
     required double longitude,
@@ -380,15 +340,6 @@ class SupabaseService {
   }
 
   /// The signed-in user's saved properties, newest save first.
-  ///
-  /// Joined against `properties` in one query rather than filtered out of the
-  /// in-memory feed: the feed only holds a slice of the catalogue, so a save
-  /// whose property is not in that slice would vanish from the list even
-  /// though the row is still in the database.
-  ///
-  /// Deliberately does not swallow errors — the caller has to tell a failed
-  /// fetch apart from an empty list, or a dropped request looks like the user
-  /// having saved nothing.
   Future<List<PropertyModel>> getSavedProperties({int limit = 100}) async {
     final client = _client;
     final uid = client?.auth.currentUser?.id;
@@ -440,8 +391,7 @@ class SupabaseService {
     }
   }
 
-  /// Fetches the signed-in user's most recently viewed property ids (newest
-  /// first), so the history survives logging out and back in.
+  /// Fetches the signed-in user's most recently viewed property ids (newest.
   Future<List<String>> getRecentlyViewedIds({int limit = 5}) async {
     final client = _client;
     final uid = client?.auth.currentUser?.id;
@@ -461,9 +411,7 @@ class SupabaseService {
     }
   }
 
-  /// Records (or bumps the recency of) a property view. Non-fatal: the local
-  /// history already reflects the change even if this write is rejected
-  /// (e.g. a demo property that has no matching row in `properties`).
+  /// Records (or bumps the recency of) a property view.
   Future<void> recordPropertyView(String propertyId) async {
     final client = _client;
     final uid = client?.auth.currentUser?.id;

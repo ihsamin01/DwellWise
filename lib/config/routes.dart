@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-// Screen imports
+// Screen imports.
 import '../screens/common/splash_screen.dart';
 import '../screens/common/onboarding_screen.dart';
 import '../screens/assistant/ai_assistant_screen.dart';
@@ -50,7 +50,7 @@ class AppRoutes {
   static final GoRouter router = GoRouter(
     initialLocation: '/',
     routes: [
-      // Common routes
+      // Common routes.
       GoRoute(
         path: '/',
         builder: (context, state) => const SplashScreen(),
@@ -68,7 +68,7 @@ class AppRoutes {
         builder: (context, state) => const NotificationsScreen(),
       ),
 
-      // Auth routes
+      // Auth routes.
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
@@ -89,7 +89,7 @@ class AppRoutes {
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
 
-      // Tenant routes
+      // Tenant routes.
       GoRoute(
         path: '/tenant-home',
         builder: (context, state) => const MainTabsShell(initialIndex: 0),
@@ -153,7 +153,7 @@ class AppRoutes {
         builder: (context, state) => const MainTabsShell(initialIndex: 4),
       ),
 
-      // Owner routes
+      // Owner routes.
       GoRoute(
         path: '/owner-home',
         builder: (context, state) => const OwnerHomeScreen(),
@@ -178,7 +178,7 @@ class AppRoutes {
         builder: (context, state) => const OwnerInquiriesScreen(),
       ),
 
-      // Admin routes
+      // Admin routes.
       GoRoute(
         path: '/admin-dashboard',
         builder: (context, state) => const AdminDashboardScreen(),
@@ -192,7 +192,7 @@ class AppRoutes {
         builder: (context, state) => const AdminReportedListingsScreen(),
       ),
 
-      // Chat route
+      // Chat route.
       GoRoute(
         path: '/chat/:chatId',
         builder: (context, state) {
@@ -201,7 +201,7 @@ class AppRoutes {
         },
       ),
 
-      // Profile menu routes
+      // Profile menu routes.
       GoRoute(
         path: '/profile/edit',
         builder: (context, state) => const EditProfileScreen(),

@@ -33,8 +33,7 @@ class _MainTabsShellState extends State<MainTabsShell> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex.clamp(0, 5);
-    // Load the signed-in user's profile (covers restored "keep me signed in"
-    // sessions where login handlers didn't run).
+    // Load the signed-in user's profile (covers restored "keep me signed in".
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<UserProvider>().loadCurrentUserProfile();
     });

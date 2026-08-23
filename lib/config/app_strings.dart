@@ -3,18 +3,13 @@ import 'package:provider/provider.dart';
 import '../data/bd_locations_bn.dart';
 import '../providers/locale_provider.dart';
 
-/// Central translation table for app chrome text — navigation labels, menu
-/// items, form labels, and common buttons.
-///
-/// To support another language: add its code as a new top-level key in
-/// [_translations] with the same key set as 'en', then add a matching
-/// [AppLanguage] value.
+/// Central translation table for app chrome text — navigation labels.
 class AppStrings {
   AppStrings._();
 
   static const Map<String, Map<String, String>> _translations = {
     'en': {
-      // Bottom navigation
+      // Bottom navigation.
       'home': 'Home',
       'search': 'Search',
       'assistant': 'Assistant',
@@ -22,7 +17,7 @@ class AppStrings {
       'messages': 'Messages',
       'profile': 'Profile',
 
-      // Drawer / settings menu
+      // Drawer / settings menu.
       'menu_edit_profile': 'Edit Profile',
       'menu_change_password': 'Change Password',
       'menu_account_security': 'Account & Security',
@@ -36,7 +31,7 @@ class AppStrings {
       'menu_rate': 'Rate the App',
       'menu_logout': 'Logout',
 
-      // Common buttons / words
+      // Common buttons / words.
       'save_changes': 'Save Changes',
       'cancel': 'Cancel',
       'submit': 'Submit',
@@ -55,7 +50,7 @@ class AppStrings {
       'logout_confirm_title': 'Logout',
       'logout_confirm_message': 'Are you sure you want to logout?',
 
-      // Language / theme screens
+      // Language / theme screens.
       'language_title': 'Language',
       'language_english': 'English',
       'language_bangla': 'বাংলা',
@@ -64,7 +59,7 @@ class AppStrings {
       'theme_dark': 'Dark',
       'theme_system': 'System Default',
 
-      // Profile hub
+      // Profile hub.
       'guest_user': 'Guest User',
       'p_acc_verif': 'Account Verification',
       'p_acc_verif_sub': 'Verify your account to get more benefits',
@@ -86,7 +81,7 @@ class AppStrings {
       'verif_pending': 'Verification pending',
       'verif_none': 'Not verified',
 
-      // Account verification
+      // Account verification.
       'av_info': 'Verify your identity to earn a green badge and unlock more trust from renters. A ৳200 fee applies.',
       'av_fullname': 'Full name (as per NID)',
       'av_fullname_hint': 'e.g. Isbat Samin',
@@ -113,7 +108,7 @@ class AppStrings {
       'av_pending_desc': 'We received your details and ৳200 fee. An admin will review and approve your account shortly.',
       'av_simulate': 'Simulate admin approval',
 
-      // Add property
+      // Add property.
       'ap_title': 'Rent your property',
       'ap_tab_basic': 'Basic',
       'ap_tab_location': 'Location',
@@ -171,34 +166,34 @@ class AppStrings {
       'ap_post_failed': 'Could not post the property. Please try again.',
       'ap_maps_failed': 'Could not open Google Maps.',
 
-      // Months
+      // Months.
       'month_January': 'January', 'month_February': 'February', 'month_March': 'March',
       'month_April': 'April', 'month_May': 'May', 'month_June': 'June',
       'month_July': 'July', 'month_August': 'August', 'month_September': 'September',
       'month_October': 'October', 'month_November': 'November', 'month_December': 'December',
 
-      // Short month labels for chart axes
+      // Short month labels for chart axes.
       'mshort_1': 'Jan', 'mshort_2': 'Feb', 'mshort_3': 'Mar', 'mshort_4': 'Apr',
       'mshort_5': 'May', 'mshort_6': 'Jun', 'mshort_7': 'Jul', 'mshort_8': 'Aug',
       'mshort_9': 'Sep', 'mshort_10': 'Oct', 'mshort_11': 'Nov', 'mshort_12': 'Dec',
 
-      // Property types
+      // Property types.
       'type_Family': 'Family', 'type_Bachelor': 'Bachelor', 'type_Office room': 'Office room',
       'type_Sublet': 'Sublet', 'type_Hostel': 'Hostel', 'type_Flat': 'Flat',
       'type_Apartment': 'Apartment', 'type_Studio': 'Studio', 'type_Seat Rent': 'Seat Rent',
 
-      // Billing periods
+      // Billing periods.
       'period_Monthly': 'Monthly', 'period_Weekly': 'Weekly', 'period_Daily': 'Daily',
 
-      // Bills
+      // Bills.
       'bill_Electricity bill': 'Electricity bill', 'bill_Gas bill': 'Gas bill',
       'bill_Water bill': 'Water bill', 'bill_Internet': 'Internet',
       'bill_Service charge': 'Service charge',
 
-      // Features
+      // Features.
       'feat_LIFT': 'LIFT', 'feat_GARAGE': 'GARAGE', 'feat_CCTV': 'CCTV', 'feat_GAS': 'GAS',
 
-      // My properties
+      // My properties.
       'mp_owner_badge': 'Owner',
       'mp_no_phone': 'No phone added',
       'spec_bed': 'Bed', 'spec_bath': 'Bath', 'spec_balcony': 'Balcony',
@@ -211,7 +206,7 @@ class AppStrings {
       'mp_delete_suffix': 'from your properties?',
       'mp_removed': 'Listing removed.',
 
-      // Purchase history
+      // Purchase history.
       'ph_total': 'Total rent paid',
       'ph_one_rented': 'property rented',
       'ph_many_rented': 'properties rented',
@@ -219,7 +214,7 @@ class AppStrings {
       'ph_rented': 'Rented',
       'per_month': 'per month',
 
-      // Analytics dashboard
+      // Analytics dashboard.
       'an_tab_owner': 'As owner',
       'an_tab_renter': 'As renter',
       'an_earned_total': 'Total earned',
@@ -247,7 +242,7 @@ class AppStrings {
       'an_empty_renter': 'You have not rented any property yet.',
       'an_demo_note': 'Demo data — real figures will appear once deals are recorded in the app.',
 
-      // Home feed
+      // Home feed.
       'home_hero_title': 'Find Your Perfect Home',
       'home_hero_subtitle': 'Explore amazing properties in your city',
       'home_recently_viewed': 'Recently Viewed',
@@ -256,7 +251,7 @@ class AppStrings {
       'sort': 'Sort',
       'filter': 'Filter',
 
-      // Search filters. '{}' is replaced with the filter's own name.
+      // Search filters.
       'flt_division': 'Division',
       'flt_district': 'District',
       'flt_thana': 'Thana',
@@ -267,14 +262,14 @@ class AppStrings {
       'flt_need_first_fmt': 'Please select a {} first',
       'flt_no_options': 'No options available.',
 
-      // Saved properties
+      // Saved properties.
       'saved_title': 'Saved Properties',
       'saved_empty_title': 'No saved properties yet',
       'saved_empty_subtitle': 'Start exploring and save your favorites',
       'saved_explore_cta': 'Explore Properties',
     },
     'bn': {
-      // Bottom navigation
+      // Bottom navigation.
       'home': 'হোম',
       'search': 'সার্চ',
       'assistant': 'সহকারী',
@@ -282,7 +277,7 @@ class AppStrings {
       'messages': 'মেসেজ',
       'profile': 'প্রোফাইল',
 
-      // Drawer / settings menu
+      // Drawer / settings menu.
       'menu_edit_profile': 'প্রোফাইল এডিট করুন',
       'menu_change_password': 'পাসওয়ার্ড পরিবর্তন করুন',
       'menu_account_security': 'অ্যাকাউন্ট ও সিকিউরিটি',
@@ -296,7 +291,7 @@ class AppStrings {
       'menu_rate': 'অ্যাপ রেট করুন',
       'menu_logout': 'লগ আউট',
 
-      // Common buttons / words
+      // Common buttons / words.
       'save_changes': 'পরিবর্তন সংরক্ষণ করুন',
       'cancel': 'বাতিল',
       'submit': 'জমা দিন',
@@ -315,7 +310,7 @@ class AppStrings {
       'logout_confirm_title': 'লগ আউট',
       'logout_confirm_message': 'আপনি কি লগ আউট করতে নিশ্চিত?',
 
-      // Language / theme screens
+      // Language / theme screens.
       'language_title': 'ভাষা',
       'language_english': 'English',
       'language_bangla': 'বাংলা',
@@ -324,7 +319,7 @@ class AppStrings {
       'theme_dark': 'ডার্ক',
       'theme_system': 'সিস্টেম ডিফল্ট',
 
-      // Profile hub
+      // Profile hub.
       'guest_user': 'গেস্ট ইউজার',
       'p_acc_verif': 'অ্যাকাউন্ট ভেরিফিকেশন',
       'p_acc_verif_sub': 'বেশি সুবিধা পেতে আপনার অ্যাকাউন্ট ভেরিফাই করুন',
@@ -346,7 +341,7 @@ class AppStrings {
       'verif_pending': 'ভেরিফিকেশন পেন্ডিং',
       'verif_none': 'ভেরিফাইড নয়',
 
-      // Account verification
+      // Account verification.
       'av_info': 'আপনার পরিচয় যাচাই করে সবুজ ব্যাজ অর্জন করুন এবং ভাড়াটেদের কাছ থেকে আরও বিশ্বাস অর্জন করুন। ৳২০০ ফি প্রযোজ্য।',
       'av_fullname': 'পূর্ণ নাম (এনআইডি অনুযায়ী)',
       'av_fullname_hint': 'যেমন: ইসবাত সামিন',
@@ -373,7 +368,7 @@ class AppStrings {
       'av_pending_desc': 'আমরা আপনার তথ্য ও ৳২০০ ফি পেয়েছি। একজন অ্যাডমিন শীঘ্রই আপনার অ্যাকাউন্ট পর্যালোচনা ও অনুমোদন করবেন।',
       'av_simulate': 'অ্যাডমিন অনুমোদন সিমুলেট করুন',
 
-      // Add property
+      // Add property.
       'ap_title': 'আপনার প্রপার্টি ভাড়া দিন',
       'ap_tab_basic': 'বেসিক',
       'ap_tab_location': 'লোকেশন',
@@ -431,34 +426,34 @@ class AppStrings {
       'ap_post_failed': 'প্রপার্টি পোস্ট করা যায়নি। আবার চেষ্টা করুন।',
       'ap_maps_failed': 'গুগল ম্যাপ খোলা যায়নি।',
 
-      // Months
+      // Months.
       'month_January': 'জানুয়ারি', 'month_February': 'ফেব্রুয়ারি', 'month_March': 'মার্চ',
       'month_April': 'এপ্রিল', 'month_May': 'মে', 'month_June': 'জুন',
       'month_July': 'জুলাই', 'month_August': 'আগস্ট', 'month_September': 'সেপ্টেম্বর',
       'month_October': 'অক্টোবর', 'month_November': 'নভেম্বর', 'month_December': 'ডিসেম্বর',
 
-      // Short month labels for chart axes
+      // Short month labels for chart axes.
       'mshort_1': 'জানু', 'mshort_2': 'ফেব্রু', 'mshort_3': 'মার্চ', 'mshort_4': 'এপ্রি',
       'mshort_5': 'মে', 'mshort_6': 'জুন', 'mshort_7': 'জুলা', 'mshort_8': 'আগ',
       'mshort_9': 'সেপ্ট', 'mshort_10': 'অক্টো', 'mshort_11': 'নভে', 'mshort_12': 'ডিসে',
 
-      // Property types
+      // Property types.
       'type_Family': 'ফ্যামিলি', 'type_Bachelor': 'ব্যাচেলর', 'type_Office room': 'অফিস রুম',
       'type_Sublet': 'সাবলেট', 'type_Hostel': 'হোস্টেল', 'type_Flat': 'ফ্ল্যাট',
       'type_Apartment': 'অ্যাপার্টমেন্ট', 'type_Studio': 'স্টুডিও', 'type_Seat Rent': 'সিট ভাড়া',
 
-      // Billing periods
+      // Billing periods.
       'period_Monthly': 'মাসিক', 'period_Weekly': 'সাপ্তাহিক', 'period_Daily': 'দৈনিক',
 
-      // Bills
+      // Bills.
       'bill_Electricity bill': 'বিদ্যুৎ বিল', 'bill_Gas bill': 'গ্যাস বিল',
       'bill_Water bill': 'পানির বিল', 'bill_Internet': 'ইন্টারনেট',
       'bill_Service charge': 'সার্ভিস চার্জ',
 
-      // Features
+      // Features.
       'feat_LIFT': 'লিফট', 'feat_GARAGE': 'গ্যারেজ', 'feat_CCTV': 'সিসিটিভি', 'feat_GAS': 'গ্যাস',
 
-      // My properties
+      // My properties.
       'mp_owner_badge': 'মালিক',
       'mp_no_phone': 'ফোন নম্বর যোগ করা হয়নি',
       'spec_bed': 'বেড', 'spec_bath': 'বাথ', 'spec_balcony': 'বারান্দা',
@@ -471,7 +466,7 @@ class AppStrings {
       'mp_delete_suffix': 'সরিয়ে ফেলবেন?',
       'mp_removed': 'লিস্টিং সরিয়ে ফেলা হয়েছে।',
 
-      // Purchase history
+      // Purchase history.
       'ph_total': 'মোট প্রদত্ত ভাড়া',
       'ph_one_rented': 'টি প্রপার্টি ভাড়া নেওয়া হয়েছে',
       'ph_many_rented': 'টি প্রপার্টি ভাড়া নেওয়া হয়েছে',
@@ -479,7 +474,7 @@ class AppStrings {
       'ph_rented': 'ভাড়া নেওয়া হয়েছে',
       'per_month': 'প্রতি মাসে',
 
-      // Analytics dashboard
+      // Analytics dashboard.
       'an_tab_owner': 'মালিক হিসেবে',
       'an_tab_renter': 'ভাড়াটে হিসেবে',
       'an_earned_total': 'মোট আয়',
@@ -507,7 +502,7 @@ class AppStrings {
       'an_empty_renter': 'আপনি এখনো কোনো প্রপার্টি ভাড়া নেননি।',
       'an_demo_note': 'ডেমো ডেটা — অ্যাপে লেনদেন যুক্ত হলে এখানে আসল হিসাব দেখাবে।',
 
-      // Home feed
+      // Home feed.
       'home_hero_title': 'আপনার পছন্দের বাড়ি খুঁজুন',
       'home_hero_subtitle': 'আপনার শহরের চমৎকার বাড়িগুলো ঘুরে দেখুন',
       'home_recently_viewed': 'সম্প্রতি দেখা',
@@ -516,7 +511,7 @@ class AppStrings {
       'sort': 'সাজান',
       'filter': 'ফিল্টার',
 
-      // Search filters. '{}' is replaced with the filter's own name.
+      // Search filters.
       'flt_division': 'বিভাগ',
       'flt_district': 'জেলা',
       'flt_thana': 'থানা',
@@ -527,7 +522,7 @@ class AppStrings {
       'flt_need_first_fmt': 'আগে {} নির্বাচন করুন',
       'flt_no_options': 'কোনো অপশন নেই।',
 
-      // Saved properties
+      // Saved properties.
       'saved_title': 'সেভ করা বাড়ি',
       'saved_empty_title': 'এখনো কোনো বাড়ি সেভ করা হয়নি',
       'saved_empty_subtitle': 'ঘুরে দেখুন আর পছন্দের বাড়িগুলো সেভ করুন',
@@ -535,32 +530,22 @@ class AppStrings {
     },
   };
 
-  /// Looks up [key] in the currently selected language, rebuilding the
-  /// caller whenever the language changes. Falls back to English, then to
-  /// the raw key if nothing matches.
+  /// Looks up [key] in the currently selected language.
   static String t(BuildContext context, String key) {
     final code = context.watch<LocaleProvider>().languageCode;
     return _translations[code]?[key] ?? _translations['en']?[key] ?? key;
   }
 
-  /// Non-reactive lookup for use outside build (e.g. inside callbacks). Reads
-  /// the current language without subscribing to changes.
+  /// Non-reactive lookup for use outside build (e.g.
   static String tr(BuildContext context, String key) {
     final code = context.read<LocaleProvider>().languageCode;
     return _translations[code]?[key] ?? _translations['en']?[key] ?? key;
   }
 
-  /// Locale-independent English lookup, for screens that must always render
-  /// in English regardless of the app's selected language.
+  /// Locale-independent English lookup.
   static String en(String key) => _translations['en']?[key] ?? key;
 
-  /// Display name for a division / district / thana. Returns the Bangla name
-  /// when the app is in Bangla and one is known, otherwise the English name
-  /// unchanged.
-  ///
-  /// Only ever use this for what is drawn on screen. Filters, queries and
-  /// stored preferences must keep passing the English name around, or a
-  /// language switch would silently change which listings match.
+  /// Display name for a division / district / thana.
   static String place(BuildContext context, String english) {
     final code = context.watch<LocaleProvider>().languageCode;
     return code == 'bn' ? bnPlace(english) : english;
@@ -576,8 +561,7 @@ class AppStrings {
   static bool isBangla(BuildContext context) =>
       context.watch<LocaleProvider>().languageCode == 'bn';
 
-  /// Converts ASCII digits in [input] to Bangla digits (used for prices/counts
-  /// so numbers read naturally in Bangla).
+  /// Converts ASCII digits in [input] to Bangla digits (used for prices/counts.
   static String digits(BuildContext context, String input) {
     if (context.read<LocaleProvider>().languageCode != 'bn') return input;
     return toBanglaDigits(input);

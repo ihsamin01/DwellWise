@@ -1,10 +1,4 @@
-/// Latitude/longitude lookup for Bangladeshi places, used so a generated
-/// listing's map pin actually matches its address.
-///
-/// Keys are lower-cased place names (neighbourhood, thana, district or
-/// division city). [coordinatesFor] resolves a free-text area like
-/// "Banani, Dhaka" by trying the most specific part first, then falling back to
-/// the district/division, and finally to central Dhaka.
+/// Latitude/longitude lookup for Bangladeshi places.
 library bd_area_coordinates;
 
 /// (latitude, longitude) pairs keyed by lower-cased place name.
@@ -162,8 +156,7 @@ const Map<String, (double, double)> bdAreaCoordinates = {
   'lalkhan bazar': (22.3480, 91.8180),
   'oxygen': (22.3830, 91.8060),
   'muradpur': (22.3660, 91.8330),
-  // Qualified keys for place names that also exist in Dhaka. `coordinatesFor`
-  // checks these "<area> <city>" keys before the bare name.
+  // Qualified keys for place names that also exist in Dhaka.
   'chawkbazar chattogram': (22.3592, 91.8340),
   'kotwali chattogram': (22.3350, 91.8330),
   'new market chattogram': (22.3345, 91.8318),
@@ -259,10 +252,6 @@ const Map<String, (double, double)> bdAreaCoordinates = {
 };
 
 /// Resolves coordinates for a free-text area such as "Banani, Dhaka".
-///
-/// Tries each comma-separated part from the most specific (first) to the least,
-/// then a loose contains-match, and finally falls back to central Dhaka so a
-/// pin is always shown.
 (double, double) coordinatesFor(String area) {
   final parts = area
       .toLowerCase()
@@ -271,9 +260,7 @@ const Map<String, (double, double)> bdAreaCoordinates = {
       .where((s) => s.isNotEmpty)
       .toList();
 
-  // Qualified match first: some place names exist in several divisions
-  // (e.g. Chawkbazar in both Dhaka and Chattogram), so "chawkbazar chattogram"
-  // must win over the bare "chawkbazar" key.
+  // Qualified match first.
   for (var i = 0; i + 1 < parts.length; i++) {
     final hit = bdAreaCoordinates['${parts[i]} ${parts[i + 1]}'];
     if (hit != null) return hit;
@@ -285,7 +272,7 @@ const Map<String, (double, double)> bdAreaCoordinates = {
     if (hit != null) return hit;
   }
 
-  // Loose match: a known key contained in (or containing) the part.
+  // Loose match.
   for (final part in parts) {
     for (final entry in bdAreaCoordinates.entries) {
       if (part.contains(entry.key) || entry.key.contains(part)) {

@@ -6,11 +6,6 @@ import '../models/chat_message_model.dart';
 import '../models/chat_model.dart';
 
 /// Supabase data access for conversations and messages.
-///
-/// A row in `chats` holds the pair of participants; the name and avatar shown
-/// in the conversation list belong to whichever participant is *not* the
-/// signed-in user, so they are resolved separately rather than stored on the
-/// chat row.
 class ChatService {
   SupabaseClient get _client => Supabase.instance.client;
 
@@ -31,8 +26,7 @@ class ChatService {
 
     if (rows.isEmpty) return [];
 
-    // Resolve the other participant of every chat in one round trip rather
-    // than one per row.
+    // Resolve the other participant of every chat in one round trip rather.
     final otherIds = <String>{
       for (final row in rows)
         row['participant_a'] == me
@@ -107,9 +101,6 @@ class ChatService {
   }
 
   /// The existing conversation with [otherUserId], or a newly created one.
-  ///
-  /// Looked up in both column orders: whoever opens the thread first lands in
-  /// `participant_a`, and the same pair must not end up with two threads.
   Future<String> findOrCreateChat({
     required String otherUserId,
     String? propertyId,
@@ -143,11 +134,6 @@ class ChatService {
   }
 
   /// Uploads a chat attachment and returns its public URL.
-  ///
-  /// Sending the sender's local file path instead — which is what used to
-  /// happen — left the recipient with a path that does not exist on their
-  /// device. Stored under the sender's own id, which is what the bucket
-  /// policies key off.
   Future<String?> uploadAttachment(String localPath) async {
     final me = currentUserId;
     if (me == null) return null;
@@ -229,10 +215,7 @@ class ChatService {
   Future<void> setPriority(String chatId, bool priority) =>
       _client.from('chats').update({'is_priority': priority}).eq('id', chatId);
 
-  /// Calls [onMessage] for every message inserted into any chat the user can
-  /// see. No chat filter is needed: row-level security already limits the
-  /// stream to conversations the user takes part in, and one channel for the
-  /// whole inbox keeps unread badges live without a subscription per thread.
+  /// Calls [onMessage] for every message inserted into any chat the user can.
   RealtimeChannel subscribeToAllMessages(
     void Function(ChatMessageModel message) onMessage,
   ) {

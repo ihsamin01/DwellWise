@@ -27,11 +27,6 @@ class GoogleSignInResult {
 }
 
 /// Authentication backed by Supabase Auth.
-///
-/// Accounts are keyed by the user's real email (so password-recovery codes can
-/// be emailed to them), but users log in with their phone number. At sign-in we
-/// look up the email for that phone from the `profiles` table, then sign in with
-/// email + password under the hood.
 class AuthService {
   SupabaseClient get _client => Supabase.instance.client;
 
@@ -51,8 +46,7 @@ class AuthService {
     await prefs.setBool(_keepSignedInKey, value);
   }
 
-  /// Called on startup: if the user did NOT choose "keep me signed in", clear
-  /// the restored session so they must log in again after leaving the app.
+  /// Called on startup.
   Future<void> applySessionPersistencePolicy() async {
     final prefs = await SharedPreferences.getInstance();
     final keep = prefs.getBool(_keepSignedInKey) ?? false;
@@ -60,10 +54,7 @@ class AuthService {
       try {
         await _client.auth.signOut();
       } on AuthException catch (_) {
-        // Offline, or Supabase unreachable. gotrue drops the local session
-        // before it ever calls the server, so the policy has already been
-        // applied — the failed server-side logout is not worth crashing
-        // startup over, which is what an uncaught throw here would do.
+        // Offline, or Supabase unreachable.
       }
     }
   }
@@ -73,11 +64,7 @@ class AuthService {
     required String phone,
     required String password,
   }) async {
-    // Ordered by created_at: nothing stops two profiles sharing a phone (older
-    // rows predate the duplicate check in findAccountConflict), and without an
-    // order the database is free to return either one. Whichever account was
-    // registered first stays the one this phone signs into, rather than the
-    // choice flipping between sessions.
+    // Ordered by created_at.
     final rows = await _client
         .from('profiles')
         .select('email')
@@ -101,11 +88,6 @@ class AuthService {
   }
 
   /// Which of the registration details already belong to an existing account.
-  ///
-  /// Supabase enforces uniqueness on the sign-up email, but nothing stops two
-  /// accounts sharing a phone number — and phone is what [signIn] looks an
-  /// account up by, so a duplicate would make login ambiguous. This check
-  /// covers both before the account is created.
   Future<AccountConflict> findAccountConflict({
     required String email,
     required String phone,
@@ -129,8 +111,7 @@ class AuthService {
     return AccountConflict.none;
   }
 
-  /// Registers a new account with a real email. Name/phone/role are stored as
-  /// user metadata so the database trigger can create the `profiles` row.
+  /// Registers a new account with a real email.
   Future<User?> register({
     required String name,
     required String phone,
@@ -152,8 +133,7 @@ class AuthService {
       },
     );
 
-    // The DB trigger creates the profile from name/phone/role only, so persist
-    // the address + gender onto the freshly-created profile row here.
+    // The DB trigger creates the profile from name/phone/role only.
     final user = response.user;
     if (user != null) {
       final updates = <String, dynamic>{};
@@ -163,17 +143,14 @@ class AuthService {
         try {
           await _client.from('profiles').update(updates).eq('id', user.id);
         } catch (_) {
-          // Non-fatal: the account is still created.
+          // Non-fatal.
         }
       }
     }
     return user;
   }
 
-  /// "Continue with Google": shows the native account picker, then only logs
-  /// the user in if their email is already registered in `profiles`. Otherwise
-  /// returns [GoogleSignInOutcome.notRegistered] so the UI can send them to the
-  /// registration screen (no Supabase account is created in that case).
+  /// "Continue with Google".
   Future<GoogleSignInResult> signInWithGoogle() async {
     try {
       // Start from a clean slate so the account picker always shows.
@@ -227,10 +204,6 @@ class AuthService {
   }
 
   /// Changes the signed-in user's password, after checking the current one.
-  ///
-  /// Supabase will set a new password for whoever holds a valid session, so
-  /// without this re-authentication an unlocked phone would be enough to take
-  /// an account over. Throws an [AuthException] the caller can surface.
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -252,8 +225,7 @@ class AuthService {
     await _client.auth.updateUser(UserAttributes(password: newPassword));
   }
 
-  /// Step 1 of recovery: emails a 6-digit code to [email] (only if an account
-  /// with that email exists).
+  /// Step 1 of recovery.
   Future<void> sendPasswordResetCode(String email) async {
     await _client.auth.signInWithOtp(
       email: email,
@@ -261,8 +233,7 @@ class AuthService {
     );
   }
 
-  /// Step 2 of recovery: verifies the emailed [code], sets [newPassword], then
-  /// signs back out so the user logs in fresh with their new password.
+  /// Step 2 of recovery.
   Future<void> verifyCodeAndSetPassword({
     required String email,
     required String code,
@@ -280,11 +251,6 @@ class AuthService {
   }
 
   /// Permanently deletes the signed-in user's account.
-  ///
-  /// Removing a row from `auth.users` needs the service_role key, which must
-  /// never ship in the app, so the work happens in the `delete-account` edge
-  /// function. It identifies the caller from their own access token, so a user
-  /// can only delete themselves.
   Future<void> deleteAccount() async {
     if (currentUser == null) {
       throw const AuthException('You need to be signed in to delete your account.');
@@ -293,8 +259,7 @@ class AuthService {
     try {
       await _client.functions.invoke('delete-account');
     } on FunctionException catch (e) {
-      // invoke() throws on any non-2xx rather than returning the status, so
-      // the failure is translated here instead of read off a response.
+      // invoke() throws on any non-2xx rather than returning the status.
       throw AuthException(
         e.status == 404
             ? 'Account deletion is not available yet — the delete-account '

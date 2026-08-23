@@ -13,10 +13,7 @@ class RegistrationScreen extends StatefulWidget {
     this.prefillName,
   }) : super(key: key);
 
-  /// Email and name carried over when the user lands here from "Continue with
-  /// Google" with an account that is not registered yet. Prefilling them keeps
-  /// the address identical to the Google one, so the next Google sign-in finds
-  /// the profile instead of bouncing back to registration.
+  /// Email and name carried over when the user lands here from "Continue with.
   final String? prefillEmail;
   final String? prefillName;
 
@@ -36,9 +33,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   bool _obscurePassword = true;
   String? _gender;
 
-  /// The exact phone / email the server refused as already registered. Held so
-  /// the field validators can flag them, and so the warning clears itself as
-  /// soon as the user edits the value into something different.
+  /// The exact phone / email the server refused as already registered.
   String? _takenPhone;
   String? _takenEmail;
 
@@ -75,7 +70,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (value == null || value.trim().isEmpty) {
       return 'Phone Number is required';
     }
-    // Matches 10 digits after +880 (e.g. 1712345678)
+    // Matches 10 digits after +880 (e.g.
     final phoneRegex = RegExp(r'^1[3-9]\d{8}$');
     if (!phoneRegex.hasMatch(value.trim())) {
       return 'Enter a valid mobile number (e.g. 1712345678)';
@@ -132,18 +127,17 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       );
 
       if (success && mounted) {
-        // Success feedback
+        // Success feedback.
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Registration successful! Please log in.'),
             backgroundColor: Color(0xff10B981), // Success Emerald Green
           ),
         );
-        // Redirect to Login Screen
+        // Redirect to Login Screen.
         context.go('/login');
       } else if (mounted) {
-        // Mark the field(s) the server refused, then re-run validation so the
-        // warning appears under the offending input and not just in a snackbar.
+        // Mark the field(s) the server refused.
         final conflict = authProvider.registerConflict;
         if (conflict != AccountConflict.none) {
           setState(() {
@@ -225,7 +219,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Top Badge and Header Row
+                // Top Badge and Header Row.
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -252,7 +246,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Centered DwellWise Logo
+                // Centered DwellWise Logo.
                 Center(
                   child: Container(
                     width: 80,
@@ -270,7 +264,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Heading
+                // Heading.
                 Text(
                   'Create Account',
                   style: TextStyle(
@@ -291,7 +285,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Full Name Input
+                // Full Name Input.
                 _buildInputLabel(colors, 'FULL NAME *', true),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -329,7 +323,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 20), // Form vertical gap
 
-                // Gender dropdown (drives the profile avatar)
+                // Gender dropdown (drives the profile avatar).
                 _buildInputLabel(colors, 'GENDER *', true),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
@@ -370,7 +364,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Phone Number Input
+                // Phone Number Input.
                 _buildInputLabel(colors, 'PHONE NUMBER *', true),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -379,8 +373,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   style: TextStyle(color: colors.textPrimary),
                   decoration: InputDecoration(
                     hintText: '1XXX-XXXXXX',
-                    // Two lines so an "already registered" warning is never
-                    // clipped mid-sentence on a narrow screen.
+                    // Two lines so an "already registered" warning is never.
                     errorMaxLines: 2,
                     hintStyle: TextStyle(color: colors.textSecondary),
                     fillColor: colors.surface,
@@ -434,7 +427,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 20), // Form vertical gap
 
-                // Email Input (used for password recovery)
+                // Email Input (used for password recovery).
                 _buildInputLabel(colors, 'EMAIL *', true),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -474,7 +467,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Password Input
+                // Password Input.
                 _buildInputLabel(colors, 'PASSWORD *', true),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -532,7 +525,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 20), // Form vertical gap
 
-                // Current Address Input
+                // Current Address Input.
                 _buildInputLabel(colors, 'CURRENT ADDRESS *', true),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -572,7 +565,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Register Button
+                // Register Button.
                 _CTAButton(
                   text: 'Register',
                   isLoading: isLoading,
@@ -580,7 +573,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Bottom Login prompt
+                // Bottom Login prompt.
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

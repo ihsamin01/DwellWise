@@ -29,9 +29,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  /// Taken from the session: message bubbles compare against it to decide
-  /// which side of the thread they sit on, and the server records the
-  /// sender itself, so a hardcoded id would put every bubble on one side.
+  /// Taken from the session.
   String get _currentUserId => _provider.currentUserId ?? '';
 
   final TextEditingController _messageController = TextEditingController();
@@ -89,8 +87,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageController.clear();
     _scrollToBottom();
 
-    // The send is optimistic, so a rejection arrives after the bubble is
-    // already on screen and used to remove it with no explanation.
+    // The send is optimistic.
     Future.delayed(const Duration(seconds: 3), () {
       if (!mounted) return;
       final error = _provider.lastSendError;
@@ -376,8 +373,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// Hands the number to the phone's own dialer rather than pretending to
-  /// place the call in-app.
+  /// Hands the number to the phone's own dialer rather than pretending to.
   Future<void> _callOtherParticipant(ChatModel? chat) async {
     final phone = chat?.otherUserPhone?.trim();
     if (phone == null || phone.isEmpty) {
@@ -517,9 +513,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     },
                   ),
           ),
-          // Offered, not sent: an empty thread is the hardest message to
-          // write, so the opening line is there for one tap — and stays a
-          // suggestion until it is tapped.
+          // Offered, not sent.
           if (messages.isEmpty)
             _SuggestedOpener(
               text: _openerSuggestion(context),
@@ -803,9 +797,7 @@ class _ImageContent extends StatelessWidget {
   final String path;
   final Color tint;
 
-  /// Uploaded attachments arrive as https urls; anything still on the device
-  /// is a plain path. Assuming a file is what left every sent photo showing a
-  /// grey placeholder once uploads were added.
+  /// Uploaded attachments arrive as https urls; anything still on the device.
   bool get _isRemote => path.startsWith('http');
 
   Widget _thumbnail() {
@@ -823,8 +815,7 @@ class _ImageContent extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: exists
           ? GestureDetector(
-              // Tapping opens the photo full screen, the way every other
-              // messaging app behaves.
+              // Tapping opens the photo full screen.
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => _FullScreenImage(path: path),
@@ -1104,11 +1095,7 @@ class _EmptyThreadState extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Scrollable and trimmed: with the suggested opener and the keyboard both
-    // taking height, the old fixed column ran a couple of pixels past the
-    // bottom and drew the overflow stripes across the thread. The second line
-    // of instructions went with it — the suggestion below says the same thing
-    // more usefully.
+    // Scrollable and trimmed.
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
@@ -1399,9 +1386,6 @@ String _formatTime(DateTime dateTime) {
 }
 
 /// A ready opening message shown above the composer on an empty thread.
-///
-/// Drawn like a message the app is offering rather than one already sent, so
-/// nothing leaves until the user taps it.
 class _SuggestedOpener extends StatelessWidget {
   const _SuggestedOpener({required this.text, required this.onTap});
 
@@ -1461,8 +1445,7 @@ class _FullScreenImage extends StatelessWidget {
         elevation: 0,
       ),
       body: Center(
-        // Pinch to zoom, drag to pan — a photo of a room is worth looking at
-        // closely.
+        // Pinch to zoom, drag to pan.
         child: InteractiveViewer(
           minScale: 1,
           maxScale: 4,

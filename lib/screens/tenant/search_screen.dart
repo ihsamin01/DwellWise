@@ -6,9 +6,7 @@ import '../../config/app_strings.dart';
 import '../../providers/search_filters_provider.dart';
 import '../../widgets/bottom_navigation.dart';
 
-/// Tenant Search Screen: hierarchical Division > District > Thana > Area
-/// selection plus a property Type filter. Pressing Search opens a dedicated
-/// results page — this screen only holds the compact filter inputs.
+/// Tenant Search Screen.
 class TenantSearchScreen extends StatefulWidget {
   final bool showBottomNavigation;
 
@@ -110,8 +108,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
         String query = '';
         return StatefulBuilder(
           builder: (context, setModalState) {
-            // Matches either script, so the list can be filtered by typing
-            // 'Dhaka' or 'ঢাকা'.
+            // Matches either script.
             final visible = query.isEmpty
                 ? options
                 : options.where((o) {
@@ -139,7 +136,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                           color: colors.textPrimary),
                     ),
                     const SizedBox(height: 10),
-                    // Quick search within long option lists (e.g. 64 districts)
+                    // Quick search within long option lists (e.g.
                     if (options.length > 8)
                       Container(
                         height: 40,
@@ -194,8 +191,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                                 itemBuilder: (context, index) {
                                   final opt = visible[index];
                                   return RadioListTile<String>(
-                                    // Shown translated, selected in English —
-                                    // the value drives the filter query.
+                                    // Shown translated, selected in English —.
                                     title: Text(AppStrings.place(context, opt),
                                         style: TextStyle(
                                             fontSize: 14,
@@ -250,9 +246,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
             elevation: 0,
             leading: IconButton(
               icon: Icon(Icons.arrow_back, color: colors.primary, size: 24),
-              // This screen is always a tab inside MainTabsShell, so "back"
-              // should return to the Home tab, not push a new GoRouter page.
-              // MainTabsShell's PopScope handles exactly that on pop.
+              // This screen is always a tab inside MainTabsShell.
               onPressed: () => Navigator.maybePop(context),
             ),
             title: Text(
@@ -280,7 +274,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 1. SEARCH BOX — displays the selected location path
+          // 1.
           Container(
             color: colors.surface,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -326,7 +320,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
             ),
           ),
 
-          // 2. FILTER BUTTONS SECTION (Division, District, Thana, Area, Type)
+          // 2.
           Container(
             color: colors.surface,
             padding:
@@ -359,7 +353,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                // Horizontal scrollable buttons
+                // Horizontal scrollable buttons.
                 SizedBox(
                   height: 36,
                   child: ListView(
@@ -416,7 +410,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // 3. SEARCH BUTTON
+                // 3.
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xff1877F2), // CTA Orange
@@ -447,10 +441,10 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
             ),
           ),
 
-          // Divider line
+          // Divider line.
           Container(height: 1, color: colors.border),
 
-          // 4. INSTRUCTION AREA — results now open on a dedicated page
+          // 4.
           Expanded(
             child: Center(
               child: Column(

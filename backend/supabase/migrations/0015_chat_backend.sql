@@ -1,12 +1,7 @@
--- ─────────────────────────────────────────────────────────────────────────
--- Makes the chat tables usable from the app.
---
--- 0009/0010 created `chats` and `messages` with RLS enabled but no policies,
--- which denies everything, and `messages` could only hold plain text while
--- ChatMessageModel already supported images, voice notes and locations.
---
--- Safe to re-run: every statement is guarded or dropped first.
--- ─────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────
+-- Chat: row-level security policies, the columns the app already models, a
+-- trigger to keep the conversation preview in step, and realtime.
+-- ───────────────────────────────────────────────────────────────────────
 
 -- ── columns the app already models ───────────────────────────────────────
 alter table public.messages
@@ -73,9 +68,7 @@ create policy messages_update_participant on public.messages
   );
 
 -- ── keep the conversation list in sync ───────────────────────────────────
--- The chats list shows a preview of the latest message. Doing it in a trigger
--- means the preview cannot drift from the thread, and the client needs one
--- insert instead of an insert plus an update.
+-- The chats list shows a preview of the latest message.
 create or replace function public.touch_chat_on_message()
 returns trigger
 language plpgsql

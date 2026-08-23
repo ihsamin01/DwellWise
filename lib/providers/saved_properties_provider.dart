@@ -4,12 +4,6 @@ import '../models/property_model.dart';
 import '../services/supabase_service.dart';
 
 /// Provider managing the user's saved / favourite properties.
-///
-/// Backed by the `saved_properties` table, and the saved properties themselves
-/// are held here rather than looked up in the home feed. The feed only holds a
-/// slice of the catalogue, so resolving saves against it made a saved property
-/// disappear as soon as it fell out of that slice — the list looked like it
-/// had emptied itself even though every row was still in the database.
 class SavedPropertiesProvider with ChangeNotifier {
   final SupabaseService _dbService = SupabaseService();
 
@@ -24,8 +18,7 @@ class SavedPropertiesProvider with ChangeNotifier {
 
   bool isSaved(String id) => _savedIds.contains(id);
 
-  /// Loads the signed-in user's saves from the database. Called when the
-  /// tenant tabs mount, so favourites are restored right after login.
+  /// Loads the signed-in user's saves from the database.
   Future<void> loadSaved() async {
     try {
       final saved = await _dbService.getSavedProperties();
@@ -37,14 +30,11 @@ class SavedPropertiesProvider with ChangeNotifier {
         ..addAll(saved);
       notifyListeners();
     } catch (_) {
-      // Keep what is already listed. A failed request is not an empty list,
-      // and clearing here is what used to wipe the screen on a dropped
-      // connection.
+      // Keep what is already listed.
     }
   }
 
-  /// [property] lets the list update without waiting for a refetch. Callers
-  /// always have the model in hand, since they are drawing it.
+  /// [property] lets the list update without waiting for a refetch.
   void toggleSave(String id, {PropertyModel? property}) {
     if (_savedIds.contains(id)) {
       unsave(id);
@@ -75,9 +65,7 @@ class SavedPropertiesProvider with ChangeNotifier {
     _dbService.unsaveProperty(id);
   }
 
-  /// Clears local state on logout so the next signed-in user (or guest)
-  /// doesn't briefly see the previous user's saved list. The rows stay in the
-  /// database and come back on the next [loadSaved].
+  /// Clears local state on logout so the next signed-in user (or guest).
   void clear() {
     _savedIds.clear();
     _savedProperties.clear();
