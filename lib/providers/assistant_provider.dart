@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/assistant_service.dart';
+import '../utils/language_detect.dart';
 import '../utils/property_matcher.dart';
 
 enum AssistantRole { user, assistant }
@@ -46,6 +47,9 @@ class AssistantProvider with ChangeNotifier {
   SearchIntent? _intent;
   bool _isBusy = false;
 
+  /// Whether the last message was Bangla, in either script.
+  bool isBangla = false;
+
   List<AssistantMessage> get messages => List.unmodifiable(_messages);
   SearchIntent? get intent => _intent;
   bool get isBusy => _isBusy;
@@ -66,6 +70,10 @@ class AssistantProvider with ChangeNotifier {
     final message = text.trim();
     if (message.isEmpty || _isBusy) return;
 
+    // Every message decides its own language, so a single English word does
+    // not switch the conversation over for good.
+    isBangla = detectLanguage(message) == 'bn';
+
     _messages.add(AssistantMessage(
       role: AssistantRole.user,
       text: message,
@@ -79,20 +87,32 @@ class AssistantProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final intent = await _service.extractIntent(message, previous: _intent);
+      final reading = await _service.interpret(message, previous: _intent);
 
-      if (intent == null) {
+      if (reading == null) {
         // Reached the service but could not make sense of the reply — this one
         // really is about the wording.
         _replacePending(AssistantMessage(
           role: AssistantRole.assistant,
-          text: (_intent?.isBangla ?? false)
+          text: isBangla
               ? 'ঠিক বুঝতে পারিনি। আরেকবার বলবেন?'
               : 'Sorry, I could not understand that. Could you say it again?',
         ));
         return;
       }
 
+      // A greeting or a question about the app, not a search. Answering it as
+      // written beats pushing it through the property search and replying with
+      // listings nobody asked for.
+      if (!reading.isSearch) {
+        _replacePending(AssistantMessage(
+          role: AssistantRole.assistant,
+          text: reading.reply!,
+        ));
+        return;
+      }
+
+      final intent = reading.intent!;
       _intent = intent;
 
       // Location is the one requirement worth stopping for: without it there
@@ -121,14 +141,14 @@ class AssistantProvider with ChangeNotifier {
       // request was unclear when it was the connection that failed.
       _replacePending(AssistantMessage(
         role: AssistantRole.assistant,
-        text: (_intent?.isBangla ?? false)
+        text: isBangla
             ? 'এই মুহূর্তে সংযোগ পাওয়া যাচ্ছে না। ইন্টারনেট দেখে আবার চেষ্টা করুন।'
             : 'I cannot reach the service right now. Check your connection and try again.',
       ));
     } catch (_) {
       _replacePending(AssistantMessage(
         role: AssistantRole.assistant,
-        text: (_intent?.isBangla ?? false)
+        text: isBangla
             ? 'কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।'
             : 'Something went wrong. Please try again.',
       ));

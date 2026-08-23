@@ -89,7 +89,18 @@ class ChatProvider with ChangeNotifier {
   Future<void> loadChatHistory(String chatId) async {
     try {
       final messages = await _service.fetchMessages(chatId);
-      _messagesByChatId[chatId] = messages;
+
+      // Anything sent while this was in flight is not in the response yet.
+      // Replacing the list outright dropped those messages off the screen —
+      // they reached the database, but the thread looked like nothing had
+      // been sent, which is exactly what happened to the opening message on a
+      // brand new conversation.
+      final fetchedIds = messages.map((m) => m.id).toSet();
+      final inFlight = [
+        for (final m in _messagesByChatId[chatId] ?? const <ChatMessageModel>[])
+          if (!fetchedIds.contains(m.id)) m,
+      ];
+      _messagesByChatId[chatId] = [...messages, ...inFlight];
       _syncActiveMessages(chatId);
       notifyListeners();
       await markConversationRead(chatId);
@@ -442,11 +453,18 @@ class ChatProvider with ChangeNotifier {
   }
 
   void _replaceMessage(String pendingId, ChatMessageModel saved) {
-    final messages = _messagesByChatId[saved.chatId];
-    if (messages == null) return;
+    final messages = _messagesByChatId.putIfAbsent(saved.chatId, () => []);
     final index = messages.indexWhere((m) => m.id == pendingId);
-    if (index == -1) return;
-    messages[index] = saved;
+
+    if (index != -1) {
+      messages[index] = saved;
+    } else if (!messages.any((m) => m.id == saved.id)) {
+      // The optimistic bubble is gone — a reload landed between sending and
+      // saving. The message still exists, so put it back rather than leaving
+      // the thread missing something the server has.
+      messages.add(saved);
+    }
+
     _syncActiveMessages(saved.chatId);
     notifyListeners();
   }

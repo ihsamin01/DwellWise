@@ -376,8 +376,19 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  void _showCallPlaceholder(String label) {
-    _snack('$label is not connected yet.');
+  /// Hands the number to the phone's own dialer rather than pretending to
+  /// place the call in-app.
+  Future<void> _callOtherParticipant(ChatModel? chat) async {
+    final phone = chat?.otherUserPhone?.trim();
+    if (phone == null || phone.isEmpty) {
+      _snack('This person has no phone number on their profile.');
+      return;
+    }
+
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (!await launchUrl(uri)) {
+      _snack('Could not open the dialer.');
+    }
   }
 
   @override
@@ -458,14 +469,9 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Voice call',
+            tooltip: 'Call',
             icon: const Icon(Icons.call_outlined),
-            onPressed: () => _showCallPlaceholder('Voice call'),
-          ),
-          IconButton(
-            tooltip: 'Video call',
-            icon: const Icon(Icons.videocam_outlined),
-            onPressed: () => _showCallPlaceholder('Video call'),
+            onPressed: () => _callOtherParticipant(chat),
           ),
           PopupMenuButton<String>(
             onSelected: (_) => _showMoreMenu(chat),
@@ -797,17 +803,38 @@ class _ImageContent extends StatelessWidget {
   final String path;
   final Color tint;
 
+  /// Uploaded attachments arrive as https urls; anything still on the device
+  /// is a plain path. Assuming a file is what left every sent photo showing a
+  /// grey placeholder once uploads were added.
+  bool get _isRemote => path.startsWith('http');
+
+  Widget _thumbnail() {
+    if (_isRemote) {
+      return Image.network(path, fit: BoxFit.cover);
+    }
+    return Image.file(File(path), fit: BoxFit.cover);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final file = File(path);
-    final exists = path.isNotEmpty && file.existsSync();
+    final exists = path.isNotEmpty && (_isRemote || File(path).existsSync());
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
       child: exists
-          ? ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 240, maxWidth: 240),
-              child: Image.file(file, fit: BoxFit.cover),
+          ? GestureDetector(
+              // Tapping opens the photo full screen, the way every other
+              // messaging app behaves.
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => _FullScreenImage(path: path),
+                ),
+              ),
+              child: ConstrainedBox(
+                constraints:
+                    const BoxConstraints(maxHeight: 240, maxWidth: 240),
+                child: _thumbnail(),
+              ),
             )
           : Container(
               width: 220,
@@ -1077,31 +1104,28 @@ class _EmptyThreadState extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Center(
+    // Scrollable and trimmed: with the suggested opener and the keyboard both
+    // taking height, the old fixed column ran a couple of pixels past the
+    // bottom and drew the overflow stripes across the thread. The second line
+    // of instructions went with it — the suggestion below says the same thing
+    // more usefully.
+    return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.chat_bubble_outline,
-              size: 72,
+              size: 56,
               color: theme.colorScheme.primary.withOpacity(0.4),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Text(
               'Start the conversation with $userName',
               textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Send a message, image, or document to begin the thread.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -1411,6 +1435,38 @@ class _SuggestedOpener extends StatelessWidget {
               Icon(Icons.send, size: 16, color: colors.primary),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Full-screen photo viewer, opened by tapping a photo in the thread.
+class _FullScreenImage extends StatelessWidget {
+  const _FullScreenImage({required this.path});
+
+  final String path;
+
+  @override
+  Widget build(BuildContext context) {
+    final image = path.startsWith('http')
+        ? Image.network(path)
+        : Image.file(File(path));
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: Center(
+        // Pinch to zoom, drag to pan — a photo of a room is worth looking at
+        // closely.
+        child: InteractiveViewer(
+          minScale: 1,
+          maxScale: 4,
+          child: image,
         ),
       ),
     );

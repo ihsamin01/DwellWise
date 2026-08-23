@@ -42,7 +42,7 @@ class ChatService {
 
     final profiles = await _client
         .from('profiles')
-        .select('id, name, avatar_url')
+        .select('id, name, avatar_url, phone_number')
         .inFilter('id', otherIds.toList());
 
     final byId = <String, Map<String, dynamic>>{
@@ -101,6 +101,8 @@ class ChatService {
       isMuted: row['is_muted'] as bool? ?? false,
       isPriority: row['is_priority'] as bool? ?? false,
       lastMessageSenderId: row['last_message_sender_id'] as String?,
+      otherUserId: otherId,
+      otherUserPhone: profilesById[otherId]?['phone_number'] as String?,
     );
   }
 

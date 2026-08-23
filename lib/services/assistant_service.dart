@@ -4,9 +4,30 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 
 import '../data/bd_area_coordinates.dart';
 import '../models/property_model.dart';
+import '../utils/language_detect.dart';
 import '../utils/property_matcher.dart';
 import 'gemini_service.dart';
 import 'supabase_service.dart';
+
+/// What the user's message turned out to be.
+///
+/// Not every message is a search. "ki khobor" and "which areas have the most
+/// listings" used to be pushed through the search path anyway, which is why
+/// the answers had nothing to do with the questions.
+class Interpretation {
+  const Interpretation.search(this.intent)
+      : reply = null,
+        isSearch = true;
+  const Interpretation.chat(this.reply)
+      : intent = null,
+        isSearch = false;
+
+  final bool isSearch;
+  final SearchIntent? intent;
+
+  /// Already written in the user's language.
+  final String? reply;
+}
 
 /// Thrown when Gemini could not be reached at all, so the caller can say
 /// the service is unavailable instead of blaming the user's wording.
@@ -60,11 +81,11 @@ class AssistantService {
 
   // ── reading the request ────────────────────────────────────────────────
 
-  /// Pulls structured requirements out of [message].
+  /// Works out whether [message] is a search and, if so, what for.
   ///
   /// [previous] carries the requirements gathered so far, so a follow-up like
   /// "gas thakle bhalo hoy" adds to the request instead of replacing it.
-  Future<SearchIntent?> extractIntent(
+  Future<Interpretation?> interpret(
     String message, {
     SearchIntent? previous,
   }) async {
@@ -75,35 +96,50 @@ class AssistantService {
         ? '{}'
         : jsonEncode(previous.toJson());
 
+    // Decided here, not by the model: it read romanised Bangla as English and
+    // answered in the wrong language.
+    final language = detectLanguage(message);
+    final languageName = language == 'bn' ? 'Bangla' : 'English';
+
     final prompt = '''
-You read rental requests for a Bangladeshi rental app and return JSON only.
+You are the assistant inside DwellWise, a Bangladeshi rental app. You return
+JSON only.
 
-The user may write in Bangla, English or a mix. Understand either.
+The user may write in Bangla, English or a mix of both. Understand either.
 
-Return a JSON object with these optional keys:
+Decide which of two things the message is.
+
+If they are looking for a place to rent, return:
+{"mode":"search", "area":..., "property_type":..., "beds":..., "baths":...,
+ "balcony":..., "max_rent":..., "facilities":[...]}
   "area"          English place name, e.g. "ECB Chattar", "Banani", "Mirpur 10"
   "property_type" one of: Family, Bachelor, Office room, Sublet, Hostel
-  "beds"          integer
-  "baths"         integer
-  "balcony"       integer
+  "beds","baths","balcony"  integers
   "max_rent"      integer, monthly taka
   "facilities"    array from: GAS, LIFT, CCTV, GARAGE
-  "language"      "bn" if the user wrote in Bangla, otherwise "en"
+Only include a key the user actually stated or clearly implied.
+Translate place names to their English form. "ইসিবি" is "ECB Chattar".
+"family basha" means Family. "bachelor" means Bachelor. "3 room" means beds 3.
+Merge with what is already known: $known
 
-Rules:
-- Only include a key the user actually stated or clearly implied.
-- Translate place names to their English form. "ইসিবি" is "ECB Chattar".
-- "family basha" means property_type Family. "bachelor" means Bachelor.
-- "3 room" means beds 3.
-- Merge with what is already known: $known
-- Return the JSON object and nothing else.
+Otherwise — a greeting, a thank you, a question about the app or about
+renting — return:
+{"mode":"chat", "reply":"..."}
+  Answer the question that was actually asked, in one or two short sentences.
+  Write the reply in $languageName. If Bangla, use Bangla script and Bangla
+  digits, never Bangla in English letters.
+  Never name or invent a property, price, or how many listings exist — you
+  cannot see the catalogue here. If they seem to want a home, ask which area
+  to search.
+
+Return the JSON object and nothing else.
 
 User message: "${_clean(message)}"
 ''';
 
     final text = await _generate(model, prompt);
     if (text == null) throw const AssistantUnavailable();
-    return _parseIntent(text, previous);
+    return _parseInterpretation(text, previous, language);
   }
 
   /// Runs [prompt], retrying a couple of times before giving up.
@@ -123,13 +159,20 @@ User message: "${_clean(message)}"
         // Fall through to the next attempt.
       }
       if (attempt < 2) {
-        await Future<void>.delayed(Duration(milliseconds: 400 * (attempt + 1)));
+        // Seconds, not milliseconds: the free tier limits by the minute as
+        // well as by load, and a rapid retry just spends another attempt on
+        // the same refusal.
+        await Future<void>.delayed(Duration(seconds: attempt + 1));
       }
     }
     return null;
   }
 
-  SearchIntent? _parseIntent(String text, SearchIntent? previous) {
+  Interpretation? _parseInterpretation(
+    String text,
+    SearchIntent? previous,
+    String language,
+  ) {
     final match = RegExp(r'\{.*\}', dotAll: true).firstMatch(text);
     if (match == null) return null;
 
@@ -137,12 +180,17 @@ User message: "${_clean(message)}"
       final decoded = jsonDecode(match.group(0)!);
       if (decoded is! Map) return null;
 
+      if (decoded['mode'] == 'chat') {
+        final reply = _asString(decoded['reply']);
+        return reply == null ? null : Interpretation.chat(reply);
+      }
+
       final facilities = <String>[
         for (final f in (decoded['facilities'] as List? ?? const []))
           f.toString().toUpperCase(),
       ];
 
-      return SearchIntent(
+      return Interpretation.search(SearchIntent(
         area: _asString(decoded['area']) ?? previous?.area,
         propertyType:
             _asString(decoded['property_type']) ?? previous?.propertyType,
@@ -152,8 +200,8 @@ User message: "${_clean(message)}"
         maxRent: _asInt(decoded['max_rent'])?.toDouble() ?? previous?.maxRent,
         facilities:
             facilities.isNotEmpty ? facilities : (previous?.facilities ?? const []),
-        language: _asString(decoded['language']) ?? previous?.language ?? 'en',
-      );
+        language: language,
+      ));
     } catch (_) {
       return null;
     }

@@ -61,6 +61,14 @@ class _VoiceMessageBubbleState extends State<VoiceMessageBubble> {
     if (_state == PlayerState.playing) {
       await _player.pause();
     } else {
+      // Attachments are uploaded now, so the path is usually an https URL.
+      // Treating it as a file made every sent voice note unplayable, even for
+      // the person who recorded it.
+      if (widget.path.startsWith('http')) {
+        await _player.play(UrlSource(widget.path));
+        return;
+      }
+
       final file = File(widget.path);
       if (!file.existsSync()) {
         if (mounted) {

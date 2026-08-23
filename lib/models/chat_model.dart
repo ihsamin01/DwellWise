@@ -10,6 +10,11 @@ class ChatModel {
   final bool isOnline;
   final bool isTyping;
   final String? lastMessageSenderId;
+
+  /// The person on the other side — their account id and phone, so the thread
+  /// can place a call without looking anything up again.
+  final String? otherUserId;
+  final String? otherUserPhone;
   final String? lastMessageType;
   final int messageCount;
 
@@ -25,6 +30,8 @@ class ChatModel {
     this.isOnline = false,
     this.isTyping = false,
     this.lastMessageSenderId,
+    this.otherUserId,
+    this.otherUserPhone,
     this.lastMessageType,
     this.messageCount = 0,
   });
@@ -41,6 +48,8 @@ class ChatModel {
     bool? isOnline,
     bool? isTyping,
     String? lastMessageSenderId,
+    String? otherUserId,
+    String? otherUserPhone,
     String? lastMessageType,
     int? messageCount,
   }) {
@@ -56,6 +65,8 @@ class ChatModel {
       isOnline: isOnline ?? this.isOnline,
       isTyping: isTyping ?? this.isTyping,
       lastMessageSenderId: lastMessageSenderId ?? this.lastMessageSenderId,
+      otherUserId: otherUserId ?? this.otherUserId,
+      otherUserPhone: otherUserPhone ?? this.otherUserPhone,
       lastMessageType: lastMessageType ?? this.lastMessageType,
       messageCount: messageCount ?? this.messageCount,
     );
