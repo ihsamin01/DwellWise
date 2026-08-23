@@ -130,7 +130,7 @@ User message: "${_clean(message)}"
       try {
         final response = await model
             .generateContent([Content.text(prompt)])
-            .timeout(const Duration(seconds: 20));
+            .timeout(const Duration(seconds: 12));
         final text = response.text?.trim();
         if (text != null && text.isNotEmpty) return text;
       } catch (_) {
@@ -138,7 +138,8 @@ User message: "${_clean(message)}"
       }
       if (attempt < 2) {
         // Seconds, not milliseconds.
-        await Future<void>.delayed(Duration(seconds: attempt + 1));
+        await Future<void>.delayed(
+            Duration(milliseconds: 600 * (attempt + 1)));
       }
     }
     return null;
@@ -277,6 +278,10 @@ User message: "${_clean(message)}"
     required SearchIntent intent,
     required AssistantSearchResult result,
   }) async {
+    // Nothing to describe, so there is no point spending a call and a second
+    // on it.
+    if (result.isEmpty) return _fallbackReply(intent, result);
+
     final model = await _gemini.model();
     if (model == null) return _fallbackReply(intent, result);
 

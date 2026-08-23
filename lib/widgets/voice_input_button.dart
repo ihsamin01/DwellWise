@@ -74,9 +74,14 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
       listenFor: const Duration(minutes: 1),
       listenOptions: SpeechListenOptions(
         localeId: await _resolveLocale(),
-        // This is what puts the words in the field while they are being.
+        // Puts the words in the field while they are being spoken.
         partialResults: true,
-        cancelOnError: true,
+        // Keeps listening through a stumble instead of throwing the whole
+        // recording away.
+        cancelOnError: false,
+        // The network recogniser handles Bangla markedly better than the
+        // on-device one.
+        onDevice: false,
       ),
     );
 

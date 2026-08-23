@@ -9,6 +9,9 @@ class AiConfig {
   /// Asset that holds the local key.
   static const String secretsAsset = 'assets/secrets/gemini.json';
 
-  /// The alias, not a pinned model.
-  static const String geminiModel = 'gemini-flash-latest';
+  /// Flash-Lite: the plain flash alias started answering 429 under the free
+  /// tier, and every refusal cost a retry, so replies took several seconds or
+  /// failed outright. This answers in about a second and its Bangla is just
+  /// as good.
+  static const String geminiModel = 'gemini-flash-lite-latest';
 }
