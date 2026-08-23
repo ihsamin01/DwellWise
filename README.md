@@ -53,7 +53,7 @@ listing recommendations.
 
 A web build is published from `docs/app`:
 
-**https://ihsamin01.github.io/DwellWise/app/**
+**https://dwell-wise.vercel.app**
 
 Enough to walk through the app without installing anything — browsing and
 searching listings, the bilingual interface, saved properties and the
