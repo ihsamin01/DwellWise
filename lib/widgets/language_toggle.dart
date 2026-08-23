@@ -5,17 +5,10 @@ import '../config/app_colors.dart';
 import '../providers/locale_provider.dart';
 
 /// Compact two-state language switch, sized to sit in the home app bar.
-///
-/// Both options stay visible and each is written in its own script rather than
-/// being translated, so the control reads identically whichever language is
-/// active — someone who lands in a language they cannot read can still find
-/// their way back out.
 class LanguageToggle extends StatelessWidget {
   const LanguageToggle({super.key});
 
-  /// Overall pill width, sized so 'English' — the wider label — fits in half of
-  /// it. The two halves take their width from whatever is left inside the
-  /// padding and border instead of being fixed, so the row cannot overflow.
+  /// Overall pill width, sized so 'English' — the wider label.
   static const double _width = 108;
   static const double _height = 30;
   static const double _inset = 3;
@@ -68,8 +61,7 @@ class LanguageToggle extends StatelessWidget {
                 ),
               ),
             ),
-            // Positioned.fill gives the row tight constraints, which is what
-            // lets the two halves split the width exactly evenly.
+            // Positioned.fill gives the row tight constraints.
             Positioned.fill(
               child: Row(
                 children: [
@@ -99,9 +91,7 @@ class LanguageToggle extends StatelessWidget {
   }
 }
 
-/// One half of the pill. Tapping it selects that language; tapping the half
-/// that is already active is a no-op, since [LocaleProvider.setLanguage]
-/// returns early when nothing changes.
+/// One half of the pill.
 class _Segment extends StatelessWidget {
   const _Segment({
     required this.label,
@@ -121,8 +111,7 @@ class _Segment extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Center(
-        // The label colour crossfades on the same curve as the thumb, so the
-        // text turns white exactly as the thumb arrives underneath it.
+        // The label colour crossfades on the same curve as the thumb.
         child: AnimatedDefaultTextStyle(
           duration: LanguageToggle._slide,
           curve: LanguageToggle._slideCurve,

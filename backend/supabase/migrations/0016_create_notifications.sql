@@ -1,13 +1,7 @@
--- ─────────────────────────────────────────────────────────────────────────
--- notifications  →  lib/models/notification_model.dart
--- Screens: notifications (inbox), home (unread badge).
---
--- The inbox was a hardcoded list in NotificationProvider, so it reset on every
--- launch and was identical for every user.
---
--- `kind` is stored instead of an icon: an icon is a Flutter value, and pinning
--- one in the database would freeze the app's iconography into old rows.
--- ─────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────
+-- notifications  →  lib/models/notification_model.dart Screens:
+-- notifications (inbox), home (unread badge).
+-- ───────────────────────────────────────────────────────────────────────
 
 create table if not exists public.notifications (
   id         uuid primary key default gen_random_uuid(),
@@ -24,14 +18,14 @@ create index if not exists notifications_user_idx
 
 alter table public.notifications enable row level security;
 
--- A notification belongs to exactly one user, and only that user may see it.
+-- A notification belongs to exactly one user, and only that user may see
+-- it.
 drop policy if exists notifications_select_own on public.notifications;
 create policy notifications_select_own on public.notifications
   for select using (auth.uid() = user_id);
 
--- Inserting for yourself covers the in-app cases (verification approved, and
--- so on). Anything raised *for another user* is server-side work and runs
--- with the service_role key, which bypasses these policies.
+-- Inserting for yourself covers the in-app cases (verification approved,
+-- and so on).
 drop policy if exists notifications_insert_own on public.notifications;
 create policy notifications_insert_own on public.notifications
   for insert with check (auth.uid() = user_id);

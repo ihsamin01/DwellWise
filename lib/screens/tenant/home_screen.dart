@@ -18,8 +18,6 @@ import '../../widgets/property_card.dart';
 import '../../widgets/filter_chip.dart';
 
 /// Price-based filter options for the AI recommended feed.
-/// [none] is the initial "no filter applied" state and is not shown as a
-/// selectable menu item — only the four price buckets are listed.
 enum PriceFilter { none, under10k, range10to20k, range20to30k, above30k }
 
 /// Tenant Home Screen containing search bar, horizontal recently viewed, and infinite scrolling AI recommended items.
@@ -46,18 +44,16 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   bool _verifiedOnly = false;
   String _sortBy = 'Newest';
 
-  /// Bedroom/bathroom quick-pick options. The last entry acts as an "N+" upper bucket.
+  /// Bedroom/bathroom quick-pick options.
   static const List<int> kBedsOptions = [1, 2, 3, 4];
   static const List<int> kBathsOptions = [1, 2, 3];
 
-  // AI Recommended (Gemini) — refines the local location ranking in the
-  // background; falls back to the local ranking on any error.
+  // AI Recommended (Gemini).
   final GeminiService _gemini = GeminiService();
   List<String>? _aiOrderedIds;
   String? _aiRankedFor;
 
-  /// Kicks off a Gemini ranking for [userAddress] (once per address). Resets the
-  /// previous order when the address changes.
+  /// Kicks off a Gemini ranking for [userAddress] (once per address).
   Future<void> _requestAiRanking(
       String userAddress, List<PropertyModel> candidates) async {
     if (_aiRankedFor == userAddress) return;
@@ -72,8 +68,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     }
   }
 
-  /// Reorders [list] to put Gemini's recommended ids first (in its order),
-  /// keeping the rest in their existing order.
+  /// Reorders [list] to put Gemini's recommended ids first (in its order),.
   List<PropertyModel> _applyAiOrder(List<PropertyModel> list) {
     final ids = _aiOrderedIds;
     if (ids == null || ids.isEmpty) return list;
@@ -87,7 +82,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     return ordered;
   }
 
-  /// Sort options shared with the search results screen. Value → label.
+  /// Sort options shared with the search results screen.
   static const Map<String, String> kSortOptions = {
     'Newest': 'Newest',
     'Price Low-High': 'Price: Low to High',
@@ -182,8 +177,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     });
   }
 
-  /// Pull-to-refresh: re-reads the listings (so newly posted rentals from other
-  /// devices show up) and rebuilds the area feed for [userAddress].
+  /// Pull-to-refresh.
   Future<void> _refreshFeed(String? userAddress) async {
     final provider = context.read<PropertyProvider>();
     await provider.fetchProperties();
@@ -201,7 +195,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   void _scrollListener() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      // Trigger infinite scroll load more
+      // Trigger infinite scroll load more.
       setState(() {
         _displayedCount += 5;
       });
@@ -209,9 +203,9 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   }
 
   void _handlePropertyTap(BuildContext context, PropertyModel property) {
-    // Add to recently viewed provider dynamically
+    // Add to recently viewed provider dynamically.
     context.read<RecentlyViewedProvider>().addProperty(property.id);
-    // Navigate to property details
+    // Navigate to property details.
     context.push('/property/${property.id}');
   }
 
@@ -233,8 +227,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     );
   }
 
-  /// Sort trigger (Newest / Price) shown at the right of the "AI Recommended"
-  /// heading, next to the price Filter button.
+  /// Sort trigger (Newest / Price) shown at the right of the "AI Recommended".
   Widget _buildSortButton(AppColors colors) {
     return PopupMenuButton<String>(
       tooltip: 'Sort listings',
@@ -291,9 +284,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     );
   }
 
-  /// Filter trigger shown at the right of the "AI Recommended" heading. Opens
-  /// a bottom sheet covering price, property type, bedrooms, bathrooms and
-  /// verified-owner status.
+  /// Filter trigger shown at the right of the "AI Recommended" heading.
   Widget _buildFilterButton(AppColors colors, List<String> availableTypes) {
     final bool isActive = _priceFilter != PriceFilter.none ||
         _typeFilter != null ||
@@ -539,12 +530,10 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     final recentlyViewedProvider = context.watch<RecentlyViewedProvider>();
 
     final userAddress = context.watch<UserProvider>().userModel?.address;
-    // The last two parts of the address, e.g. "Banani, Dhaka" — everything
-    // (feed generation, ranking, Gemini) keys off this.
+    // The last two parts of the address, e.g.
     final userArea = PropertyProvider.deriveArea(userAddress);
 
-    // Make sure ~12 dummy listings exist around the user's area (regenerates
-    // only when the area changes). Runs post-frame since it notifies listeners.
+    // Make sure ~12 dummy listings exist around the user's area (regenerates.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       propertyProvider.syncAreaFeed(userAddress);
     });
@@ -553,13 +542,11 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
     final availableTypes = allProperties.map((p) => p.propertyType).toSet().toList()
       ..sort();
 
-    // Offline location ranking from the user's area, then let Gemini refine the
-    // order in the background (falls back to the local ranking).
+    // Offline location ranking from the user's area.
     final sorted = _applySort(_applyFilters(allProperties));
     final locationRanked = recommendByLocation(sorted, userArea);
 
-    // Only ask Gemini once the generated area feed is present, so it ranks the
-    // nearby posts too (keeps them on top).
+    // Only ask Gemini once the generated area feed is present.
     final feedReady = propertyProvider.hasAreaFeed;
     if (feedReady && userArea != null && userArea.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -570,8 +557,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
 
     final recentlyViewedIds = recentlyViewedProvider.recentlyViewedIds;
 
-    // Map viewed IDs to actual properties (home feed + search results),
-    // skipping any id that can no longer be resolved.
+    // Map viewed IDs to actual properties (home feed + search results),.
     final recentlyViewedList = recentlyViewedIds
         .map(propertyProvider.findById)
         .whereType<PropertyModel>()
@@ -603,8 +589,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                   child: Icon(Icons.menu, color: colors.primary, size: 24),
                 ),
                 const SizedBox(width: 12),
-                // Flexible so the title gives way on narrow screens instead of
-                // overflowing the row once the language toggle takes its space.
+                // Flexible so the title gives way on narrow screens instead of.
                 Flexible(
                   child: Text(
                     'DwellWise',
@@ -689,7 +674,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // HEADER SECTION
+                  // HEADER SECTION.
                   Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 24.0, vertical: 20.0),
@@ -716,7 +701,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                     ),
                   ),
 
-                  // RECENTLY VIEWED SECTION (Horizontal scroll, hidden if empty)
+                  // RECENTLY VIEWED SECTION (Horizontal scroll.
                   if (recentlyViewedList.isNotEmpty) ...[
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -771,7 +756,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                     const SizedBox(height: 24),
                   ],
 
-                  // AI RECOMMENDED SECTION
+                  // AI RECOMMENDED SECTION.
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
                     child: Row(
@@ -797,7 +782,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Property card list with infinite scroll builder loop
+                  // Property card list with infinite scroll builder loop.
                   if (recommendedList.isNotEmpty)
                     ListView.builder(
                       shrinkWrap: true,
@@ -805,7 +790,7 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 24.0),
                       itemCount: _displayedCount,
                       itemBuilder: (context, index) {
-                        // Loop indices to support infinite list scrolling simulation
+                        // Loop indices to support infinite list scrolling simulation.
                         final property =
                             recommendedList[index % recommendedList.length];
                         final isSaved = savedProvider.isSaved(property.id);

@@ -1,22 +1,7 @@
--- ─────────────────────────────────────────────────────────────────────────
--- Demo owner accounts, and listings for the Dhaka areas the assistant is
--- most often asked about.
---
--- Why the accounts: the seeded listings carry owner ids like 'o10', which are
--- not real users. Messaging an owner creates a row in `chats` whose
--- participant is a profile, so "Message owner" could never work on them —
--- there was nobody on the other side. These owners are real accounts with
--- profiles, so the whole flow works end to end.
---
--- Why the listings: the catalogue is thin on sublets and office rooms around
--- Mirpur, ECB, Banani and Hatirjheel, so the assistant answered a sublet
--- request with family flats.
---
--- Demo passwords are deliberately obvious — these are sample accounts, not
--- anybody's real login.
---
--- Safe to re-run: every insert is guarded by `on conflict do nothing`.
--- ─────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────
+-- Demo owner accounts, and listings around Mirpur, ECB, Banani and
+-- Hatirjheel.
+-- ───────────────────────────────────────────────────────────────────────
 
 -- ── owner accounts ───────────────────────────────────────────────────────
 -- Fixed uuids so re-running maps to the same owners and the listings below
@@ -53,10 +38,8 @@ values
    '{"name":"Jashim Uddin"}')
 on conflict (id) do nothing;
 
--- The live database has a trigger on auth.users that creates the profile with
--- defaults, so these rows usually exist by the time this runs. Upserting
--- rather than skipping is what fills in the role, phone and verified badge
--- the trigger has no way to know about.
+-- The live database has a trigger on auth.users that creates the profile
+-- with defaults, so these rows usually exist by the time this runs.
 insert into public.profiles (id, email, name, phone_number, role, verification_status)
 values
   ('d0000000-0000-4000-8000-000000000001', 'rumana.owner@dwellwise.demo',
@@ -75,14 +58,13 @@ on conflict (id) do update set
 
 -- ── listings ─────────────────────────────────────────────────────────────
 -- Fixed ids again, so re-running updates nothing and duplicates nothing.
--- Coordinates match the area, so the assistant's radius search behaves.
 insert into public.properties (
   id, owner_id, title, description, price, price_for, property_type,
   area, address, latitude, longitude, beds, baths, balcony, size_sqft,
   available_from, included_bills, image_urls, facilities, is_verified, status
 )
 values
-  -- Mirpur 11 (23.8195, 90.3660)
+  -- Mirpur 11 (23.8195, 90.3660).
   ('e0000000-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-000000000001',
    'Sublet room in Mirpur 11', 'A furnished sublet room in a family building, close to Mirpur 11 bus stand. Suitable for a single tenant or a couple.',
    7000, 'Monthly', 'Sublet', 'Mirpur 11', 'Block C, Road 3, Mirpur 11, Dhaka',
@@ -107,7 +89,7 @@ values
    23.8202, 90.3648, 3, 3, 2, 1250, 'October',
    '{"Gas bill","Service charge"}', '{}', '{GAS,LIFT,GARAGE,CCTV}', true, 'approved'),
 
-  -- Mirpur 10 (23.8069, 90.3686)
+  -- Mirpur 10 (23.8069, 90.3686).
   ('e0000000-0000-4000-8000-000000000005', 'd0000000-0000-4000-8000-000000000001',
    'Sublet near Mirpur 10 circle', 'One room sublet a two-minute walk from the metro station. Gas and water included.',
    8000, 'Monthly', 'Sublet', 'Mirpur 10', 'Road 4, Mirpur 10, Dhaka',
@@ -120,7 +102,7 @@ values
    23.8074, 90.3692, 2, 2, 0, 700, 'Immediately',
    '{"Service charge"}', '{}', '{LIFT,CCTV,GARAGE}', true, 'approved'),
 
-  -- ECB Chattar (23.8320, 90.3980)
+  -- ECB Chattar (23.8320, 90.3980).
   ('e0000000-0000-4000-8000-000000000007', 'd0000000-0000-4000-8000-000000000003',
    'Sublet room at ECB Chattar', 'Furnished room in a quiet building near ECB Chattar. Gas line and lift.',
    9000, 'Monthly', 'Sublet', 'ECB Chattar', 'ECB Chattar, Dhaka Cantonment, Dhaka',
@@ -145,7 +127,7 @@ values
    23.8331, 90.3975, 3, 1, 0, 900, 'Immediately',
    '{"Service charge"}', '{}', '{LIFT,CCTV}', true, 'approved'),
 
-  -- Banani (23.7937, 90.4066)
+  -- Banani (23.7937, 90.4066).
   ('e0000000-0000-4000-8000-000000000011', 'd0000000-0000-4000-8000-000000000003',
    'Sublet in Banani Block E', 'One furnished room with an attached bath in a shared flat. Lift and generator.',
    16000, 'Monthly', 'Sublet', 'Banani', 'Block E, Banani, Dhaka',
@@ -164,7 +146,7 @@ values
    23.7929, 90.4074, 3, 3, 2, 1800, 'October',
    '{"Gas bill","Service charge"}', '{}', '{GAS,LIFT,GARAGE,CCTV}', true, 'approved'),
 
-  -- Hatirjheel (23.7530, 90.4050)
+  -- Hatirjheel (23.7530, 90.4050).
   ('e0000000-0000-4000-8000-000000000014', 'd0000000-0000-4000-8000-000000000002',
    'Sublet beside Hatirjheel', 'Single room sublet overlooking the lake walkway. Gas and water included.',
    10000, 'Monthly', 'Sublet', 'Hatirjheel', 'Hatirjheel, Dhaka',

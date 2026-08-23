@@ -11,8 +11,7 @@ import '../../providers/user_provider.dart';
 import '../../models/user_model.dart';
 import '../../utils/avatar_helper.dart';
 
-/// Profile hub: a scrollable menu of account actions, matching the app's
-/// list-style layout. Each tile routes to a fully functional sub-screen.
+/// Profile hub.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
@@ -105,8 +104,7 @@ class ProfileScreen extends StatelessWidget {
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        // Theme surface, not white: a hardcoded white dialog hid its own text
-        // in dark mode.
+        // Theme surface, not white.
         backgroundColor: AppColors.of(dialogContext).surface,
         elevation: 8,
         shape: RoundedRectangleBorder(

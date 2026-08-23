@@ -5,10 +5,6 @@ import '../services/notification_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Provider holding the notification inbox and unread count.
-///
-/// Backed by the `notifications` table, so the inbox is per-account and
-/// survives a restart. New rows arrive over Realtime, which is what keeps the
-/// home-screen badge current without polling.
 class NotificationProvider with ChangeNotifier {
   NotificationProvider() {
     _channel = _service.subscribe(_onInserted);
@@ -45,16 +41,14 @@ class NotificationProvider with ChangeNotifier {
         ..clear()
         ..addAll(fetched);
     } catch (_) {
-      // Offline: keep whatever is already listed rather than emptying the
-      // inbox and hiding the badge.
+      // Offline.
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  /// Raises a notification for the signed-in user (e.g. verification
-  /// approved). Shown immediately and replaced by the stored row.
+  /// Raises a notification for the signed-in user (e.g.
   Future<void> addNotification({
     required NotificationKind kind,
     required String title,
@@ -91,8 +85,7 @@ class NotificationProvider with ChangeNotifier {
     }
   }
 
-  /// Marks [id] as read if it isn't already. Tapping an already-read
-  /// notification is a deliberate no-op — no state change, no rebuild.
+  /// Marks [id] as read if it isn't already.
   Future<void> markAsRead(String id) async {
     final index = _notifications.indexWhere((n) => n.id == id);
     if (index == -1 || _notifications[index].isRead) return;
@@ -107,7 +100,7 @@ class NotificationProvider with ChangeNotifier {
     }
   }
 
-  /// Marks every notification as read (e.g. when the inbox is opened).
+  /// Marks every notification as read (e.g.
   Future<void> markAllAsRead() async {
     if (unreadCount == 0) return;
 
@@ -121,7 +114,7 @@ class NotificationProvider with ChangeNotifier {
     try {
       await _service.markAllRead();
     } catch (_) {
-      // Same as above: a failed write shows up again after a refresh.
+      // Same as above.
     }
   }
 

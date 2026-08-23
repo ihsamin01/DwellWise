@@ -8,8 +8,7 @@ import '../../providers/recently_viewed_provider.dart';
 import '../../models/property_model.dart';
 import '../../widgets/property_card.dart';
 
-/// Screen listing every property the tenant has recently viewed, in order
-/// (most recent first), using the same summary card style as the home feed.
+/// Screen listing every property the tenant has recently viewed.
 class TenantRecentlyViewedScreen extends StatelessWidget {
   const TenantRecentlyViewedScreen({Key? key}) : super(key: key);
 

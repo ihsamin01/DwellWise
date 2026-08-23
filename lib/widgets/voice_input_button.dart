@@ -4,15 +4,6 @@ import 'package:speech_to_text/speech_to_text.dart';
 import '../config/app_colors.dart';
 
 /// Mic button that dictates straight into a text field.
-///
-/// Tap once and talk: the words appear in the field as they are spoken, and it
-/// stops on its own a few seconds after the talking does. Sending stays a
-/// separate tap, so a mis-heard word can be fixed first.
-///
-/// Recognition runs on the device rather than through Gemini. Gemini can tell
-/// which language is being spoken, but only once the recording is finished —
-/// live text is worth more here than perfect language detection, and it costs
-/// no API quota.
 class VoiceInputButton extends StatefulWidget {
   const VoiceInputButton({
     super.key,
@@ -38,9 +29,7 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
   bool _initialised = false;
   bool _listening = false;
 
-  /// Bangla first: this is a Bangladeshi rental app, and Google's Bangla model
-  /// also copes with the English words that get mixed into everyday speech
-  /// here. Falls back to whatever the device has if bn is not installed.
+  /// Bangla first.
   static const List<String> _preferredLocales = ['bn_BD', 'bn-BD', 'bn'];
 
   Future<void> _toggle() async {
@@ -80,14 +69,12 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
 
     await _speech.listen(
       onResult: (result) => widget.onResult(result.recognizedWords),
-      // Ends a few seconds after the speaker does. The platform default is
-      // about three seconds, which cuts people off mid-thought.
+      // Ends a few seconds after the speaker does.
       pauseFor: const Duration(seconds: 5),
       listenFor: const Duration(minutes: 1),
       listenOptions: SpeechListenOptions(
         localeId: await _resolveLocale(),
-        // This is what puts the words in the field while they are being
-        // spoken rather than after.
+        // This is what puts the words in the field while they are being.
         partialResults: true,
         cancelOnError: true,
       ),
@@ -97,7 +84,6 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
   }
 
   /// The first preferred locale the device actually has, or its default.
-  /// Asking for one that is not installed fails outright on some devices.
   Future<String?> _resolveLocale() async {
     final installed = await _speech.locales();
     final ids = installed.map((l) => l.localeId).toList();
@@ -129,8 +115,7 @@ class _VoiceInputButtonState extends State<VoiceInputButton> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          // The app's own accent while listening, not an alarm colour —
-          // dictating is a normal thing to be doing.
+          // The app's own accent while listening.
           color: _listening ? colors.primaryTint : colors.background,
           shape: BoxShape.circle,
           border: Border.all(

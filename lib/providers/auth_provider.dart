@@ -16,9 +16,7 @@ class AuthProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _currentUser != null;
 
-  /// Set when the last [register] attempt was refused because the email or the
-  /// phone number already belongs to an account. Lets the form mark the field
-  /// that clashed instead of only showing a message.
+  /// Set when the last [register] attempt was refused because the email or the.
   AccountConflict get registerConflict => _registerConflict;
 
   AuthProvider() {
@@ -94,8 +92,7 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } on AuthException catch (e) {
-      // Backstop: Supabase still rejects a duplicate email if an account was
-      // created between the check above and the sign-up call.
+      // Backstop.
       if (e.message.toLowerCase().contains('already registered')) {
         _registerConflict = AccountConflict.email;
         _setError(_conflictMessage(AccountConflict.email));
@@ -128,8 +125,7 @@ class AuthProvider with ChangeNotifier {
   Future<void> setKeepSignedIn(bool value) =>
       _authService.setKeepSignedIn(value);
 
-  /// "Continue with Google". Returns the raw result so the screen can decide:
-  /// success → go home; notRegistered → go to the register page.
+  /// "Continue with Google".
   Future<GoogleSignInResult> signInWithGoogle() async {
     _setLoading(true);
     _clearError();
@@ -148,7 +144,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Forgot-password step 1: email a recovery code to [email].
+  /// Forgot-password step 1.
   Future<bool> sendPasswordResetCode(String email) async {
     _setLoading(true);
     _clearError();
@@ -166,8 +162,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Forgot-password step 2: verify [code] and set [newPassword]. On success the
-  /// session is cleared so the user signs in fresh.
+  /// Forgot-password step 2.
   Future<bool> resetPassword({
     required String email,
     required String code,
@@ -195,8 +190,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Phone OTP is not wired yet (needs a paid SMS provider). Kept as a no-op so
-  /// the OTP screen still builds.
+  /// Phone OTP is not wired yet (needs a paid SMS provider).
   Future<void> sendOtp(
       String phoneNumber, Function(String, int?) codeSent) async {}
 

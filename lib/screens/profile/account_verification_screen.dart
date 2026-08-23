@@ -12,9 +12,7 @@ import '../../models/notification_model.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/user_provider.dart';
 
-/// Account verification: the user submits identity details, attaches NID photos
-/// and pays a mock ৳200 fee. There is no admin review step — paying completes
-/// the process and the account earns the green verified badge immediately.
+/// Account verification.
 class AccountVerificationScreen extends StatefulWidget {
   const AccountVerificationScreen({super.key});
 
@@ -256,8 +254,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(title: Text(AppStrings.t(context, 'p_acc_verif'))),
-      // SafeArea keeps the submit button clear of the device's bottom
-      // navigation bar (gesture bar or 3-button bar) on every device.
+      // SafeArea keeps the submit button clear of the device's bottom.
       body: SafeArea(
         child: status == VerificationStatus.unverified
             ? _buildForm(colors)
@@ -288,9 +285,7 @@ class _AccountVerificationScreenState extends State<AccountVerificationScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(color: colors.textSecondary),
             ),
-            // Debug-only shortcut so the green badge can be demoed without an
-            // admin queue. kDebugMode keeps it out of release builds, where it
-            // would let anyone approve their own identity check.
+            // Debug-only shortcut so the green badge can be demoed without an.
             if (!verified && kDebugMode) ...[
               const SizedBox(height: 24),
               OutlinedButton.icon(

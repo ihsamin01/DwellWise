@@ -28,8 +28,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
   @override
   void initState() {
     super.initState();
-    // Pull the signed-in user's saved properties from the database, so
-    // favorites survive logging out and back in.
+    // Pull the signed-in user's saved properties from the database.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<SavedPropertiesProvider>().loadSaved();
     });
@@ -49,7 +48,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
       ),
     );
 
-    // Wait for the local fade out and slide animation to finish before updating global state
+    // Wait for the local fade out and slide animation to finish before updating global state.
     await Future.delayed(const Duration(milliseconds: 300));
 
     if (mounted) {
@@ -70,9 +69,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
     final colors = AppColors.of(context);
     final savedProvider = context.watch<SavedPropertiesProvider>();
 
-    // Straight from the provider, which loads them from the database. Filtering
-    // the home feed by id used to drop any save whose property was not in the
-    // slice the feed happened to hold.
+    // Straight from the provider, which loads them from the database.
     final savedList = savedProvider.savedProperties;
 
     return Scaffold(
@@ -91,9 +88,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
             elevation: 0,
             leading: IconButton(
               icon: Icon(Icons.arrow_back, color: colors.primary, size: 24),
-              // This screen is always a tab inside MainTabsShell, so "back"
-              // should return to the Home tab, not push a new GoRouter page.
-              // MainTabsShell's PopScope handles exactly that on pop.
+              // This screen is always a tab inside MainTabsShell.
               onPressed: () => Navigator.maybePop(context),
             ),
             title: Text(
@@ -122,7 +117,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
                       final property = savedList[index];
                       final isRemoving = _removingIds.contains(property.id);
 
-                      // Wrap each card in AnimatedOpacity and AnimatedSize for smooth disappearing transition
+                      // Wrap each card in AnimatedOpacity and AnimatedSize for smooth disappearing transition.
                       return AnimatedOpacity(
                         duration: const Duration(milliseconds: 300),
                         opacity: isRemoving ? 0.0 : 1.0,

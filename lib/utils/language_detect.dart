@@ -1,13 +1,7 @@
 /// Decides which language to answer in.
-///
-/// Not left to the model: it read "mirpur 12 er ashepashe" as English and
-/// replied in English, because the words are in Latin letters. Someone writing
-/// romanised Bangla is speaking Bangla and expects Bangla back.
 library language_detect;
 
-/// Common Bangla words as people type them in Latin letters. Function words
-/// rather than nouns — 'basha' appears in English sentences here too, but
-/// nobody writes 'ashepashe' in an English one.
+/// Common Bangla words as people type them in Latin letters.
 const Set<String> _banglishMarkers = {
   'ache', 'ache?', 'achi', 'ai', 'amar', 'ami', 'amake', 'amader', 'apni',
   'apnar', 'ar', 'ashepashe', 'ashe', 'ashen', 'basa', 'basha', 'bashar',
@@ -35,7 +29,6 @@ String detectLanguage(String text) {
 
   final hits = words.where(_banglishMarkers.contains).length;
 
-  // One marker in a short message is enough ("ki khobor"), but a long English
-  // sentence that happens to contain 'ar' or 'na' should not flip.
+  // One marker in a short message is enough ("ki khobor").
   return hits >= 1 && hits * 4 >= words.length ? 'bn' : 'en';
 }

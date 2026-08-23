@@ -11,8 +11,7 @@ class SecurityLogEntry {
   const SecurityLogEntry({required this.title, required this.subtitle});
 }
 
-/// Provider handling account security preferences: verification status,
-/// 2FA/biometric toggles, and session/device/login-history mock data.
+/// Provider handling account security preferences.
 class SecurityProvider with ChangeNotifier {
   bool _isEmailVerified = true;
   bool _isPhoneVerified = true;
@@ -54,8 +53,7 @@ class SecurityProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Changes the account password. Returns false and sets [errorMessage] when
-  /// the current password is wrong or Supabase refuses the new one.
+  /// Changes the account password.
   Future<bool> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -76,9 +74,7 @@ class SecurityProvider with ChangeNotifier {
     }
   }
 
-  /// Permanently deletes the account. Returns false and sets [errorMessage]
-  /// if the server refused, so the UI never claims a deletion that did not
-  /// happen.
+  /// Permanently deletes the account.
   Future<bool> deleteAccount() async {
     _errorMessage = null;
     try {

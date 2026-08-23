@@ -1,19 +1,8 @@
--- ─────────────────────────────────────────────────────────────────────────
--- Gives every listing an owner who is a real account.
---
--- The seeded catalogue carries owner ids like 'o10' — placeholders, not
--- users. A conversation needs a profile on the other side, so "Message owner"
--- could not work on any of them, and the name shown on the listing came from
--- a lookup table in the app rather than from anybody's account.
---
--- Listings are spread across the four demo owners from 0018 by a hash of
--- their id, so the assignment is stable: re-running maps each listing to the
--- same owner rather than shuffling them.
---
--- Only touches rows whose owner is not already an account, so real listings
--- posted through the app are left alone. owner_id holds text (the seed put
--- 'o10' in it), hence the cast.
--- ─────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────
+-- Gives every listing an owner who is a real account, spread across the
+-- demo owners from 0018 by a hash of the listing id so the mapping is
+-- stable.
+-- ───────────────────────────────────────────────────────────────────────
 
 update public.properties p
    set owner_id = owners.id::text

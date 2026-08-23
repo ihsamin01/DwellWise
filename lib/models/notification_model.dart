@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 
 /// What a notification is about.
-///
-/// Stored as the `kind` column and mapped to an icon here rather than the
-/// other way round: an icon is a Flutter value, and freezing one into the
-/// database would leave old rows drawing icons the app has moved on from.
 enum NotificationKind {
   message,
   priceDrop,

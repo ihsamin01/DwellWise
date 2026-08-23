@@ -3,8 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/security_provider.dart';
 
-/// Lets the user change their password. Verification is simulated locally
-/// via [SecurityProvider.changePassword] — no backend involved.
+/// Lets the user change their password.
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
 
@@ -57,8 +56,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       return;
     }
 
-    // The change can genuinely fail now, so the failure has to be shown —
-    // previously the call could not fail and there was no branch for it.
+    // The change can genuinely fail now.
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(security.errorMessage ?? 'Could not change the password.'),

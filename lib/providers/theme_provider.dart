@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Provider handling the user's Light / Dark / System theme preference.
-///
-/// The choice is written to local storage as soon as it changes and restored
-/// on the next launch, so the app does not snap back to light mode every time
-/// it is reopened.
 class ThemeProvider with ChangeNotifier {
   static const String _storageKey = 'dw_theme_mode';
 
@@ -39,8 +35,7 @@ class ThemeProvider with ChangeNotifier {
     await prefs.setString(_storageKey, _encode(mode));
   }
 
-  // Stored by name rather than index so reordering ThemeMode upstream cannot
-  // silently turn a saved 'dark' into something else.
+  // Stored by name rather than index so reordering ThemeMode upstream cannot.
   static String _encode(ThemeMode mode) {
     switch (mode) {
       case ThemeMode.dark:

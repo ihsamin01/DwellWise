@@ -8,8 +8,7 @@ import '../../providers/user_provider.dart';
 import '../../utils/property_matcher.dart';
 import '../../widgets/voice_input_button.dart';
 
-/// Conversational way into the app for someone who does not want to learn the
-/// filters: they describe the home they want and get real listings back.
+/// Conversational way into the app for someone who does not want to learn the.
 class AiAssistantScreen extends StatefulWidget {
   const AiAssistantScreen({super.key});
 
@@ -108,8 +107,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   }
 }
 
-/// Shown before the first message: examples do more than instructions for
-/// someone who does not yet know what the assistant can be asked.
+/// Shown before the first message.
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.colors});
 
@@ -212,8 +210,7 @@ class _MessageBubble extends StatelessWidget {
   }
 }
 
-/// What the assistant understood, shown so a misread request is obvious
-/// before the user works through the listings.
+/// What the assistant understood.
 class _RequirementChips extends StatelessWidget {
   const _RequirementChips({required this.intent, required this.colors});
 
@@ -453,8 +450,7 @@ class _ComposerState extends State<_Composer> {
             colors: colors,
             enabled: enabled,
             onResult: (text) {
-              // Dictation writes into the same field typing uses, so a
-              // mis-heard word can be corrected before sending.
+              // Dictation writes into the same field typing uses.
               controller.value = TextEditingValue(
                 text: text,
                 selection: TextSelection.collapsed(offset: text.length),

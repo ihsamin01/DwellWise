@@ -1,13 +1,7 @@
 /// Bangla names for every division, district and thana in [bdLocations].
-///
-/// These are display names only. The English strings stay the canonical
-/// values everywhere else — filters, queries and saved preferences all keep
-/// comparing English — so switching language never changes which listings
-/// match. Call [bnPlace] at render time and nowhere else.
 library bd_locations_bn;
 
-/// Suffixes composed from a known base, so 'Bagerhat Sadar' does not need its
-/// own entry alongside 'Bagerhat'.
+/// Suffixes composed from a known base.
 const Map<String, String> _suffixes = {
   ' Sadar': ' সদর',
   ' Bazar': ' বাজার',
@@ -26,8 +20,7 @@ const List<String> _banglaDigits = [
   '০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯',
 ];
 
-/// Rewrites ASCII digits as Bangla ones, so 'Mirpur 10' reads 'মিরপুর ১০'
-/// rather than leaving a Latin number inside Bangla text.
+/// Rewrites ASCII digits as Bangla ones.
 String _banglaNumber(String input) {
   final buffer = StringBuffer();
   for (final rune in input.runes) {
@@ -42,16 +35,6 @@ String? _lookup(String english) =>
     bnPlaceNames[english] ?? bnAreaNames[english];
 
 /// Bangla for [english], or [english] itself when no Bangla name is known.
-///
-/// Beyond a direct hit the name is taken apart and put back together, which is
-/// what keeps the tables to base names instead of every combination:
-///   'Bagerhat Sadar'     -> 'বাগেরহাট সদর'      (composed suffix)
-///   'Mirpur 10'          -> 'মিরপুর ১০'          (number in Bangla digits)
-///   'Kotwali (Barishal)' -> 'কোতোয়ালী (বরিশাল)'  (both parts resolved)
-///   'Rupatoli'           -> 'Rupatoli'          (unknown, left as-is)
-///
-/// Each rule strips something before recursing, so the composition always
-/// terminates.
 String bnPlace(String english) {
   final direct = _lookup(english);
   if (direct != null) return direct;
@@ -84,11 +67,9 @@ String bnPlace(String english) {
   return english;
 }
 
-/// English -> Bangla for divisions, districts and thanas. Names carrying a
-/// ' Sadar' / ' Bazar' suffix or a '(Division)' qualifier are composed by
-/// [bnPlace] instead of being repeated here.
+/// English -> Bangla for divisions, districts and thanas.
 const Map<String, String> bnPlaceNames = {
-  // Divisions
+  // Divisions.
   'Barishal': 'বরিশাল',
   'Chattogram': 'চট্টগ্রাম',
   'Dhaka': 'ঢাকা',
@@ -98,7 +79,7 @@ const Map<String, String> bnPlaceNames = {
   'Rangpur': 'রংপুর',
   'Sylhet': 'সিলেট',
 
-  // Districts and thanas
+  // Districts and thanas.
   'Abhaynagar': 'অভয়নগর',
   'Adabor': 'আদাবর',
   'Adamdighi': 'আদমদীঘি',
@@ -655,13 +636,7 @@ const Map<String, String> bnPlaceNames = {
   'Zakiganj': 'জকিগঞ্জ',
 };
 
-/// Bangla for the neighbourhood ("area") level — the fourth step of the search
-/// filter, under division → district → thana.
-///
-/// Kept separate from [bnPlaceNames] because these are informal
-/// neighbourhood names rather than administrative units. Names that are just a
-/// known place plus a number ('Mirpur 11', 'Sector 13') are composed by
-/// [bnPlace] instead of being listed.
+/// Bangla for the neighbourhood ("area") level.
 const Map<String, String> bnAreaNames = {
   // Bases the number rule builds on.
   'Sector': 'সেক্টর',

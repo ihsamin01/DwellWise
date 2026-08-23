@@ -6,13 +6,6 @@ import '../models/chat_model.dart';
 import '../services/chat_service.dart';
 
 /// Provider handling instant messaging conversations and attachments.
-///
-/// Backed by the `chats` / `messages` tables. Sends are optimistic: the
-/// message is shown immediately and reconciled with the row the server
-/// returns, so the thread never feels like it is waiting on the network. New
-/// messages arrive over a Realtime subscription; row-level security means the
-/// subscription only ever delivers messages from the user's own chats, so no
-/// filtering by chat is needed on the client.
 class ChatProvider with ChangeNotifier {
   ChatProvider() {
     _listenForMessages();
@@ -26,8 +19,7 @@ class ChatProvider with ChangeNotifier {
 
   RealtimeChannel? _messagesChannel;
 
-  /// Why the last send failed, for the screen to show. A send that quietly
-  /// disappears is impossible to diagnose from the outside.
+  /// Why the last send failed, for the screen to show.
   String? lastSendError;
 
   bool _isTyping = false;
@@ -36,8 +28,7 @@ class ChatProvider with ChangeNotifier {
   String? _activeChatId;
   bool _hasLoadedChats = false;
 
-  /// The signed-in user's id — what message bubbles compare against to decide
-  /// which side of the thread they belong on.
+  /// The signed-in user's id.
   String? get currentUserId => _service.currentUserId;
 
   List<ChatModel> get chats => _buildConversationList();
@@ -77,8 +68,7 @@ class ChatProvider with ChangeNotifier {
         ..clear()
         ..addAll(fetched);
     } catch (_) {
-      // Offline or refused: keep whatever is already on screen rather than
-      // blanking the inbox.
+      // Offline or refused.
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -91,10 +81,6 @@ class ChatProvider with ChangeNotifier {
       final messages = await _service.fetchMessages(chatId);
 
       // Anything sent while this was in flight is not in the response yet.
-      // Replacing the list outright dropped those messages off the screen —
-      // they reached the database, but the thread looked like nothing had
-      // been sent, which is exactly what happened to the opening message on a
-      // brand new conversation.
       final fetchedIds = messages.map((m) => m.id).toSet();
       final inFlight = [
         for (final m in _messagesByChatId[chatId] ?? const <ChatMessageModel>[])
@@ -139,10 +125,6 @@ class ChatProvider with ChangeNotifier {
   }
 
   /// Opens the thread with a property's owner, creating it on first contact.
-  ///
-  /// Asynchronous because the chat row has to exist before it can be opened —
-  /// the id is the database's, so both participants resolve to the same
-  /// conversation.
   Future<String?> startConversationWithOwner({
     required String ownerId,
     required String ownerName,
@@ -152,9 +134,7 @@ class ChatProvider with ChangeNotifier {
     if (_service.currentUserId == null) return null;
     if (_service.currentUserId == ownerId) return null;
 
-    // Seeded demo listings carry ids like 'o10' rather than a user id. A chat
-    // needs a real profile on the other side, so there is nobody to open a
-    // conversation with — caught here so the screen can say why.
+    // Seeded demo listings carry ids like 'o10' rather than a user id.
     if (!_looksLikeUserId(ownerId)) return null;
 
     try {
@@ -227,8 +207,7 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
-  /// Local-only typing indicator. Not shared with the other participant —
-  /// that needs Realtime presence, which is not wired up.
+  /// Local-only typing indicator.
   void setTypingStatus(String chatId, bool isTyping) {
     _isTyping = isTyping;
     _replaceChat(chatId, (chat) => chat.copyWith(isTyping: isTyping));
@@ -236,9 +215,7 @@ class ChatProvider with ChangeNotifier {
 
   // ── sending ────────────────────────────────────────────────────────────
 
-  /// [senderId] is accepted for call-site compatibility but ignored: the
-  /// sender is taken from the session, and the database enforces that a
-  /// message can only be inserted as its own sender.
+  /// [senderId] is accepted for call-site compatibility but ignored.
   void sendMessage(
     String chatId,
     String senderId,
@@ -261,10 +238,6 @@ class ChatProvider with ChangeNotifier {
   }
 
   /// Sends an image / pdf / document picked from the device.
-  ///
-  /// The picker hands back a path on this phone, which is meaningless to the
-  /// other participant, so the file is uploaded and the stored URL is what
-  /// goes into the message.
   void sendAttachment(
     String chatId,
     String senderId, {
@@ -280,8 +253,7 @@ class ChatProvider with ChangeNotifier {
     );
   }
 
-  /// Sends a recorded voice note. Uploaded for the same reason as any other
-  /// attachment.
+  /// Sends a recorded voice note.
   void sendVoiceMessage(
     String chatId,
     String senderId, {
@@ -313,11 +285,7 @@ class ChatProvider with ChangeNotifier {
     );
   }
 
-  /// Sends a sticker — either a bundled gif asset ([assetPath]) or an
-  /// emoji-based sticker ([emoji]).
-  ///
-  /// [assetPath] is deliberately not uploaded: it points into the app bundle,
-  /// so it already resolves on the other person's device.
+  /// Sends a sticker — either a bundled gif asset ([assetPath]) or an.
   void sendSticker(
     String chatId,
     String senderId, {
@@ -332,12 +300,7 @@ class ChatProvider with ChangeNotifier {
     );
   }
 
-  /// Shows the message straight away under a temporary id, then swaps it for
-  /// the stored row.
-  ///
-  /// [localPath] is a file on this device: it is displayed immediately so the
-  /// thread does not wait on an upload, then replaced by the uploaded URL
-  /// before the message row is written.
+  /// Shows the message straight away under a temporary id.
   void _dispatch({
     required String chatId,
     required String text,
@@ -377,8 +340,7 @@ class ChatProvider with ChangeNotifier {
       if (localPath != null) {
         url = await _service.uploadAttachment(localPath);
         if (url == null) {
-          // Nothing was stored, so a message pointing at it would be broken
-          // on the other side. Drop the bubble rather than send a dead link.
+          // Nothing was stored, so a message pointing at it would be broken.
           lastSendError = 'The attachment could not be uploaded.';
           _removeMessage(chatId, pending.id);
           return;
@@ -459,9 +421,7 @@ class ChatProvider with ChangeNotifier {
     if (index != -1) {
       messages[index] = saved;
     } else if (!messages.any((m) => m.id == saved.id)) {
-      // The optimistic bubble is gone — a reload landed between sending and
-      // saving. The message still exists, so put it back rather than leaving
-      // the thread missing something the server has.
+      // The optimistic bubble is gone.
       messages.add(saved);
     }
 
@@ -475,8 +435,7 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Applies [update] to one conversation in place. Does nothing when the
-  /// chat is not loaded — the next refresh will pick it up.
+  /// Applies [update] to one conversation in place.
   void _replaceChat(String chatId, ChatModel Function(ChatModel) update) {
     final index = _chats.indexWhere((chat) => chat.id == chatId);
     if (index == -1) return;

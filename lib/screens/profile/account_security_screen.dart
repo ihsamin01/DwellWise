@@ -69,8 +69,7 @@ class AccountSecurityScreen extends StatelessWidget {
     final deleted = await security.deleteAccount();
     if (!context.mounted) return;
 
-    // Only tear the session down if the account really went. Signing the user
-    // out of an account that still exists would look identical to success.
+    // Only tear the session down if the account really went.
     if (!deleted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -82,9 +81,7 @@ class AccountSecurityScreen extends StatelessWidget {
       return;
     }
 
-    // Captured before the awaits: after context.go the messenger looked up
-    // from this context is gone, and the confirmation has to outlive the
-    // screen that triggered it.
+    // Captured before the awaits.
     final messenger = ScaffoldMessenger.of(context);
 
     context.read<SavedPropertiesProvider>().clear();
@@ -104,10 +101,7 @@ class AccountSecurityScreen extends StatelessWidget {
     );
   }
 
-  /// [value] shows the verified data point (email/phone/masked ID) as a
-  /// subtitle. [onBadgeTap] makes the status badge itself tappable — used
-  /// only for the "Pending" Government ID badge, which opens the
-  /// verification form. Verified badges are always display-only.
+  /// [value] shows the verified data point (email/phone/masked ID) as a.
   Widget _statusTile({
     required String label,
     required bool verified,
@@ -141,8 +135,7 @@ class AccountSecurityScreen extends StatelessWidget {
     );
   }
 
-  /// Masks a submitted NID/passport number down to its last 4 digits,
-  /// e.g. "1990123456789" -> "************6789".
+  /// Masks a submitted NID/passport number down to its last 4 digits,.
   String _maskGovernmentId(String id) {
     if (id.length <= 4) return id;
     return '${'*' * 12}${id.substring(id.length - 4)}';

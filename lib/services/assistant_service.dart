@@ -10,10 +10,6 @@ import 'gemini_service.dart';
 import 'supabase_service.dart';
 
 /// What the user's message turned out to be.
-///
-/// Not every message is a search. "ki khobor" and "which areas have the most
-/// listings" used to be pushed through the search path anyway, which is why
-/// the answers had nothing to do with the questions.
 class Interpretation {
   const Interpretation.search(this.intent)
       : reply = null,
@@ -29,8 +25,7 @@ class Interpretation {
   final String? reply;
 }
 
-/// Thrown when Gemini could not be reached at all, so the caller can say
-/// the service is unavailable instead of blaming the user's wording.
+/// Thrown when Gemini could not be reached at all.
 class AssistantUnavailable implements Exception {
   const AssistantUnavailable();
 }
@@ -47,27 +42,19 @@ class AssistantSearchResult {
   /// Best first, already filtered to the score threshold.
   final List<MatchResult> matches;
 
-  /// How far out the search ended up going, or null when the area name alone
-  /// was enough.
+  /// How far out the search ended up going.
   final double? radiusKm;
 
-  /// True when nothing was found in the requested area itself — the reply has
-  /// to say so rather than implying these are all in that area.
+  /// True when nothing was found in the requested area itself.
   final bool widened;
 
-  /// In-budget listings slightly further out, offered when the matches in the
-  /// requested area are over budget.
+  /// In-budget listings slightly further out.
   final List<MatchResult> cheaperNearby;
 
   bool get isEmpty => matches.isEmpty && cheaperNearby.isEmpty;
 }
 
-/// The assistant's brain: turns a message into requirements, finds real
-/// listings for them, and writes the reply.
-///
-/// Gemini is used at the two ends only — reading the request and wording the
-/// answer. Everything between is ordinary code against the database, so the
-/// assistant can never offer a property that does not exist.
+/// The assistant's brain.
 class AssistantService {
   final GeminiService _gemini = GeminiService();
   final SupabaseService _db = SupabaseService();
@@ -75,16 +62,12 @@ class AssistantService {
   /// How far the search widens, in order, when the area name finds nothing.
   static const List<double> _radiusSteps = [5, 10];
 
-  /// Listings shown in the chat. The ranking runs over everything found; only
-  /// the display is capped, so a dense area does not bury the conversation.
+  /// Listings shown in the chat.
   static const int displayLimit = 6;
 
   // ── reading the request ────────────────────────────────────────────────
 
   /// Works out whether [message] is a search and, if so, what for.
-  ///
-  /// [previous] carries the requirements gathered so far, so a follow-up like
-  /// "gas thakle bhalo hoy" adds to the request instead of replacing it.
   Future<Interpretation?> interpret(
     String message, {
     SearchIntent? previous,
@@ -96,8 +79,7 @@ class AssistantService {
         ? '{}'
         : jsonEncode(previous.toJson());
 
-    // Decided here, not by the model: it read romanised Bangla as English and
-    // answered in the wrong language.
+    // Decided here, not by the model.
     final language = detectLanguage(message);
     final languageName = language == 'bn' ? 'Bangla' : 'English';
 
@@ -143,10 +125,6 @@ User message: "${_clean(message)}"
   }
 
   /// Runs [prompt], retrying a couple of times before giving up.
-  ///
-  /// The free tier answers with 503 often enough that a single failure is not
-  /// evidence of anything — retrying turns most of them into an answer instead
-  /// of an error the user has to interpret.
   Future<String?> _generate(GenerativeModel model, String prompt) async {
     for (var attempt = 0; attempt < 3; attempt++) {
       try {
@@ -159,9 +137,7 @@ User message: "${_clean(message)}"
         // Fall through to the next attempt.
       }
       if (attempt < 2) {
-        // Seconds, not milliseconds: the free tier limits by the minute as
-        // well as by load, and a rapid retry just spends another attempt on
-        // the same refusal.
+        // Seconds, not milliseconds.
         await Future<void>.delayed(Duration(seconds: attempt + 1));
       }
     }
@@ -209,8 +185,7 @@ User message: "${_clean(message)}"
 
   // ── finding real listings ──────────────────────────────────────────────
 
-  /// Searches by area name first, then widens by radius until something turns
-  /// up. Returns whatever it found, along with how far it had to go.
+  /// Searches by area name first.
   Future<AssistantSearchResult> search(SearchIntent intent) async {
     final area = intent.area;
     if (area == null || area.trim().isEmpty) {
@@ -218,7 +193,7 @@ User message: "${_clean(message)}"
           matches: [], radiusKm: null, widened: false);
     }
 
-    // 1. The area by name.
+    // 1.
     final byName = await _db.getApprovedPropertiesInArea(area);
     final named = rankProperties(byName, intent);
     if (named.isNotEmpty) {
@@ -230,7 +205,7 @@ User message: "${_clean(message)}"
       );
     }
 
-    // 2. Widen around the area's coordinates.
+    // 2.
     final point = coordinatesFor(area);
     for (final radius in _radiusSteps) {
       final nearby = await _db.getApprovedPropertiesNear(
@@ -253,8 +228,7 @@ User message: "${_clean(message)}"
         matches: [], radiusKm: null, widened: false);
   }
 
-  /// In-budget listings a little further out, for when everything in the
-  /// requested area costs more than the user wants to pay.
+  /// In-budget listings a little further out.
   Future<List<MatchResult>> _cheaperNearby(
     SearchIntent intent,
     List<MatchResult> found,
@@ -299,10 +273,6 @@ User message: "${_clean(message)}"
   // ── wording the answer ─────────────────────────────────────────────────
 
   /// Writes the reply from the listings that were actually found.
-  ///
-  /// The model is given the computed match reasons rather than raw rows to
-  /// judge, so what it says about a property is a restatement of a fact, not
-  /// an inference it might get wrong.
   Future<String> writeReply({
     required SearchIntent intent,
     required AssistantSearchResult result,
@@ -355,8 +325,7 @@ Listings found:
 $listings$cheaper
 ''';
 
-    // A failure here is survivable: the listings are already found, so the
-    // fallback still answers with them, just in plainer words.
+    // A failure here is survivable.
     final text = await _generate(model, prompt);
     return text ?? _fallbackReply(intent, result);
   }
@@ -376,8 +345,7 @@ $listings$cheaper
     return parts.join(' — ');
   }
 
-  /// Used when Gemini is unavailable, so the assistant still answers with the
-  /// listings it found instead of failing.
+  /// Used when Gemini is unavailable.
   String _fallbackReply(SearchIntent intent, AssistantSearchResult result) {
     if (result.isEmpty) {
       return intent.isBangla
