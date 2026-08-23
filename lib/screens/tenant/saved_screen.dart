@@ -111,7 +111,9 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
                 ? _buildEmptyState(context, colors)
                 : ListView.builder(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 0),
+                    // Bottom padding on the list, so the last card can scroll clear
+                    // of the navigation bar instead of the whole viewport ending early.
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
                     itemCount: savedList.length,
                     itemBuilder: (context, index) {
                       final property = savedList[index];
@@ -140,7 +142,6 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
                     },
                   ),
           ),
-          const SizedBox(height: 120), // bottom clearance for bottom nav
         ],
       ),
       bottomNavigationBar: widget.showBottomNavigation
