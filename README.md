@@ -124,11 +124,28 @@ the database rather than in the client.
 
 ---
 
+## Try it in a browser
+
+A web build is published from `docs/app`:
+
+**https://ihsamin01.github.io/DwellWise/app/**
+
+Enough to walk through the app without installing anything — browsing and
+searching listings, the bilingual interface, saved properties and the
+conversation screens all work.
+
+Some things are Android-only by nature and are not available in the browser
+build: the camera, voice notes, dictation into the assistant, and Google
+Sign-In. The AI assistant also needs an API key, which is deliberately not
+shipped in a public build, so it is quiet on the web — run the Android app to
+see it answer.
+
 ## Running it
 
 ```bash
 flutter pub get
-flutter run
+flutter run              # Android device or emulator
+flutter run -d chrome    # or in a browser
 ```
 
 Requires a Supabase project with the migrations in `backend/supabase/migrations`
