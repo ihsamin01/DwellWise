@@ -400,6 +400,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ChatProvider>();
+    final opener = AppStrings.t(context, 'chat_opener');
     final theme = Theme.of(context);
     final chat = provider.chatById(widget.chatId);
     final messages = provider.messagesForChat(widget.chatId);
@@ -526,9 +527,12 @@ class _ChatScreenState extends State<ChatScreen> {
           // Offered, not sent.
           if (messages.isEmpty)
             _SuggestedOpener(
-              text: _openerSuggestion(context),
+              text: opener,
               onTap: () {
-                _messageController.text = _openerSuggestion(context);
+                // Uses the text computed during build. Working it out here
+                // instead would read the locale through watch(), which is only
+                // legal inside build and threw, so the tap did nothing.
+                _messageController.text = opener;
                 _sendTextMessage();
               },
             ),
@@ -563,13 +567,6 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
-  }
-
-  /// The same opening line for everyone, in the language the app is showing.
-  String _openerSuggestion(BuildContext context) {
-    return AppStrings.isBangla(context)
-        ? 'আসসালামু আলাইকুম, আমি বাসাটি ভাড়া নিতে আগ্রহী। এখনো খালি আছে কি?'
-        : 'Hello, I am interested in renting this property. Is it still available?';
   }
 
   List<_TimelineEntry> _buildTimelineEntries(List<ChatMessageModel> messages) {

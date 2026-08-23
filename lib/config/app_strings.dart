@@ -263,6 +263,7 @@ class AppStrings {
       'flt_no_options': 'No options available.',
 
       // Saved properties.
+      'chat_opener': 'Hello, I am interested in renting this property. Is it still available?',
       'saved_title': 'Saved Properties',
       'saved_empty_title': 'No saved properties yet',
       'saved_empty_subtitle': 'Start exploring and save your favorites',
@@ -523,6 +524,7 @@ class AppStrings {
       'flt_no_options': 'কোনো অপশন নেই।',
 
       // Saved properties.
+      'chat_opener': 'আসসালামু আলাইকুম, আমি বাসাটি ভাড়া নিতে আগ্রহী। এখনো খালি আছে কি?',
       'saved_title': 'সেভ করা বাড়ি',
       'saved_empty_title': 'এখনো কোনো বাড়ি সেভ করা হয়নি',
       'saved_empty_subtitle': 'ঘুরে দেখুন আর পছন্দের বাড়িগুলো সেভ করুন',
