@@ -152,6 +152,9 @@ class ChatProvider with ChangeNotifier {
             userImage: ownerImage,
             lastMessage: '',
             lastMessageTime: DateTime.now(),
+            // Without this the thread has no idea who it is with until the
+            // chat list is loaded, so the call button has nobody to ring.
+            otherUserId: ownerId,
           ),
         );
         notifyListeners();

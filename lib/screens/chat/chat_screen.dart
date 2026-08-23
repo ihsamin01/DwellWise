@@ -12,6 +12,7 @@ import '../../models/chat_message_model.dart';
 import '../../models/chat_model.dart';
 import '../../providers/chat_provider.dart';
 import '../../services/chat_attachment_service.dart';
+import '../../services/supabase_service.dart';
 import '../../widgets/emoji_sticker_picker.dart';
 import '../../widgets/voice_message_bubble.dart';
 
@@ -375,7 +376,16 @@ class _ChatScreenState extends State<ChatScreen> {
 
   /// Hands the number to the phone's own dialer rather than pretending to.
   Future<void> _callOtherParticipant(ChatModel? chat) async {
-    final phone = chat?.otherUserPhone?.trim();
+    var phone = chat?.otherUserPhone?.trim();
+
+    // A thread opened straight from a listing is built locally and carries no
+    // phone yet, so look it up before deciding there is none.
+    if ((phone == null || phone.isEmpty) && chat?.otherUserId != null) {
+      final profile =
+          await SupabaseService().getOwnerProfile(chat!.otherUserId!);
+      phone = (profile?['phone_number'] as String?)?.trim();
+    }
+
     if (phone == null || phone.isEmpty) {
       _snack('This person has no phone number on their profile.');
       return;
