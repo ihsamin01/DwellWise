@@ -44,6 +44,10 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   bool _verifiedOnly = false;
   String _sortBy = 'Newest';
 
+  /// Set once the user picks a sort themselves. Until then the feed is
+  /// ordered by relevance; after it, the chosen order is left alone.
+  bool _userSorted = false;
+
   /// Bedroom/bathroom quick-pick options.
   static const List<int> kBedsOptions = [1, 2, 3, 4];
   static const List<int> kBathsOptions = [1, 2, 3];
@@ -234,7 +238,10 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
       offset: const Offset(0, 40),
       color: colors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: (value) => setState(() => _sortBy = value),
+      onSelected: (value) => setState(() {
+        _sortBy = value;
+        _userSorted = true;
+      }),
       itemBuilder: (context) => kSortOptions.entries.map((e) {
         final selected = _sortBy == e.key;
         return PopupMenuItem<String>(
@@ -553,7 +560,11 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
         _requestAiRanking(userArea, locationRanked);
       });
     }
-    final recommendedList = _applyAiOrder(locationRanked);
+    // An order the user asked for wins over the recommendation. Ranking by
+    // location and then by Gemini on top of 'Newest' meant a listing posted a
+    // moment ago could still come out halfway down the list.
+    final recommendedList =
+        _userSorted ? sorted : _applyAiOrder(locationRanked);
 
     final recentlyViewedIds = recentlyViewedProvider.recentlyViewedIds;
 
