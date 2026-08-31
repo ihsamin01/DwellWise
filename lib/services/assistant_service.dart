@@ -344,7 +344,6 @@ $listings$cheaper
       'BDT ${p.price.round()}/month',
       p.area,
       if (p.facilities.isNotEmpty) 'has ${p.facilities.join(', ')}',
-      'match ${m.score.round()}%',
       if (m.shortfalls.isNotEmpty) 'shortfalls: ${m.shortfalls.join('; ')}',
     ];
     return parts.join(' — ');

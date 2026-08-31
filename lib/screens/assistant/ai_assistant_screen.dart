@@ -336,28 +336,7 @@ class _PropertyResultCard extends StatelessWidget {
                 ],
               ),
             ),
-            Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: colors.primaryTint,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${match.score.round()}%',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: colors.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Icon(Icons.chevron_right, color: colors.textSecondary),
-              ],
-            ),
+            Icon(Icons.chevron_right, color: colors.textSecondary),
           ],
         ),
       ),
