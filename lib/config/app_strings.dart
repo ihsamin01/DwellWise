@@ -508,7 +508,7 @@ class AppStrings {
       'home_hero_subtitle': 'আপনার শহরের চমৎকার বাড়িগুলো ঘুরে দেখুন',
       'home_recently_viewed': 'সম্প্রতি দেখা',
       'home_view_all': 'সব দেখুন',
-      'home_ai_recommended': 'এআই সুপারিশ',
+      'home_ai_recommended': 'এআই রিকমেন্ডেড',
       'sort': 'সাজান',
       'filter': 'ফিল্টার',
 

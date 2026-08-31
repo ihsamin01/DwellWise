@@ -287,7 +287,7 @@ class TenantHomeScreenState extends State<TenantHomeScreen> {
         );
       }).toList(),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
         decoration: BoxDecoration(
           color: colors.primaryTint,
           borderRadius: BorderRadius.circular(8),
@@ -295,12 +295,12 @@ class TenantHomeScreenState extends State<TenantHomeScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.swap_vert, size: 16, color: colors.primary),
-            const SizedBox(width: 4),
+            Icon(Icons.swap_vert, size: 14, color: colors.primary),
+            const SizedBox(width: 3),
             Text(
               AppStrings.t(context, 'sort'),
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.bold,
                 color: colors.primary,
               ),
@@ -321,7 +321,7 @@ class TenantHomeScreenState extends State<TenantHomeScreen> {
     return GestureDetector(
       onTap: () => _openFilterSheet(colors, availableTypes),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
         decoration: BoxDecoration(
           color: isActive ? colors.primary : colors.primaryTint,
           borderRadius: BorderRadius.circular(8),
@@ -331,14 +331,14 @@ class TenantHomeScreenState extends State<TenantHomeScreen> {
           children: [
             Icon(
               Icons.tune,
-              size: 16,
+              size: 14,
               color: isActive ? Colors.white : colors.primary,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 3),
             Text(
               AppStrings.t(context, 'filter'),
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.bold,
                 color: isActive ? Colors.white : colors.primary,
               ),
@@ -811,7 +811,7 @@ class TenantHomeScreenState extends State<TenantHomeScreen> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: colors.textPrimary,
                               ),
@@ -820,7 +820,7 @@ class TenantHomeScreenState extends State<TenantHomeScreen> {
                         else
                           const Spacer(),
                         _buildSortButton(colors),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         _buildFilterButton(colors, availableTypes),
                       ],
                     ),
