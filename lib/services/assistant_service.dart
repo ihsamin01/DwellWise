@@ -71,6 +71,7 @@ class AssistantService {
   Future<Interpretation?> interpret(
     String message, {
     SearchIntent? previous,
+    String? homeArea,
   }) async {
     final model = await _gemini.model();
     if (model == null) return null;
@@ -82,6 +83,18 @@ class AssistantService {
     // Decided here, not by the model.
     final language = detectLanguage(message);
     final languageName = language == 'bn' ? 'Bangla' : 'English';
+
+    // The model cannot see the profile, so its own neighbourhood has to be
+    // handed to it before it can answer "what is near me".
+    final own = homeArea == null || homeArea.trim().isEmpty
+        ? 'The user has saved no address. If they ask about their own '
+            'surroundings without naming a place, use chat mode and ask '
+            'which area to search.'
+        : 'The user lives in "$homeArea". Asking about their own '
+            'surroundings is a search with "area" set to "$homeArea" -- '
+            '"amar ashepashe ki ache", "present address dekhe bolo", '
+            '"kachakachi basha", "near me". So is simply agreeing (ha, hae, '
+            'yes, thik ache) right after being asked which area to search.';
 
     final prompt = '''
 You are the assistant inside DwellWise, a Bangladeshi rental app. You return
@@ -103,6 +116,7 @@ Only include a key the user actually stated or clearly implied.
 Translate place names to their English form. "ইসিবি" is "ECB Chattar".
 "family basha" means Family. "bachelor" means Bachelor. "3 room" means beds 3.
 Merge with what is already known: $known
+$own
 
 Otherwise — a greeting, a thank you, a question about the app or about
 renting — return:
