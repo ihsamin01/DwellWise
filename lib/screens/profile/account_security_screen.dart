@@ -150,7 +150,8 @@ class AccountSecurityScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Account & Security')),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.fromLTRB(
+            20, 20, 20, 20 + MediaQuery.viewPaddingOf(context).bottom),
         children: [
           const Text('Account Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
           Card(
@@ -232,7 +233,6 @@ class AccountSecurityScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          const Text('Danger Zone', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xffDC2626))),
           Card(
             color: const Color(0xffDC2626).withOpacity(0.08),
             child: ListTile(
