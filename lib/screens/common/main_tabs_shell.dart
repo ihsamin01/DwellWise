@@ -87,7 +87,7 @@ class MainTabsShellState extends State<MainTabsShell> {
             const AiAssistantScreen(),
             const TenantSavedScreen(showBottomNavigation: false),
             const ChatsScreen(),
-            const ProfileScreen(),
+            ProfileScreen(onBackToHome: () => setState(() => _currentIndex = 0)),
           ],
         ),
         bottomNavigationBar: BottomNavigation(
