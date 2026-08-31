@@ -13,7 +13,9 @@ import '../../utils/avatar_helper.dart';
 
 /// Profile hub.
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  final VoidCallback? onBackToHome;
+
+  const ProfileScreen({Key? key, this.onBackToHome}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +26,10 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: onBackToHome ?? () => context.go('/home'),
+        ),
         title: Text(AppStrings.t(context, 'profile')),
         centerTitle: true,
       ),

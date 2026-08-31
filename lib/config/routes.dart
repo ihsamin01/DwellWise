@@ -47,6 +47,21 @@ import '../screens/profile/rate_app_screen.dart';
 class AppRoutes {
   AppRoutes._();
 
+  /// Shared across every route that builds [MainTabsShell], so a single
+  /// back-press handler (tab -> Home -> clear filter -> confirm exit) can be
+  /// reached from each route's [onExit] below. go_router's back-button
+  /// handling checks `Navigator.canPop()` before it ever looks at PopScope,
+  /// and the shell is normally the only route on the stack, so PopScope
+  /// alone never fires -- onExit is what actually runs on a real back press.
+  static final GlobalKey<MainTabsShellState> _tabsKey =
+      GlobalKey<MainTabsShellState>();
+
+  static Future<bool> _confirmShellExit(BuildContext context) async {
+    final state = _tabsKey.currentState;
+    if (state == null) return true;
+    return state.confirmBackNavigation();
+  }
+
   static final GoRouter router = GoRouter(
     initialLocation: '/',
     routes: [
@@ -61,7 +76,9 @@ class AppRoutes {
       ),
       GoRoute(
         path: '/profile',
-        builder: (context, state) => const MainTabsShell(initialIndex: 5),
+        builder: (context, state) =>
+            MainTabsShell(key: _tabsKey, initialIndex: 5),
+        onExit: _confirmShellExit,
       ),
       GoRoute(
         path: '/notifications',
@@ -92,15 +109,21 @@ class AppRoutes {
       // Tenant routes.
       GoRoute(
         path: '/tenant-home',
-        builder: (context, state) => const MainTabsShell(initialIndex: 0),
+        builder: (context, state) =>
+            MainTabsShell(key: _tabsKey, initialIndex: 0),
+        onExit: _confirmShellExit,
       ),
       GoRoute(
         path: '/home',
-        builder: (context, state) => const MainTabsShell(initialIndex: 0),
+        builder: (context, state) =>
+            MainTabsShell(key: _tabsKey, initialIndex: 0),
+        onExit: _confirmShellExit,
       ),
       GoRoute(
         path: '/search',
-        builder: (context, state) => const MainTabsShell(initialIndex: 1),
+        builder: (context, state) =>
+            MainTabsShell(key: _tabsKey, initialIndex: 1),
+        onExit: _confirmShellExit,
       ),
       GoRoute(
         path: '/search-results',
@@ -134,11 +157,15 @@ class AppRoutes {
       ),
       GoRoute(
         path: '/assistant',
-        builder: (context, state) => const MainTabsShell(initialIndex: 2),
+        builder: (context, state) =>
+            MainTabsShell(key: _tabsKey, initialIndex: 2),
+        onExit: _confirmShellExit,
       ),
       GoRoute(
         path: '/saved',
-        builder: (context, state) => const MainTabsShell(initialIndex: 3),
+        builder: (context, state) =>
+            MainTabsShell(key: _tabsKey, initialIndex: 3),
+        onExit: _confirmShellExit,
       ),
       GoRoute(
         path: '/recently-viewed',
@@ -150,7 +177,9 @@ class AppRoutes {
       ),
       GoRoute(
         path: '/messages',
-        builder: (context, state) => const MainTabsShell(initialIndex: 4),
+        builder: (context, state) =>
+            MainTabsShell(key: _tabsKey, initialIndex: 4),
+        onExit: _confirmShellExit,
       ),
 
       // Owner routes.

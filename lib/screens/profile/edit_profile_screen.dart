@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/user_provider.dart';
+import '../../services/supabase_service.dart';
 
 /// Lets the tenant update their profile picture, name, phone, email and
 /// address. Persists via [UserProvider.updateProfile] — no backend involved.
@@ -22,6 +26,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _avatarUrl;
   String _originalEmail = '';
   bool _isSaving = false;
+  bool _isUploadingAvatar = false;
 
   static const _avatarPresets = [
     'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?auto=format&fit=crop&w=256&q=80',
@@ -50,6 +55,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  Future<void> _pickFromGallery() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024,
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _isUploadingAvatar = true);
+    final url = await SupabaseService().uploadAvatar(File(picked.path));
+    if (!mounted) return;
+    setState(() {
+      _isUploadingAvatar = false;
+      if (url != null) _avatarUrl = url;
+    });
+    if (url == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not upload photo. Please try again.')),
+      );
+    }
+  }
+
   void _showAvatarPicker() {
     showModalBottomSheet<void>(
       context: context,
@@ -64,6 +91,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               children: [
                 const Text('Change profile picture', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 16),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Choose from gallery'),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _pickFromGallery();
+                  },
+                ),
+                const SizedBox(height: 4),
                 Wrap(
                   spacing: 14,
                   children: _avatarPresets.map((url) {
@@ -157,15 +194,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     radius: 48,
                     backgroundColor: const Color(0xff1877F2).withOpacity(0.1),
                     backgroundImage: _avatarUrl != null ? NetworkImage(_avatarUrl!) : null,
-                    child: _avatarUrl == null
-                        ? const Icon(Icons.person, size: 48, color: Color(0xff1877F2))
-                        : null,
+                    child: _isUploadingAvatar
+                        ? const CircularProgressIndicator(strokeWidth: 2.5)
+                        : (_avatarUrl == null
+                            ? const Icon(Icons.person, size: 48, color: Color(0xff1877F2))
+                            : null),
                   ),
                   Positioned(
                     bottom: 0,
                     right: 0,
                     child: GestureDetector(
-                      onTap: _showAvatarPicker,
+                      onTap: _isUploadingAvatar ? null : _showAvatarPicker,
                       child: CircleAvatar(
                         radius: 16,
                         backgroundColor: Theme.of(context).colorScheme.primary,

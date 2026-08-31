@@ -23,11 +23,12 @@ class MainTabsShell extends StatefulWidget {
   });
 
   @override
-  State<MainTabsShell> createState() => _MainTabsShellState();
+  State<MainTabsShell> createState() => MainTabsShellState();
 }
 
-class _MainTabsShellState extends State<MainTabsShell> {
+class MainTabsShellState extends State<MainTabsShell> {
   late int _currentIndex;
+  final GlobalKey<TenantHomeScreenState> _homeKey = GlobalKey();
 
   @override
   void initState() {
@@ -39,6 +40,31 @@ class _MainTabsShellState extends State<MainTabsShell> {
     });
   }
 
+  /// Handles a back request on this tab shell (system back button, or the
+  /// shell's own back arrow). Returns true only once the user has actually
+  /// confirmed exiting the app; every other case is handled internally
+  /// (switching to Home, or clearing an active filter) and returns false.
+  ///
+  /// This is called both from [onExit] on the shell's GoRoutes -- needed
+  /// because go_router's back-button handling checks `Navigator.canPop()`
+  /// (route-stack depth) before ever consulting PopScope, and this shell is
+  /// normally the only route on the stack -- and from the PopScope below,
+  /// which still helps when something has been pushed on top of the shell.
+  Future<bool> confirmBackNavigation() async {
+    // From a non-home tab, back returns to the Home tab first.
+    if (_currentIndex != 0) {
+      setState(() => _currentIndex = 0);
+      return false;
+    }
+    // On the Home tab, a leftover filter is cleared first; only a
+    // second back press (nothing left to reset) asks to exit the app.
+    if (_homeKey.currentState?.hasActiveFilters ?? false) {
+      _homeKey.currentState!.clearFilters();
+      return false;
+    }
+    return showExitConfirmationDialog(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
@@ -47,13 +73,7 @@ class _MainTabsShellState extends State<MainTabsShell> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        // From a non-home tab, back returns to the Home tab first.
-        if (_currentIndex != 0) {
-          setState(() => _currentIndex = 0);
-          return;
-        }
-        // On the Home tab, back asks to exit the app.
-        final shouldExit = await showExitConfirmationDialog(context);
+        final shouldExit = await confirmBackNavigation();
         if (shouldExit) {
           await SystemNavigator.pop();
         }
@@ -61,13 +81,13 @@ class _MainTabsShellState extends State<MainTabsShell> {
       child: Scaffold(
         body: IndexedStack(
           index: _currentIndex,
-          children: const [
-            TenantHomeScreen(showBottomNavigation: false),
-            TenantSearchScreen(showBottomNavigation: false),
-            AiAssistantScreen(),
-            TenantSavedScreen(showBottomNavigation: false),
-            ChatsScreen(),
-            ProfileScreen(),
+          children: [
+            TenantHomeScreen(key: _homeKey, showBottomNavigation: false),
+            const TenantSearchScreen(showBottomNavigation: false),
+            const AiAssistantScreen(),
+            const TenantSavedScreen(showBottomNavigation: false),
+            ChatsScreen(onBackToHome: () => setState(() => _currentIndex = 0)),
+            ProfileScreen(onBackToHome: () => setState(() => _currentIndex = 0)),
           ],
         ),
         bottomNavigationBar: BottomNavigation(

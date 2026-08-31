@@ -151,6 +151,30 @@ class SupabaseService {
     return urls;
   }
 
+  /// Uploads a profile photo to the public `avatars` bucket and returns its
+  /// public URL, overwriting any previous photo for this user.
+  Future<String?> uploadAvatar(File file) async {
+    final client = _client;
+    final uid = client?.auth.currentUser?.id;
+    if (client == null || uid == null) return null;
+
+    final ext = file.path.contains('.') ? file.path.split('.').last : 'jpg';
+    final objectPath = '$uid/avatar.$ext';
+    try {
+      await client.storage.from('avatars').upload(
+            objectPath,
+            file,
+            fileOptions: const FileOptions(upsert: true),
+          );
+      final url = client.storage.from('avatars').getPublicUrl(objectPath);
+      // Bust the CDN/cache so the new photo shows immediately, not the old
+      // one still cached under the same object path.
+      return '$url?t=${DateTime.now().millisecondsSinceEpoch}';
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Inserts a new property listing.
   Future<void> createProperty(PropertyModel property) async {
     final client = _client;
