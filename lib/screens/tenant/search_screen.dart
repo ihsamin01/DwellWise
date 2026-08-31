@@ -258,16 +258,6 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
               ),
             ),
             centerTitle: true,
-            actions: [
-              IconButton(
-                icon: Icon(Icons.share_outlined, color: colors.primary, size: 24),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Share copy triggered.')),
-                  );
-                },
-              ),
-            ],
           ),
         ),
       ),
