@@ -6,6 +6,7 @@ import '../models/property_model.dart';
 import '../services/assistant_history_service.dart';
 import '../services/assistant_service.dart';
 import '../services/supabase_service.dart';
+import '../utils/address_area.dart';
 import '../utils/language_detect.dart';
 import '../utils/property_matcher.dart';
 
@@ -92,7 +93,12 @@ class AssistantProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final reading = await _service.interpret(message, previous: _intent);
+      final homeArea = areaFromAddress(profileAddress);
+      final reading = await _service.interpret(
+        message,
+        previous: _intent,
+        homeArea: homeArea,
+      );
 
       if (reading == null) {
         // Reached the service but could not make sense of the reply.
@@ -122,7 +128,7 @@ class AssistantProvider with ChangeNotifier {
       if (intent.area == null || intent.area!.trim().isEmpty) {
         _replacePending(AssistantMessage(
           role: AssistantRole.assistant,
-          text: _askForArea(intent, profileAddress),
+          text: _askForArea(intent, homeArea ?? profileAddress),
           requirements: intent,
         ));
         return;
