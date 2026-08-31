@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 import '../../providers/chat_provider.dart';
 
 class ChatsScreen extends StatefulWidget {
-  const ChatsScreen({super.key});
+  final VoidCallback? onBackToHome;
+
+  const ChatsScreen({super.key, this.onBackToHome});
 
   @override
   State<ChatsScreen> createState() => _ChatsScreenState();
@@ -106,6 +108,10 @@ class _ChatsScreenState extends State<ChatsScreen> {
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: widget.onBackToHome ?? () => context.go('/home'),
+        ),
         title: const Text('Messages'),
         centerTitle: false,
         actions: [
