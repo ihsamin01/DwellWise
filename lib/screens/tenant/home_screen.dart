@@ -796,24 +796,29 @@ class TenantHomeScreenState extends State<TenantHomeScreen> {
                     const SizedBox(height: 24),
                   ],
 
-                  // AI RECOMMENDED SECTION.
+                  // AI RECOMMENDED SECTION -- the heading only makes sense
+                  // for the AI's own ranking, so it's dropped entirely while
+                  // a filter is active and just the matched posts are shown.
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: Text(
-                            '🚀 ${AppStrings.t(context, 'home_ai_recommended')}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: colors.textPrimary,
+                        if (!hasActiveFilters)
+                          Expanded(
+                            child: Text(
+                              '🚀 ${AppStrings.t(context, 'home_ai_recommended')}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: colors.textPrimary,
+                              ),
                             ),
-                          ),
-                        ),
+                          )
+                        else
+                          const Spacer(),
                         _buildSortButton(colors),
                         const SizedBox(width: 8),
                         _buildFilterButton(colors, availableTypes),
