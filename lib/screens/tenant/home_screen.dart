@@ -30,10 +30,10 @@ class TenantHomeScreen extends StatefulWidget {
   });
 
   @override
-  State<TenantHomeScreen> createState() => _TenantHomeScreenState();
+  State<TenantHomeScreen> createState() => TenantHomeScreenState();
 }
 
-class _TenantHomeScreenState extends State<TenantHomeScreen> {
+class TenantHomeScreenState extends State<TenantHomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final ScrollController _scrollController = ScrollController();
   int _displayedCount = 10;
@@ -51,6 +51,26 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
   /// Bedroom/bathroom quick-pick options.
   static const List<int> kBedsOptions = [1, 2, 3, 4];
   static const List<int> kBathsOptions = [1, 2, 3];
+
+  /// Whether any price/type/beds/baths/verified filter is currently applied.
+  bool get hasActiveFilters =>
+      _priceFilter != PriceFilter.none ||
+      _typeFilter != null ||
+      _bedsFilter != null ||
+      _bathsFilter != null ||
+      _verifiedOnly;
+
+  /// Resets all active filters back to the default, unfiltered feed.
+  void clearFilters() {
+    if (!hasActiveFilters) return;
+    setState(() {
+      _priceFilter = PriceFilter.none;
+      _typeFilter = null;
+      _bedsFilter = null;
+      _bathsFilter = null;
+      _verifiedOnly = false;
+    });
+  }
 
   // AI Recommended (Gemini).
   final GeminiService _gemini = GeminiService();
@@ -594,11 +614,20 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
             titleSpacing: 16,
             title: Row(
               children: [
-                GestureDetector(
-                  onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                  behavior: HitTestBehavior.opaque,
-                  child: Icon(Icons.menu, color: colors.primary, size: 24),
-                ),
+                // While a filter is narrowing the feed, the back arrow
+                // replaces the drawer menu -- one clear way back, no clutter.
+                if (hasActiveFilters)
+                  GestureDetector(
+                    onTap: clearFilters,
+                    behavior: HitTestBehavior.opaque,
+                    child: Icon(Icons.arrow_back, color: colors.primary, size: 24),
+                  )
+                else
+                  GestureDetector(
+                    onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                    behavior: HitTestBehavior.opaque,
+                    child: Icon(Icons.menu, color: colors.primary, size: 24),
+                  ),
                 const SizedBox(width: 12),
                 // Flexible so the title gives way on narrow screens instead of.
                 Flexible(
@@ -793,17 +822,19 @@ class _TenantHomeScreenState extends State<TenantHomeScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Property card list with infinite scroll builder loop.
+                  // Property card list with infinite scroll (loads more as
+                  // the user nears the bottom, capped at the real result
+                  // count so it never repeats a property to pad the list).
                   if (recommendedList.isNotEmpty)
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      itemCount: _displayedCount,
+                      itemCount: _displayedCount < recommendedList.length
+                          ? _displayedCount
+                          : recommendedList.length,
                       itemBuilder: (context, index) {
-                        // Loop indices to support infinite list scrolling simulation.
-                        final property =
-                            recommendedList[index % recommendedList.length];
+                        final property = recommendedList[index];
                         final isSaved = savedProvider.isSaved(property.id);
 
                         return PropertyCard(
