@@ -25,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
-  bool _keepMeSignedIn = false;
+  bool _keepMeSignedIn = true;
 
   @override
   void dispose() {

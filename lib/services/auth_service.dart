@@ -49,7 +49,7 @@ class AuthService {
   /// Called on startup.
   Future<void> applySessionPersistencePolicy() async {
     final prefs = await SharedPreferences.getInstance();
-    final keep = prefs.getBool(_keepSignedInKey) ?? false;
+    final keep = prefs.getBool(_keepSignedInKey) ?? true;
     if (!keep && currentUser != null) {
       try {
         await _client.auth.signOut();

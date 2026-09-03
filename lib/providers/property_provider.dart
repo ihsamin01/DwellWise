@@ -148,6 +148,12 @@ class PropertyProvider with ChangeNotifier {
   /// Loads the signed-in user's own listings from the database, so posts they
   /// made survive an app restart (and show up on any device they log in from).
   /// Falls back to the seeded demo entries when nobody is signed in.
+  /// Drops the listings held for the account that just left.
+  void clearForSignOut() {
+    _myListings.clear();
+    notifyListeners();
+  }
+
   Future<void> loadMyListings() async {
     if (Supabase.instance.client.auth.currentUser == null) return;
     try {

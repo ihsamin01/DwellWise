@@ -179,6 +179,16 @@ class AssistantProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Drops the conversation and the history list for the account that
+  /// just left, so the next one does not open someone else's chats.
+  void clearForSignOut() {
+    _messages.clear();
+    _intent = null;
+    _conversationId = null;
+    _recent = const [];
+    notifyListeners();
+  }
+
   /// Reloads the history list shown in the side panel.
   Future<void> loadRecent() async {
     try {

@@ -384,6 +384,16 @@ class ChatProvider with ChangeNotifier {
   /// Whether [id] is a real account id rather than a seeded placeholder.
   static bool _looksLikeUserId(String id) => _uuid.hasMatch(id);
 
+  /// Drops everything held for the account that just left.
+  void clearForSignOut() {
+    _chats.clear();
+    _messagesByChatId.clear();
+    _activeMessages.clear();
+    _activeChatId = null;
+    _hasLoadedChats = false;
+    notifyListeners();
+  }
+
   // ── realtime ───────────────────────────────────────────────────────────
 
   void _listenForMessages() {
