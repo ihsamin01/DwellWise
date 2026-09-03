@@ -35,7 +35,7 @@ class RentalRequestModel {
       moveInDate: DateTime.parse(json['move_in_date'] as String),
       status: _parseStatus(json['status'] as String?),
       message: json['message'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
     );
   }
 

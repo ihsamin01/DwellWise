@@ -91,8 +91,10 @@ class ChatService {
       userImage: profilesById[otherId]?['avatar_url'] as String?,
       lastMessage: row['last_message'] as String? ?? '',
       lastMessageTime:
-          DateTime.tryParse(row['last_message_time'] as String? ?? '') ??
-              DateTime.tryParse(row['created_at'] as String? ?? '') ??
+          DateTime.tryParse(row['last_message_time'] as String? ?? '')
+                  ?.toLocal() ??
+              DateTime.tryParse(row['created_at'] as String? ?? '')
+                  ?.toLocal() ??
               DateTime.now(),
       unreadCount: unreadCount,
       isMuted: row['is_muted'] as bool? ?? false,
@@ -312,7 +314,8 @@ class ChatService {
       latitude: (row['latitude'] as num?)?.toDouble(),
       longitude: (row['longitude'] as num?)?.toDouble(),
       isRead: row['is_read'] as bool? ?? false,
-      createdAt: DateTime.tryParse(row['created_at'] as String? ?? '') ??
+      createdAt: DateTime.tryParse(row['created_at'] as String? ?? '')
+              ?.toLocal() ??
           DateTime.now(),
     );
   }

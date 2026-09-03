@@ -54,7 +54,7 @@ class UserModel {
       gender: json['gender'] as String?,
       verificationStatus: _parseVerification(json['verification_status'] as String?),
       governmentId: json['government_id'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
     );
   }
 

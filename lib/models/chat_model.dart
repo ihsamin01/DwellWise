@@ -78,7 +78,8 @@ class ChatModel {
       userImage: json['user_image'] as String?,
       lastMessage: json['last_message'] as String? ?? '',
       lastMessageTime:
-          DateTime.tryParse(json['last_message_time'] as String? ?? '') ??
+          DateTime.tryParse(json['last_message_time'] as String? ?? '')
+              ?.toLocal() ??
               DateTime.now(),
       unreadCount: json['unread_count'] as int? ?? 0,
       isMuted: json['is_muted'] as bool? ?? false,

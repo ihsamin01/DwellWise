@@ -462,7 +462,7 @@ class SupabaseService {
       await client.from('recently_viewed').upsert({
         'user_id': uid,
         'property_id': propertyId,
-        'viewed_at': DateTime.now().toIso8601String(),
+        'viewed_at': DateTime.now().toUtc().toIso8601String(),
       });
     } catch (_) {
       // Keep the local history working even if the write is rejected.

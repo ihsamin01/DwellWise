@@ -138,7 +138,7 @@ class PropertyModel {
       status: json['status'] as String? ?? 'approved',
       ownerId: json['owner_id'] as String? ?? '',
       facilities: List<String>.from(json['facilities'] ?? []),
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
     );
   }
 

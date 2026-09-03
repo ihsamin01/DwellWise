@@ -82,7 +82,8 @@ class NotificationService {
       icon: kind.icon,
       title: row['title'] as String? ?? '',
       message: row['message'] as String? ?? '',
-      timestamp: DateTime.tryParse(row['created_at'] as String? ?? '') ??
+      timestamp: DateTime.tryParse(row['created_at'] as String? ?? '')
+              ?.toLocal() ??
           DateTime.now(),
       isRead: row['is_read'] as bool? ?? false,
     );

@@ -27,7 +27,7 @@ class ReviewModel {
       tenantName: json['tenant_name'] as String? ?? 'Anonymous',
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
       comment: json['comment'] as String? ?? '',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
     );
   }
 
