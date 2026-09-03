@@ -244,6 +244,35 @@ class ChatService {
         .subscribe();
   }
 
+  /// Calls [onChange] when someone's profile changes, with their id and the
+  /// name and photo the app shows for them.
+  ///
+  /// The chat list reads these once when it loads, so without this a new
+  /// profile photo only reached the other side after they reopened the app.
+  RealtimeChannel subscribeToProfiles(
+    void Function(String userId, String? name, String? avatarUrl) onChange,
+  ) {
+    return _client
+        .channel('profiles:changes')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'profiles',
+          callback: (payload) {
+            final row = payload.newRecord;
+            final id = row['id'];
+            if (id is String) {
+              onChange(
+                id,
+                row['name'] as String?,
+                row['avatar_url'] as String?,
+              );
+            }
+          },
+        )
+        .subscribe();
+  }
+
   /// Announces this user as present and reports who else is, as it changes.
   ///
   /// Presence lives on the realtime channel rather than in a column, so it

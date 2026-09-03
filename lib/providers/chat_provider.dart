@@ -19,6 +19,7 @@ class ChatProvider with ChangeNotifier {
 
   RealtimeChannel? _messagesChannel;
   RealtimeChannel? _presenceChannel;
+  RealtimeChannel? _profilesChannel;
 
   /// Why the last send failed, for the screen to show.
   String? lastSendError;
@@ -56,6 +57,8 @@ class ChatProvider with ChangeNotifier {
     if (channel != null) _service.unsubscribe(channel);
     final presence = _presenceChannel;
     if (presence != null) _service.stopPresence(presence);
+    final profiles = _profilesChannel;
+    if (profiles != null) _service.unsubscribe(profiles);
     super.dispose();
   }
 
@@ -401,11 +404,32 @@ class ChatProvider with ChangeNotifier {
       _onRemoteMessage,
       onUpdated: _onRemoteMessageChanged,
     );
+    _profilesChannel = _service.subscribeToProfiles(_onProfileChanged);
     _presenceChannel = _service.subscribeToPresence((ids) {
       if (setEquals(ids, _onlineUserIds)) return;
       _onlineUserIds = ids;
       notifyListeners();
     });
+  }
+
+  /// Someone the user is talking to changed their name or photo.
+  void _onProfileChanged(String userId, String? name, String? avatarUrl) {
+    var touched = false;
+    for (var i = 0; i < _chats.length; i++) {
+      final chat = _chats[i];
+      if (chat.otherUserId != userId) continue;
+      if (chat.userImage == avatarUrl &&
+          (name == null || name.trim().isEmpty || chat.userName == name)) {
+        continue;
+      }
+      _chats[i] = chat.copyWith(
+        userName: (name == null || name.trim().isEmpty) ? chat.userName : name,
+        userImage: avatarUrl,
+        clearUserImage: avatarUrl == null,
+      );
+      touched = true;
+    }
+    if (touched) notifyListeners();
   }
 
   /// A message the user already has changed on the server — in practice the

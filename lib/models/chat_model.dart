@@ -51,11 +51,14 @@ class ChatModel {
     String? otherUserPhone,
     String? lastMessageType,
     int? messageCount,
+    // Passing null for userImage means "leave it alone", so removing a
+    // profile photo needs a way to say it really has gone.
+    bool clearUserImage = false,
   }) {
     return ChatModel(
       id: id ?? this.id,
       userName: userName ?? this.userName,
-      userImage: userImage ?? this.userImage,
+      userImage: clearUserImage ? null : (userImage ?? this.userImage),
       lastMessage: lastMessage ?? this.lastMessage,
       lastMessageTime: lastMessageTime ?? this.lastMessageTime,
       unreadCount: unreadCount ?? this.unreadCount,
