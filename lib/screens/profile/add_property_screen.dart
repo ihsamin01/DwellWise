@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../config/app_colors.dart';
 import '../../config/app_strings.dart';
 import '../../data/bd_area_coordinates.dart';
+import '../../services/listing_summary_service.dart';
 import '../../data/bd_locations.dart';
 import '../../models/property_model.dart';
 import '../../providers/property_provider.dart';
@@ -64,6 +65,14 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
 
   // Detailed
   final Set<String> _selectedFeatures = {};
+
+  final _summaryService = ListingSummaryService();
+
+  /// The suggested description, and the form it was written from — so a
+  /// second visit to this tab does not ask the model the same thing again.
+  String? _summary;
+  ListingFacts? _summarisedFrom;
+  bool _writingSummary = false;
   final _descriptionController = TextEditingController();
   /// Photos chosen for the listing; uploaded to Supabase Storage on submit.
   final List<File> _pickedImages = [];
@@ -218,8 +227,54 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
     if (index == 2 && !_validatePrice()) return;
     if (index < 3) {
       _tabController.animateTo(index + 1);
+      if (index == 2) _refreshSummary();
     } else {
       _submit();
+    }
+  }
+
+  ListingFacts _facts() => ListingFacts(
+        propertyType: _type,
+        area: _area,
+        availableFrom: _availableMonth,
+        beds: _bedrooms,
+        baths: _bathrooms,
+        balcony: _balcony,
+        price: double.tryParse(_priceController.text.trim()),
+        priceFor: _priceFor,
+        facilities: _selectedFeatures.toList(),
+        includedBills: _includedBills.toList(),
+      );
+
+  /// Shows a description built from the form immediately, then replaces it
+  /// with Gemini's wording of the same facts once that arrives.
+  Future<void> _refreshSummary() async {
+    final facts = _facts();
+    if (!facts.isUsable || facts == _summarisedFrom) return;
+
+    setState(() {
+      _summarisedFrom = facts;
+      _summary = ListingSummaryService.compose(facts);
+      _writingSummary = true;
+    });
+    _useSummaryIfEmpty();
+
+    final written = await _summaryService.write(
+      facts,
+      bangla: AppStrings.isBangla(context),
+    );
+    if (!mounted || _summarisedFrom != facts) return;
+    setState(() {
+      _summary = written;
+      _writingSummary = false;
+    });
+    _useSummaryIfEmpty();
+  }
+
+  /// Never overwrites something the owner wrote themselves.
+  void _useSummaryIfEmpty() {
+    if (_descriptionController.text.trim().isEmpty && _summary != null) {
+      _descriptionController.text = _summary!;
     }
   }
 
@@ -501,19 +556,19 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
         ),
         const SizedBox(height: 18),
         _label(AppStrings.t(context, 'ap_sector'), colors, optional: true),
-        _textField(_sectorController, AppStrings.t(context, 'ap_sector_hint'), Icons.numbers,
+        _textField(_sectorController, '', Icons.numbers,
             keyboardType: TextInputType.number),
         const SizedBox(height: 18),
         _label(AppStrings.t(context, 'ap_road'), colors, optional: true),
-        _textField(_roadController, AppStrings.t(context, 'ap_road_hint'), Icons.add_road_outlined,
+        _textField(_roadController, '', Icons.add_road_outlined,
             keyboardType: TextInputType.number),
         const SizedBox(height: 18),
         _label(AppStrings.t(context, 'ap_house'), colors, optional: true),
-        _textField(_houseController, AppStrings.t(context, 'ap_house_hint'), Icons.home_outlined,
+        _textField(_houseController, '', Icons.home_outlined,
             keyboardType: TextInputType.number),
         const SizedBox(height: 18),
         _label(AppStrings.t(context, 'ap_short_address'), colors, optional: true),
-        _textField(_shortAddressController, AppStrings.t(context, 'ap_short_address_hint'),
+        _textField(_shortAddressController, '',
             Icons.badge_outlined),
       ],
     );
@@ -527,7 +582,7 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
       padding: const EdgeInsets.all(20),
       children: [
         _label(AppStrings.t(context, 'ap_price'), colors, required: true),
-        _textField(_priceController, AppStrings.t(context, 'ap_price_hint'), Icons.payments_outlined,
+        _textField(_priceController, '', Icons.payments_outlined,
             keyboardType: TextInputType.number),
         const SizedBox(height: 18),
         _label(AppStrings.t(context, 'ap_price_for'), colors, required: true),
@@ -567,6 +622,61 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
   // ---------------------------------------------------------------------------
   // Tab 4: Detailed information (optional)
   // ---------------------------------------------------------------------------
+  /// The suggested description, offered rather than forced — tapping it
+  /// replaces whatever is in the box above.
+  Widget _summaryCard(AppColors colors) {
+    return InkWell(
+      onTap: () => setState(
+          () => _descriptionController.text = _summary ?? ''),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: colors.primaryTint,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome, size: 15, color: colors.primary),
+                const SizedBox(width: 6),
+                Text(
+                  AppStrings.t(context, 'ap_suggested_description'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: colors.primary,
+                  ),
+                ),
+                const Spacer(),
+                if (_writingSummary)
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.6,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(colors.primary),
+                    ),
+                  )
+                else
+                  Icon(Icons.refresh, size: 16, color: colors.primary),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _summary ?? '',
+              style: TextStyle(fontSize: 13, color: colors.textPrimary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDetailedTab(AppColors colors) {
     final composed = _composedAddress();
     return ListView(
@@ -600,6 +710,10 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
             alignLabelWithHint: true,
           ),
         ),
+        if (_summary != null) ...[
+          const SizedBox(height: 10),
+          _summaryCard(colors),
+        ],
         const SizedBox(height: 22),
         _label(AppStrings.t(context, 'ap_picture'), colors),
         const SizedBox(height: 8),
