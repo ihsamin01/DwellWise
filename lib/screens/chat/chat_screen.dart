@@ -403,6 +403,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final opener = AppStrings.t(context, 'chat_opener');
     final theme = Theme.of(context);
     final chat = provider.chatById(widget.chatId);
+    final isOtherOnline = provider.isUserOnline(chat?.otherUserId);
     final messages = provider.messagesForChat(widget.chatId);
 
     if (messages.length != _lastRenderedMessageCount) {
@@ -447,14 +448,14 @@ class _ChatScreenState extends State<ChatScreen> {
                         height: 8,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: chat?.isOnline == true
+                          color: isOtherOnline
                               ? const Color(0xff22C55E)
                               : Colors.white54,
                         ),
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        chat?.isOnline == true ? 'Active now' : 'Offline',
+                        isOtherOnline ? 'Online' : 'Offline',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.white70,
                         ),
@@ -781,16 +782,8 @@ class _MetaRow extends StatelessWidget {
           const SizedBox(width: 6),
           Icon(
             message.isRead ? Icons.done_all : Icons.done,
-            size: 15,
-            color: message.isRead ? const Color(0xff60A5FA) : c.withOpacity(0.72),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            message.isRead ? 'Seen' : 'Sent',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: c.withOpacity(0.72),
-              fontWeight: FontWeight.w600,
-            ),
+            size: 16,
+            color: message.isRead ? Colors.white : c.withOpacity(0.72),
           ),
         ],
       ],

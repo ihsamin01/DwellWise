@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/chat_message_model.dart';
@@ -18,6 +18,7 @@ class ChatProvider with ChangeNotifier {
   final List<ChatMessageModel> _activeMessages = [];
 
   RealtimeChannel? _messagesChannel;
+  RealtimeChannel? _presenceChannel;
 
   /// Why the last send failed, for the screen to show.
   String? lastSendError;
@@ -43,10 +44,18 @@ class ChatProvider with ChangeNotifier {
   int get unreadConversationCount =>
       _chats.where((chat) => chat.unreadCount > 0 && !chat.isMuted).length;
 
+  /// Who is in the app right now, by account id.
+  Set<String> _onlineUserIds = const {};
+
+  bool isUserOnline(String? userId) =>
+      userId != null && _onlineUserIds.contains(userId);
+
   @override
   void dispose() {
     final channel = _messagesChannel;
     if (channel != null) _service.unsubscribe(channel);
+    final presence = _presenceChannel;
+    if (presence != null) _service.stopPresence(presence);
     super.dispose();
   }
 
@@ -378,7 +387,29 @@ class ChatProvider with ChangeNotifier {
   // ── realtime ───────────────────────────────────────────────────────────
 
   void _listenForMessages() {
-    _messagesChannel = _service.subscribeToAllMessages(_onRemoteMessage);
+    _messagesChannel = _service.subscribeToAllMessages(
+      _onRemoteMessage,
+      onUpdated: _onRemoteMessageChanged,
+    );
+    _presenceChannel = _service.subscribeToPresence((ids) {
+      if (setEquals(ids, _onlineUserIds)) return;
+      _onlineUserIds = ids;
+      notifyListeners();
+    });
+  }
+
+  /// A message the user already has changed on the server — in practice the
+  /// other side opened the chat and its `is_read` flipped.
+  void _onRemoteMessageChanged(ChatMessageModel message) {
+    final messages = _messagesByChatId[message.chatId];
+    if (messages == null) return;
+
+    final index = messages.indexWhere((m) => m.id == message.id);
+    if (index == -1 || messages[index].isRead == message.isRead) return;
+
+    messages[index] = messages[index].copyWith(isRead: message.isRead);
+    _syncActiveMessages(message.chatId);
+    notifyListeners();
   }
 
   void _onRemoteMessage(ChatMessageModel message) {
