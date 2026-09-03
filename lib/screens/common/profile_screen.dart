@@ -6,6 +6,7 @@ import '../../config/app_colors.dart';
 import '../../config/app_strings.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
+import '../../config/routes.dart';
 import '../../providers/assistant_provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../providers/property_provider.dart';
@@ -175,7 +176,10 @@ class ProfileScreen extends StatelessWidget {
       context.read<PropertyProvider>().clearForSignOut();
       context.read<AssistantProvider>().clearForSignOut();
       await context.read<AuthProvider>().logout();
-      if (context.mounted) context.go('/login');
+      if (context.mounted) {
+        AppRoutes.leaveShell();
+        context.go('/login');
+      }
     }
   }
 }

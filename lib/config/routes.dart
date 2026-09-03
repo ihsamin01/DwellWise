@@ -56,7 +56,22 @@ class AppRoutes {
   static final GlobalKey<MainTabsShellState> _tabsKey =
       GlobalKey<MainTabsShellState>();
 
+  /// Set when the app itself is leaving the shell — logging out, say.
+  ///
+  /// [onExit] runs on every navigation away from a route, not only on a
+  /// back press, so without this the handler below treated a logout as a
+  /// back press: from any tab but Home it switched to Home and returned
+  /// false, cancelling the trip to the login screen.
+  static bool _leavingOnPurpose = false;
+
+  /// Call immediately before navigating out of the tab shell in code.
+  static void leaveShell() => _leavingOnPurpose = true;
+
   static Future<bool> _confirmShellExit(BuildContext context) async {
+    if (_leavingOnPurpose) {
+      _leavingOnPurpose = false;
+      return true;
+    }
     final state = _tabsKey.currentState;
     if (state == null) return true;
     return state.confirmBackNavigation();

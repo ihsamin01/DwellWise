@@ -3,8 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../config/app_colors.dart';
+import '../config/routes.dart';
 import '../config/app_strings.dart';
+import '../providers/assistant_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/chat_provider.dart';
+import '../providers/property_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/recently_viewed_provider.dart';
 import '../providers/saved_properties_provider.dart';
@@ -193,8 +197,12 @@ class AppDrawer extends StatelessWidget {
 
                       context.read<SavedPropertiesProvider>().clear();
                       context.read<RecentlyViewedProvider>().clear();
+                      context.read<ChatProvider>().clearForSignOut();
+                      context.read<PropertyProvider>().clearForSignOut();
+                      context.read<AssistantProvider>().clearForSignOut();
                       await context.read<AuthProvider>().logout();
                       if (context.mounted) {
+                        AppRoutes.leaveShell();
                         context.go('/login');
                       }
                     },
