@@ -189,7 +189,11 @@ class PropertyProvider with ChangeNotifier {
   }
 
   /// Registers a new property listing.
+  /// Why the last [addProperty] failed, for the screen to show.
+  String? lastAddError;
+
   Future<bool> addProperty(PropertyModel newProperty) async {
+    lastAddError = null;
     _isLoading = true;
     notifyListeners();
     try {
@@ -204,6 +208,11 @@ class PropertyProvider with ChangeNotifier {
       await loadMyListings();
       return true;
     } catch (e) {
+      // Nothing is kept locally on this path: a listing the database
+      // refused must not sit in "My properties" looking posted.
+      lastAddError = e is NotSignedIn
+          ? 'You are signed out. Please sign in again and try posting.'
+          : '$e';
       debugPrint('Error creating listing: $e');
       return false;
     } finally {

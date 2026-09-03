@@ -6,6 +6,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/property_model.dart';
 import '../models/user_model.dart';
 
+/// Thrown when an action needs a signed-in account and there is none.
+class NotSignedIn implements Exception {
+  const NotSignedIn();
+
+  @override
+  String toString() => 'Not signed in';
+}
+
 /// Service handler interfacing with Supabase DB client operations.
 class SupabaseService {
   SupabaseClient? get _client {
@@ -137,7 +145,11 @@ class SupabaseService {
     lastImageUploadError = null;
     if (client == null || files.isEmpty) return [];
 
-    final uid = client.auth.currentUser?.id ?? 'anonymous';
+    final uid = client.auth.currentUser?.id;
+    if (uid == null) {
+      lastImageUploadError = 'you are not signed in';
+      return [];
+    }
     final stamp = DateTime.now().millisecondsSinceEpoch;
     final urls = <String>[];
 
@@ -189,12 +201,9 @@ class SupabaseService {
     if (client == null) return;
     final data = property.toJson()..remove('id');
     final uid = client.auth.currentUser?.id;
-    if (uid != null) data['owner_id'] = uid;
-    try {
-      await client.from('properties').insert(data);
-    } catch (e) {
-      // Keep the local add working even if the insert is rejected.
-    }
+    if (uid == null) throw const NotSignedIn();
+    data['owner_id'] = uid;
+    await client.from('properties').insert(data);
   }
 
   /// Fetches the profile row for [userId] from the `profiles` table.

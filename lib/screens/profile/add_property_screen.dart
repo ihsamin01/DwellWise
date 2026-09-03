@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
@@ -292,6 +293,12 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
       return;
     }
 
+    if (Supabase.instance.client.auth.currentUser == null) {
+      _snackText(
+          'You are signed out. Please sign in again and try posting.');
+      return;
+    }
+
     setState(() => _submitting = true);
 
     final provider = context.read<PropertyProvider>();
@@ -349,7 +356,12 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
       _snack('ap_posted');
       context.pushReplacement('/profile/my-properties');
     } else {
-      _snack('ap_post_failed');
+      final reason = provider.lastAddError;
+      if (reason == null) {
+        _snack('ap_post_failed');
+      } else {
+        _snackText(reason);
+      }
     }
   }
 
