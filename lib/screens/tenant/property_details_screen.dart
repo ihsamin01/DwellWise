@@ -758,9 +758,17 @@ class _DetailsCarouselState extends State<_DetailsCarousel> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    final images = widget.imageUrls.isNotEmpty
-        ? widget.imageUrls
-        : ['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80'];
+    final images = widget.imageUrls;
+
+    // No photo is better shown as no photo than as a stock house.
+    if (images.isEmpty) {
+      return Container(
+        color: colors.placeholder,
+        alignment: Alignment.center,
+        child: Icon(Icons.home_work_outlined,
+            size: 56, color: colors.textSecondary),
+      );
+    }
 
     return Stack(
       alignment: Alignment.bottomCenter,

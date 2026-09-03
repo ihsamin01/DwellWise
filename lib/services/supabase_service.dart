@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/property_model.dart';
 import '../models/user_model.dart';
@@ -128,8 +129,12 @@ class SupabaseService {
   }
 
   /// Uploads listing photos to the public `property-images` bucket and returns.
+  /// Why the last photo upload failed, for the screen to show.
+  String? lastImageUploadError;
+
   Future<List<String>> uploadPropertyImages(List<File> files) async {
     final client = _client;
+    lastImageUploadError = null;
     if (client == null || files.isEmpty) return [];
 
     final uid = client.auth.currentUser?.id ?? 'anonymous';
@@ -144,8 +149,11 @@ class SupabaseService {
         await client.storage.from('property-images').upload(objectPath, file);
         urls.add(
             client.storage.from('property-images').getPublicUrl(objectPath));
-      } catch (_) {
-        // Skip this image; the listing is still posted.
+      } catch (e) {
+        // Worth saying out loud: a silent skip here used to post the listing
+        // with no photos and no hint as to why.
+        lastImageUploadError = '$e';
+        debugPrint('Property image upload failed for $objectPath: $e');
       }
     }
     return urls;

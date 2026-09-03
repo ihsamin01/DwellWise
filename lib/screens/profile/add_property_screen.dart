@@ -242,10 +242,16 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
     final provider = context.read<PropertyProvider>();
 
     // Upload the chosen photos first so every device loads them from Storage.
-    final imageUrls = await SupabaseService().uploadPropertyImages(_pickedImages);
+    final storage = SupabaseService();
+    final imageUrls = await storage.uploadPropertyImages(_pickedImages);
     if (!mounted) return;
-    if (_pickedImages.isNotEmpty && imageUrls.isEmpty) {
-      _snackText('Photos could not be uploaded — posting without them.');
+    if (_pickedImages.length != imageUrls.length) {
+      final missing = _pickedImages.length - imageUrls.length;
+      final reason = storage.lastImageUploadError;
+      _snackText(
+        '$missing of ${_pickedImages.length} photos could not be uploaded'
+        '${reason == null ? '' : ' — $reason'}',
+      );
     }
 
     // Put the listing's pin on the area it names instead of (0, 0).
