@@ -508,7 +508,7 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
   Widget _buildLocationTab(AppColors colors) {
     final districts = _division != null ? BdLocations.districtsOf(_division!) : <String>[];
     final areas = (_division != null && _district != null)
-        ? BdLocations.thanasOf(_division!, _district!)
+        ? BdLocations.areasOfDistrict(_division!, _district!)
         : <String>[];
 
     return ListView(
@@ -520,7 +520,7 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
           hint: AppStrings.t(context, 'ap_select_division'),
           icon: Icons.map_outlined,
           items: BdLocations.divisions,
-          labelOf: (v) => v,
+          labelOf: (v) => AppStrings.place(context, v),
           onChanged: (v) => setState(() {
             _division = v;
             _district = null;
@@ -536,7 +536,7 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
               : AppStrings.t(context, 'ap_select_district'),
           icon: Icons.location_city_outlined,
           items: districts,
-          labelOf: (v) => v,
+          labelOf: (v) => AppStrings.place(context, v),
           onChanged: (v) => setState(() {
             _district = v;
             _area = null;
@@ -544,16 +544,7 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
         ),
         const SizedBox(height: 18),
         _label(AppStrings.t(context, 'ap_area'), colors, required: true),
-        _dropdown<String>(
-          value: _area,
-          hint: _district == null
-              ? AppStrings.t(context, 'ap_select_district_first')
-              : AppStrings.t(context, 'ap_select_area'),
-          icon: Icons.place_outlined,
-          items: areas,
-          labelOf: (v) => v,
-          onChanged: (v) => setState(() => _area = v),
-        ),
+        _areaField(colors, areas),
         const SizedBox(height: 18),
         _label(AppStrings.t(context, 'ap_sector'), colors, optional: true),
         _textField(_sectorController, '', Icons.numbers,
@@ -840,6 +831,52 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
     );
   }
 
+  /// Looks like the dropdowns above it, but opens a searchable list — a
+  /// district carries a few hundred areas and scrolling to one is hopeless.
+  Widget _areaField(AppColors colors, List<String> areas) {
+    final enabled = areas.isNotEmpty;
+    final label = _area == null
+        ? (_district == null
+            ? AppStrings.t(context, 'ap_select_district_first')
+            : AppStrings.t(context, 'ap_select_area'))
+        : AppStrings.place(context, _area!);
+
+    return InkWell(
+      onTap: enabled ? () => _pickArea(areas) : null,
+      child: InputDecorator(
+        decoration: const InputDecoration(
+          prefixIcon: Icon(Icons.place_outlined),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: _area == null
+                      ? colors.textSecondary
+                      : colors.textPrimary,
+                ),
+              ),
+            ),
+            Icon(Icons.search, size: 20, color: colors.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickArea(List<String> areas) async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => _AreaSearchSheet(areas: areas),
+    );
+    if (picked != null) setState(() => _area = picked);
+  }
+
   Widget _dropdown<T>({
     required T? value,
     required String hint,
@@ -954,6 +991,105 @@ class _MapPreview extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Search-as-you-type list of areas. Matches on both the English name and
+/// the Bangla one, so it finds the place whichever the owner types.
+class _AreaSearchSheet extends StatefulWidget {
+  const _AreaSearchSheet({required this.areas});
+
+  final List<String> areas;
+
+  @override
+  State<_AreaSearchSheet> createState() => _AreaSearchSheetState();
+}
+
+class _AreaSearchSheetState extends State<_AreaSearchSheet> {
+  final _controller = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final query = _query.trim().toLowerCase();
+    final matches = query.isEmpty
+        ? widget.areas
+        : [
+            for (final area in widget.areas)
+              if (area.toLowerCase().contains(query) ||
+                  AppStrings.place(context, area).toLowerCase().contains(query))
+                area,
+          ];
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.75,
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.textSecondary.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              child: TextField(
+                controller: _controller,
+                autofocus: true,
+                onChanged: (value) => setState(() => _query = value),
+                decoration: InputDecoration(
+                  hintText: AppStrings.t(context, 'ap_search_area'),
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            _controller.clear();
+                            setState(() => _query = '');
+                          },
+                        ),
+                ),
+              ),
+            ),
+            if (matches.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    AppStrings.t(context, 'ap_no_area_found'),
+                    style: TextStyle(color: colors.textSecondary),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.separated(
+                  itemCount: matches.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) => ListTile(
+                    title: Text(AppStrings.place(context, matches[index])),
+                    onTap: () => Navigator.of(context).pop(matches[index]),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
