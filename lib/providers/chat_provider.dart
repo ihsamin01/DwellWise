@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/chat_message_model.dart';
 import '../models/chat_model.dart';
 import '../services/chat_service.dart';
+import '../services/push_notifications.dart';
 
 /// Provider handling instant messaging conversations and attachments.
 class ChatProvider with ChangeNotifier {
@@ -453,14 +455,30 @@ class ChatProvider with ChangeNotifier {
     if (message.senderId == me) return;
 
     _appendMessage(message);
-    if (message.chatId == _activeChatId) {
+    if (message.chatId == _activeChatId && _appInForeground) {
       markConversationRead(message.chatId);
-    } else {
-      _replaceChat(
-        message.chatId,
-        (chat) => chat.copyWith(unreadCount: chat.unreadCount + 1),
-      );
+      return;
     }
+    _replaceChat(
+      message.chatId,
+      (chat) => chat.copyWith(unreadCount: chat.unreadCount + 1),
+    );
+    _notify(message);
+  }
+
+  bool get _appInForeground =>
+      WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+
+  /// Puts the message in the notification tray, under the sender's name.
+  void _notify(ChatMessageModel message) {
+    final chat = chatById(message.chatId);
+    final from = chat?.userName ?? 'New message';
+    PushNotifications.instance.showMessage(
+      // One notification per conversation rather than one per message.
+      id: message.chatId.hashCode & 0x7fffffff,
+      title: from,
+      body: _previewFor(message),
+    );
   }
 
   // ── internals ──────────────────────────────────────────────────────────

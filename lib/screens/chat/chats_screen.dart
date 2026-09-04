@@ -415,21 +415,22 @@ class _ConversationAvatar extends StatelessWidget {
                 )
               : null,
         ),
-        Positioned(
-          right: 1,
-          bottom: 1,
-          child: Container(
-            width: 13,
-            height: 13,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isOnline
-                  ? const Color(0xff22C55E)
-                  : theme.colorScheme.outline,
-              border: Border.all(color: theme.colorScheme.surface, width: 2),
+        // Only drawn while they are actually in the app. A grey dot for
+        // "offline" still reads as a lit indicator, so there is none.
+        if (isOnline)
+          Positioned(
+            right: 1,
+            bottom: 1,
+            child: Container(
+              width: 13,
+              height: 13,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xff22C55E),
+                border: Border.all(color: theme.colorScheme.surface, width: 2),
+              ),
             ),
           ),
-        ),
       ],
     );
   }
