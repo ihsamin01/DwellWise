@@ -173,7 +173,7 @@ class _MyPropertyCard extends StatelessWidget {
                               color: colors.textPrimary),
                         ),
                       ),
-                      _StatusPill(isVerified: property.isVerified),
+                      if (property.isVerified) const _StatusPill(),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -317,12 +317,11 @@ class _MyPropertyCard extends StatelessWidget {
 }
 
 class _StatusPill extends StatelessWidget {
-  final bool isVerified;
-  const _StatusPill({required this.isVerified});
+  const _StatusPill();
 
   @override
   Widget build(BuildContext context) {
-    final color = isVerified ? const Color(0xff10B981) : const Color(0xff1877F2);
+    const color = Color(0xff10B981);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -332,10 +331,11 @@ class _StatusPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(isVerified ? Icons.verified : Icons.hourglass_top, size: 13, color: color),
+          const Icon(Icons.verified, size: 13, color: color),
           const SizedBox(width: 4),
-          Text(AppStrings.t(context, isVerified ? 'status_verified' : 'status_pending'),
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+          Text(AppStrings.t(context, 'status_verified'),
+              style: const TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.bold, color: color)),
         ],
       ),
     );
