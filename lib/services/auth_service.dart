@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
+import '../utils/friendly_error.dart';
 
 /// Lightweight authenticated-user representation used by the app UI.
 class AppAuthUser {
@@ -198,7 +199,7 @@ class AuthService {
     } catch (e) {
       return GoogleSignInResult(
         GoogleSignInOutcome.failed,
-        errorMessage: e.toString(),
+        errorMessage: friendlyError(e),
       );
     }
   }

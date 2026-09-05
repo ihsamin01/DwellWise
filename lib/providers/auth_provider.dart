@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
+import '../utils/friendly_error.dart';
 
 /// Provider handling global Authentication status and state changes.
 class AuthProvider with ChangeNotifier {
@@ -44,7 +45,7 @@ class AuthProvider with ChangeNotifier {
       _setError(e.message);
       return false;
     } catch (e) {
-      _setError(e.toString());
+      _setError(friendlyError(e));
       return false;
     } finally {
       _setLoading(false);
@@ -101,7 +102,7 @@ class AuthProvider with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      _setError(e.toString());
+      _setError(friendlyError(e));
       return false;
     } finally {
       _setLoading(false);
@@ -155,7 +156,7 @@ class AuthProvider with ChangeNotifier {
       _setError(e.message);
       return false;
     } catch (e) {
-      _setError(e.toString());
+      _setError(friendlyError(e));
       return false;
     } finally {
       _setLoading(false);
@@ -183,7 +184,7 @@ class AuthProvider with ChangeNotifier {
       _setError(e.message);
       return false;
     } catch (e) {
-      _setError(e.toString());
+      _setError(friendlyError(e));
       return false;
     } finally {
       _setLoading(false);
@@ -202,7 +203,7 @@ class AuthProvider with ChangeNotifier {
       _currentUser = null;
       notifyListeners();
     } catch (e) {
-      _setError(e.toString());
+      _setError(friendlyError(e));
     } finally {
       _setLoading(false);
     }
