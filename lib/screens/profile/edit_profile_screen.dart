@@ -64,16 +64,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (picked == null || !mounted) return;
 
     setState(() => _isUploadingAvatar = true);
-    final url = await SupabaseService().uploadAvatar(File(picked.path));
+
+    final storage = SupabaseService();
+    final userProvider = context.read<UserProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    final url = await storage.uploadAvatar(File(picked.path));
     if (!mounted) return;
     setState(() {
       _isUploadingAvatar = false;
       if (url != null) _avatarUrl = url;
     });
+
     if (url == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not upload photo. Please try again.')),
-      );
+      final reason = storage.lastAvatarUploadError;
+      messenger.showSnackBar(SnackBar(
+        content: Text('Could not upload the photo'
+            '${reason == null ? '.' : ' — $reason'}'),
+      ));
+      return;
+    }
+
+    // Saved on the spot rather than waiting for "Save Changes": a profile
+    // photo is expected to take effect as soon as it is chosen, and the
+    // write is what tells everyone else's app about it.
+    final current = userProvider.userModel;
+    if (current != null) {
+      final saved =
+          await userProvider.updateProfile(current.copyWith(avatarUrl: url));
+      if (!mounted) return;
+      if (!saved) {
+        messenger.showSnackBar(const SnackBar(
+          content: Text('The photo was uploaded but could not be saved to '
+              'your profile.'),
+        ));
+      }
     }
   }
 

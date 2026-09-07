@@ -171,12 +171,19 @@ class SupabaseService {
     return urls;
   }
 
+  /// Why the last avatar upload failed, for the screen to show.
+  String? lastAvatarUploadError;
+
   /// Uploads a profile photo to the public `avatars` bucket and returns its
   /// public URL, overwriting any previous photo for this user.
   Future<String?> uploadAvatar(File file) async {
     final client = _client;
     final uid = client?.auth.currentUser?.id;
-    if (client == null || uid == null) return null;
+    lastAvatarUploadError = null;
+    if (client == null || uid == null) {
+      lastAvatarUploadError = 'You are signed out.';
+      return null;
+    }
 
     final ext = file.path.contains('.') ? file.path.split('.').last : 'jpg';
     final objectPath = '$uid/avatar.$ext';
@@ -190,7 +197,11 @@ class SupabaseService {
       // Bust the CDN/cache so the new photo shows immediately, not the old
       // one still cached under the same object path.
       return '$url?t=${DateTime.now().millisecondsSinceEpoch}';
-    } catch (_) {
+    } catch (e) {
+      // A silent null here left the user staring at the old photo with no
+      // idea the upload had been refused.
+      lastAvatarUploadError = '$e';
+      debugPrint('Avatar upload failed for $objectPath: $e');
       return null;
     }
   }
