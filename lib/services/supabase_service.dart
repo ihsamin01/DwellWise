@@ -315,6 +315,26 @@ class SupabaseService {
   }
 
   /// Persists a favorite.
+  /// The details shown when someone opens a person's profile from a chat.
+  ///
+  /// Separate from [getOwnerProfile], which fetches only what the listing
+  /// page needs; this one also carries the photo and address.
+  Future<Map<String, dynamic>?> getPublicProfile(String userId) async {
+    final client = _client;
+    if (client == null || userId.isEmpty) return null;
+    try {
+      final rows = await client
+          .from('profiles')
+          .select('id, name, phone_number, address, avatar_url, '
+              'verification_status')
+          .eq('id', userId)
+          .limit(1);
+      return rows.isEmpty ? null : rows.first;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> getOwnerProfile(String ownerId) async {
     final client = _client;
     if (client == null || ownerId.isEmpty) return null;
