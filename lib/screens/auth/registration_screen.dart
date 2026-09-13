@@ -219,30 +219,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Top Badge and Header Row.
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.arrow_back, color: colors.textSecondary),
-                      onPressed: () => context.pop(),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: colors.placeholder,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'Step 1 of 2',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ],
+                // Back button.
+                IconButton(
+                  icon: Icon(Icons.arrow_back, color: colors.textSecondary),
+                  onPressed: () => context.pop(),
                 ),
                 const SizedBox(height: 16),
 
