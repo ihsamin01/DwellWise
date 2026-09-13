@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 // Screen imports.
 import '../screens/common/splash_screen.dart';
 import '../screens/common/onboarding_screen.dart';
-import '../screens/assistant/ai_assistant_screen.dart';
 import '../screens/common/main_tabs_shell.dart';
 import '../screens/common/notifications_screen.dart';
 import '../screens/auth/login_screen.dart';
@@ -33,7 +32,6 @@ import '../screens/profile/account_verification_screen.dart';
 import '../screens/profile/add_property_screen.dart';
 import '../screens/profile/my_properties_screen.dart';
 import '../screens/profile/purchase_history_screen.dart';
-import '../screens/profile/analytics_screen.dart';
 import '../screens/profile/account_security_screen.dart';
 import '../screens/profile/notification_settings_screen.dart';
 import '../screens/profile/theme_settings_screen.dart';
@@ -265,10 +263,6 @@ class AppRoutes {
       GoRoute(
         path: '/profile/my-properties',
         builder: (context, state) => const MyPropertiesScreen(),
-      ),
-      GoRoute(
-        path: '/profile/analytics',
-        builder: (context, state) => const AnalyticsScreen(),
       ),
       GoRoute(
         path: '/profile/purchase-history',
