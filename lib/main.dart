@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/theme.dart';
 import 'config/routes.dart';
 import 'config/supabase_config.dart';
+import 'services/push_notifications.dart';
 import 'services/auth_service.dart';
 import 'services/deep_link_service.dart';
 
@@ -36,6 +37,10 @@ Future<void> main() async {
 
   // If the user didn't tick "Keep me signed in".
   await AuthService().applySessionPersistencePolicy();
+
+  // Asks for the notification permission on the first run, so a message
+  // arriving later has somewhere to appear.
+  await PushNotifications.instance.init();
 
   runApp(const DwellWiseApp());
 }

@@ -3,12 +3,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/app_colors.dart';
 import '../../config/app_strings.dart';
 import '../../data/bd_area_coordinates.dart';
+import '../../services/listing_summary_service.dart';
 import '../../data/bd_locations.dart';
 import '../../models/property_model.dart';
 import '../../providers/property_provider.dart';
@@ -64,6 +66,14 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
 
   // Detailed
   final Set<String> _selectedFeatures = {};
+
+  final _summaryService = ListingSummaryService();
+
+  /// The suggested description, and the form it was written from — so a
+  /// second visit to this tab does not ask the model the same thing again.
+  String? _summary;
+  ListingFacts? _summarisedFrom;
+  bool _writingSummary = false;
   final _descriptionController = TextEditingController();
   /// Photos chosen for the listing; uploaded to Supabase Storage on submit.
   final List<File> _pickedImages = [];
@@ -218,8 +228,54 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
     if (index == 2 && !_validatePrice()) return;
     if (index < 3) {
       _tabController.animateTo(index + 1);
+      if (index == 2) _refreshSummary();
     } else {
       _submit();
+    }
+  }
+
+  ListingFacts _facts() => ListingFacts(
+        propertyType: _type,
+        area: _area,
+        availableFrom: _availableMonth,
+        beds: _bedrooms,
+        baths: _bathrooms,
+        balcony: _balcony,
+        price: double.tryParse(_priceController.text.trim()),
+        priceFor: _priceFor,
+        facilities: _selectedFeatures.toList(),
+        includedBills: _includedBills.toList(),
+      );
+
+  /// Shows a description built from the form immediately, then replaces it
+  /// with Gemini's wording of the same facts once that arrives.
+  Future<void> _refreshSummary() async {
+    final facts = _facts();
+    if (!facts.isUsable || facts == _summarisedFrom) return;
+
+    setState(() {
+      _summarisedFrom = facts;
+      _summary = ListingSummaryService.compose(facts);
+      _writingSummary = true;
+    });
+    _useSummaryIfEmpty();
+
+    final written = await _summaryService.write(
+      facts,
+      bangla: AppStrings.isBangla(context),
+    );
+    if (!mounted || _summarisedFrom != facts) return;
+    setState(() {
+      _summary = written;
+      _writingSummary = false;
+    });
+    _useSummaryIfEmpty();
+  }
+
+  /// Never overwrites something the owner wrote themselves.
+  void _useSummaryIfEmpty() {
+    if (_descriptionController.text.trim().isEmpty && _summary != null) {
+      _descriptionController.text = _summary!;
     }
   }
 
@@ -237,15 +293,27 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
       return;
     }
 
+    if (Supabase.instance.client.auth.currentUser == null) {
+      _snackText(
+          'You are signed out. Please sign in again and try posting.');
+      return;
+    }
+
     setState(() => _submitting = true);
 
     final provider = context.read<PropertyProvider>();
 
     // Upload the chosen photos first so every device loads them from Storage.
-    final imageUrls = await SupabaseService().uploadPropertyImages(_pickedImages);
+    final storage = SupabaseService();
+    final imageUrls = await storage.uploadPropertyImages(_pickedImages);
     if (!mounted) return;
-    if (_pickedImages.isNotEmpty && imageUrls.isEmpty) {
-      _snackText('Photos could not be uploaded — posting without them.');
+    if (_pickedImages.length != imageUrls.length) {
+      final missing = _pickedImages.length - imageUrls.length;
+      final reason = storage.lastImageUploadError;
+      _snackText(
+        '$missing of ${_pickedImages.length} photos could not be uploaded'
+        '${reason == null ? '' : ' — $reason'}',
+      );
     }
 
     // Put the listing's pin on the area it names instead of (0, 0).
@@ -288,7 +356,12 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
       _snack('ap_posted');
       context.pushReplacement('/profile/my-properties');
     } else {
-      _snack('ap_post_failed');
+      final reason = provider.lastAddError;
+      if (reason == null) {
+        _snack('ap_post_failed');
+      } else {
+        _snackText(reason);
+      }
     }
   }
 
@@ -447,7 +520,7 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
   Widget _buildLocationTab(AppColors colors) {
     final districts = _division != null ? BdLocations.districtsOf(_division!) : <String>[];
     final areas = (_division != null && _district != null)
-        ? BdLocations.thanasOf(_division!, _district!)
+        ? BdLocations.areasOfDistrict(_division!, _district!)
         : <String>[];
 
     return ListView(
@@ -459,7 +532,7 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
           hint: AppStrings.t(context, 'ap_select_division'),
           icon: Icons.map_outlined,
           items: BdLocations.divisions,
-          labelOf: (v) => v,
+          labelOf: (v) => AppStrings.place(context, v),
           onChanged: (v) => setState(() {
             _division = v;
             _district = null;
@@ -475,7 +548,7 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
               : AppStrings.t(context, 'ap_select_district'),
           icon: Icons.location_city_outlined,
           items: districts,
-          labelOf: (v) => v,
+          labelOf: (v) => AppStrings.place(context, v),
           onChanged: (v) => setState(() {
             _district = v;
             _area = null;
@@ -483,31 +556,22 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
         ),
         const SizedBox(height: 18),
         _label(AppStrings.t(context, 'ap_area'), colors, required: true),
-        _dropdown<String>(
-          value: _area,
-          hint: _district == null
-              ? AppStrings.t(context, 'ap_select_district_first')
-              : AppStrings.t(context, 'ap_select_area'),
-          icon: Icons.place_outlined,
-          items: areas,
-          labelOf: (v) => v,
-          onChanged: (v) => setState(() => _area = v),
-        ),
+        _areaField(colors, areas),
         const SizedBox(height: 18),
         _label(AppStrings.t(context, 'ap_sector'), colors, optional: true),
-        _textField(_sectorController, AppStrings.t(context, 'ap_sector_hint'), Icons.numbers,
+        _textField(_sectorController, '', Icons.numbers,
             keyboardType: TextInputType.number),
         const SizedBox(height: 18),
         _label(AppStrings.t(context, 'ap_road'), colors, optional: true),
-        _textField(_roadController, AppStrings.t(context, 'ap_road_hint'), Icons.add_road_outlined,
+        _textField(_roadController, '', Icons.add_road_outlined,
             keyboardType: TextInputType.number),
         const SizedBox(height: 18),
         _label(AppStrings.t(context, 'ap_house'), colors, optional: true),
-        _textField(_houseController, AppStrings.t(context, 'ap_house_hint'), Icons.home_outlined,
+        _textField(_houseController, '', Icons.home_outlined,
             keyboardType: TextInputType.number),
         const SizedBox(height: 18),
         _label(AppStrings.t(context, 'ap_short_address'), colors, optional: true),
-        _textField(_shortAddressController, AppStrings.t(context, 'ap_short_address_hint'),
+        _textField(_shortAddressController, '',
             Icons.badge_outlined),
       ],
     );
@@ -521,7 +585,7 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
       padding: const EdgeInsets.all(20),
       children: [
         _label(AppStrings.t(context, 'ap_price'), colors, required: true),
-        _textField(_priceController, AppStrings.t(context, 'ap_price_hint'), Icons.payments_outlined,
+        _textField(_priceController, '', Icons.payments_outlined,
             keyboardType: TextInputType.number),
         const SizedBox(height: 18),
         _label(AppStrings.t(context, 'ap_price_for'), colors, required: true),
@@ -561,6 +625,61 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
   // ---------------------------------------------------------------------------
   // Tab 4: Detailed information (optional)
   // ---------------------------------------------------------------------------
+  /// The suggested description, offered rather than forced — tapping it
+  /// replaces whatever is in the box above.
+  Widget _summaryCard(AppColors colors) {
+    return InkWell(
+      onTap: () => setState(
+          () => _descriptionController.text = _summary ?? ''),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: colors.primaryTint,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome, size: 15, color: colors.primary),
+                const SizedBox(width: 6),
+                Text(
+                  AppStrings.t(context, 'ap_suggested_description'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: colors.primary,
+                  ),
+                ),
+                const Spacer(),
+                if (_writingSummary)
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.6,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(colors.primary),
+                    ),
+                  )
+                else
+                  Icon(Icons.refresh, size: 16, color: colors.primary),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _summary ?? '',
+              style: TextStyle(fontSize: 13, color: colors.textPrimary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDetailedTab(AppColors colors) {
     final composed = _composedAddress();
     return ListView(
@@ -594,6 +713,10 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
             alignLabelWithHint: true,
           ),
         ),
+        if (_summary != null) ...[
+          const SizedBox(height: 10),
+          _summaryCard(colors),
+        ],
         const SizedBox(height: 22),
         _label(AppStrings.t(context, 'ap_picture'), colors),
         const SizedBox(height: 8),
@@ -720,6 +843,52 @@ class _AddPropertyScreenState extends State<AddPropertyScreen>
     );
   }
 
+  /// Looks like the dropdowns above it, but opens a searchable list — a
+  /// district carries a few hundred areas and scrolling to one is hopeless.
+  Widget _areaField(AppColors colors, List<String> areas) {
+    final enabled = areas.isNotEmpty;
+    final label = _area == null
+        ? (_district == null
+            ? AppStrings.t(context, 'ap_select_district_first')
+            : AppStrings.t(context, 'ap_select_area'))
+        : AppStrings.place(context, _area!);
+
+    return InkWell(
+      onTap: enabled ? () => _pickArea(areas) : null,
+      child: InputDecorator(
+        decoration: const InputDecoration(
+          prefixIcon: Icon(Icons.place_outlined),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: _area == null
+                      ? colors.textSecondary
+                      : colors.textPrimary,
+                ),
+              ),
+            ),
+            Icon(Icons.search, size: 20, color: colors.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickArea(List<String> areas) async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => _AreaSearchSheet(areas: areas),
+    );
+    if (picked != null) setState(() => _area = picked);
+  }
+
   Widget _dropdown<T>({
     required T? value,
     required String hint,
@@ -834,6 +1003,105 @@ class _MapPreview extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Search-as-you-type list of areas. Matches on both the English name and
+/// the Bangla one, so it finds the place whichever the owner types.
+class _AreaSearchSheet extends StatefulWidget {
+  const _AreaSearchSheet({required this.areas});
+
+  final List<String> areas;
+
+  @override
+  State<_AreaSearchSheet> createState() => _AreaSearchSheetState();
+}
+
+class _AreaSearchSheetState extends State<_AreaSearchSheet> {
+  final _controller = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final query = _query.trim().toLowerCase();
+    final matches = query.isEmpty
+        ? widget.areas
+        : [
+            for (final area in widget.areas)
+              if (area.toLowerCase().contains(query) ||
+                  AppStrings.place(context, area).toLowerCase().contains(query))
+                area,
+          ];
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.75,
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.textSecondary.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              child: TextField(
+                controller: _controller,
+                autofocus: true,
+                onChanged: (value) => setState(() => _query = value),
+                decoration: InputDecoration(
+                  hintText: AppStrings.t(context, 'ap_search_area'),
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            _controller.clear();
+                            setState(() => _query = '');
+                          },
+                        ),
+                ),
+              ),
+            ),
+            if (matches.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    AppStrings.t(context, 'ap_no_area_found'),
+                    style: TextStyle(color: colors.textSecondary),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.separated(
+                  itemCount: matches.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) => ListTile(
+                    title: Text(AppStrings.place(context, matches[index])),
+                    onTap: () => Navigator.of(context).pop(matches[index]),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

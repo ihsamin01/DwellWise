@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/chat_message_model.dart';
 import '../models/chat_model.dart';
 import '../services/chat_service.dart';
+import '../services/push_notifications.dart';
 
 /// Provider handling instant messaging conversations and attachments.
 class ChatProvider with ChangeNotifier {
@@ -18,6 +20,8 @@ class ChatProvider with ChangeNotifier {
   final List<ChatMessageModel> _activeMessages = [];
 
   RealtimeChannel? _messagesChannel;
+  RealtimeChannel? _presenceChannel;
+  RealtimeChannel? _profilesChannel;
 
   /// Why the last send failed, for the screen to show.
   String? lastSendError;
@@ -43,10 +47,20 @@ class ChatProvider with ChangeNotifier {
   int get unreadConversationCount =>
       _chats.where((chat) => chat.unreadCount > 0 && !chat.isMuted).length;
 
+  /// Who is in the app right now, by account id.
+  Set<String> _onlineUserIds = const {};
+
+  bool isUserOnline(String? userId) =>
+      userId != null && _onlineUserIds.contains(userId);
+
   @override
   void dispose() {
     final channel = _messagesChannel;
     if (channel != null) _service.unsubscribe(channel);
+    final presence = _presenceChannel;
+    if (presence != null) _service.stopPresence(presence);
+    final profiles = _profilesChannel;
+    if (profiles != null) _service.unsubscribe(profiles);
     super.dispose();
   }
 
@@ -375,10 +389,63 @@ class ChatProvider with ChangeNotifier {
   /// Whether [id] is a real account id rather than a seeded placeholder.
   static bool _looksLikeUserId(String id) => _uuid.hasMatch(id);
 
+  /// Drops everything held for the account that just left.
+  void clearForSignOut() {
+    _chats.clear();
+    _messagesByChatId.clear();
+    _activeMessages.clear();
+    _activeChatId = null;
+    _hasLoadedChats = false;
+    notifyListeners();
+  }
+
   // ── realtime ───────────────────────────────────────────────────────────
 
   void _listenForMessages() {
-    _messagesChannel = _service.subscribeToAllMessages(_onRemoteMessage);
+    _messagesChannel = _service.subscribeToAllMessages(
+      _onRemoteMessage,
+      onUpdated: _onRemoteMessageChanged,
+    );
+    _profilesChannel = _service.subscribeToProfiles(_onProfileChanged);
+    _presenceChannel = _service.subscribeToPresence((ids) {
+      if (setEquals(ids, _onlineUserIds)) return;
+      _onlineUserIds = ids;
+      notifyListeners();
+    });
+  }
+
+  /// Someone the user is talking to changed their name or photo.
+  void _onProfileChanged(String userId, String? name, String? avatarUrl) {
+    var touched = false;
+    for (var i = 0; i < _chats.length; i++) {
+      final chat = _chats[i];
+      if (chat.otherUserId != userId) continue;
+      if (chat.userImage == avatarUrl &&
+          (name == null || name.trim().isEmpty || chat.userName == name)) {
+        continue;
+      }
+      _chats[i] = chat.copyWith(
+        userName: (name == null || name.trim().isEmpty) ? chat.userName : name,
+        userImage: avatarUrl,
+        clearUserImage: avatarUrl == null,
+      );
+      touched = true;
+    }
+    if (touched) notifyListeners();
+  }
+
+  /// A message the user already has changed on the server — in practice the
+  /// other side opened the chat and its `is_read` flipped.
+  void _onRemoteMessageChanged(ChatMessageModel message) {
+    final messages = _messagesByChatId[message.chatId];
+    if (messages == null) return;
+
+    final index = messages.indexWhere((m) => m.id == message.id);
+    if (index == -1 || messages[index].isRead == message.isRead) return;
+
+    messages[index] = messages[index].copyWith(isRead: message.isRead);
+    _syncActiveMessages(message.chatId);
+    notifyListeners();
   }
 
   void _onRemoteMessage(ChatMessageModel message) {
@@ -388,14 +455,30 @@ class ChatProvider with ChangeNotifier {
     if (message.senderId == me) return;
 
     _appendMessage(message);
-    if (message.chatId == _activeChatId) {
+    if (message.chatId == _activeChatId && _appInForeground) {
       markConversationRead(message.chatId);
-    } else {
-      _replaceChat(
-        message.chatId,
-        (chat) => chat.copyWith(unreadCount: chat.unreadCount + 1),
-      );
+      return;
     }
+    _replaceChat(
+      message.chatId,
+      (chat) => chat.copyWith(unreadCount: chat.unreadCount + 1),
+    );
+    _notify(message);
+  }
+
+  bool get _appInForeground =>
+      WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+
+  /// Puts the message in the notification tray, under the sender's name.
+  void _notify(ChatMessageModel message) {
+    final chat = chatById(message.chatId);
+    final from = chat?.userName ?? 'New message';
+    PushNotifications.instance.showMessage(
+      // One notification per conversation rather than one per message.
+      id: message.chatId.hashCode & 0x7fffffff,
+      title: from,
+      body: _previewFor(message),
+    );
   }
 
   // ── internals ──────────────────────────────────────────────────────────

@@ -27,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _fingerprintAuth = FingerprintAuthService();
 
   bool _obscurePassword = true;
-  bool _keepMeSignedIn = false;
+  bool _keepMeSignedIn = true;
   bool _showFingerprintUnlock = false;
 
   @override

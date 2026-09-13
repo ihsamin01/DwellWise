@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,6 +9,8 @@ import '../models/chat_model.dart';
 /// Supabase data access for conversations and messages.
 class ChatService {
   SupabaseClient get _client => Supabase.instance.client;
+
+  StreamSubscription<AuthState>? _authChanges;
 
   String? get currentUserId => _client.auth.currentUser?.id;
 
@@ -88,8 +91,10 @@ class ChatService {
       userImage: profilesById[otherId]?['avatar_url'] as String?,
       lastMessage: row['last_message'] as String? ?? '',
       lastMessageTime:
-          DateTime.tryParse(row['last_message_time'] as String? ?? '') ??
-              DateTime.tryParse(row['created_at'] as String? ?? '') ??
+          DateTime.tryParse(row['last_message_time'] as String? ?? '')
+                  ?.toLocal() ??
+              DateTime.tryParse(row['created_at'] as String? ?? '')
+                  ?.toLocal() ??
               DateTime.now(),
       unreadCount: unreadCount,
       isMuted: row['is_muted'] as bool? ?? false,
@@ -215,10 +220,13 @@ class ChatService {
   Future<void> setPriority(String chatId, bool priority) =>
       _client.from('chats').update({'is_priority': priority}).eq('id', chatId);
 
-  /// Calls [onMessage] for every message inserted into any chat the user can.
+  /// Calls [onMessage] for every message inserted into any chat the user can,
+  /// and [onUpdated] when one changes — which is how a read receipt arrives,
+  /// since marking a chat read is an update to rows the sender is watching.
   RealtimeChannel subscribeToAllMessages(
-    void Function(ChatMessageModel message) onMessage,
-  ) {
+    void Function(ChatMessageModel message) onMessage, {
+    void Function(ChatMessageModel message)? onUpdated,
+  }) {
     return _client
         .channel('messages:inbox')
         .onPostgresChanges(
@@ -227,7 +235,97 @@ class ChatService {
           table: 'messages',
           callback: (payload) => onMessage(_toMessage(payload.newRecord)),
         )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'messages',
+          callback: (payload) => onUpdated?.call(_toMessage(payload.newRecord)),
+        )
         .subscribe();
+  }
+
+  /// Calls [onChange] when someone's profile changes, with their id and the
+  /// name and photo the app shows for them.
+  ///
+  /// The chat list reads these once when it loads, so without this a new
+  /// profile photo only reached the other side after they reopened the app.
+  RealtimeChannel subscribeToProfiles(
+    void Function(String userId, String? name, String? avatarUrl) onChange,
+  ) {
+    return _client
+        .channel('profiles:changes')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'profiles',
+          callback: (payload) {
+            final row = payload.newRecord;
+            final id = row['id'];
+            if (id is String) {
+              onChange(
+                id,
+                row['name'] as String?,
+                row['avatar_url'] as String?,
+              );
+            }
+          },
+        )
+        .subscribe();
+  }
+
+  /// Announces this user as present and reports who else is, as it changes.
+  ///
+  /// Presence lives on the realtime channel rather than in a column, so it
+  /// clears itself when the app dies or the network drops — nobody is left
+  /// showing as online because their last write never happened.
+  RealtimeChannel subscribeToPresence(
+    void Function(Set<String> onlineUserIds) onChange,
+  ) {
+    final channel = _client.channel('presence:online');
+    var joined = false;
+
+    void publish() {
+      onChange({
+        for (final state in channel.presenceState())
+          for (final presence in state.presences)
+            if (presence.payload['user_id'] is String)
+              presence.payload['user_id'] as String,
+      });
+    }
+
+    void announce() {
+      final me = currentUserId;
+      if (joined && me != null) channel.track({'user_id': me});
+    }
+
+    channel
+        .onPresenceSync((_) => publish())
+        .onPresenceJoin((_) => publish())
+        .onPresenceLeave((_) => publish())
+        .subscribe((status, _) {
+      joined = status == RealtimeSubscribeStatus.subscribed;
+      announce();
+    });
+
+    // The stored session is restored a moment after start-up, so the first
+    // announcement usually happens before there is anyone to announce.
+    // Signing in runs it again; signing out takes the user back off the list.
+    _authChanges = _client.auth.onAuthStateChange.listen((state) {
+      if (state.session == null) {
+        if (joined) channel.untrack();
+      } else {
+        announce();
+      }
+    });
+
+    return channel;
+  }
+
+  /// Stops announcing this user and drops the presence channel.
+  Future<void> stopPresence(RealtimeChannel channel) async {
+    await _authChanges?.cancel();
+    _authChanges = null;
+    await _client.removeChannel(channel);
   }
 
   Future<void> unsubscribe(RealtimeChannel channel) =>
@@ -245,7 +343,8 @@ class ChatService {
       latitude: (row['latitude'] as num?)?.toDouble(),
       longitude: (row['longitude'] as num?)?.toDouble(),
       isRead: row['is_read'] as bool? ?? false,
-      createdAt: DateTime.tryParse(row['created_at'] as String? ?? '') ??
+      createdAt: DateTime.tryParse(row['created_at'] as String? ?? '')
+              ?.toLocal() ??
           DateTime.now(),
     );
   }

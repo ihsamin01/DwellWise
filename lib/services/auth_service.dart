@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
+import '../utils/friendly_error.dart';
 import 'fingerprint_auth_service.dart';
 
 /// Lightweight authenticated-user representation used by the app UI.
@@ -58,7 +59,7 @@ class AuthService {
   /// Called on startup.
   Future<void> applySessionPersistencePolicy() async {
     final prefs = await SharedPreferences.getInstance();
-    final keep = prefs.getBool(_keepSignedInKey) ?? false;
+    final keep = prefs.getBool(_keepSignedInKey) ?? true;
     final user = currentUser;
     if (!keep && user != null) {
       final fingerprintEnabled =
@@ -216,7 +217,7 @@ class AuthService {
     } catch (e) {
       return GoogleSignInResult(
         GoogleSignInOutcome.failed,
-        errorMessage: e.toString(),
+        errorMessage: friendlyError(e),
       );
     }
   }

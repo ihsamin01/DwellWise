@@ -4,6 +4,8 @@
          location (share current location), and media/storage (pick images &
          PDFs). Runtime permissions are requested by the plugins on demand. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android 13+ asks before anything can be shown. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />

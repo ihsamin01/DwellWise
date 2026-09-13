@@ -256,7 +256,11 @@ class _ChatsScreenState extends State<ChatsScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  _ConversationAvatar(chat: chat),
+                                  _ConversationAvatar(
+                                    chat: chat,
+                                    isOnline: provider
+                                        .isUserOnline(chat.otherUserId),
+                                  ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
@@ -379,9 +383,12 @@ class _ConversationItem {
 }
 
 class _ConversationAvatar extends StatelessWidget {
-  const _ConversationAvatar({required this.chat});
+  const _ConversationAvatar({required this.chat, required this.isOnline});
 
   final dynamic chat;
+
+  /// Taken from the live presence channel, not from the chat row.
+  final bool isOnline;
 
   @override
   Widget build(BuildContext context) {
@@ -408,21 +415,22 @@ class _ConversationAvatar extends StatelessWidget {
                 )
               : null,
         ),
-        Positioned(
-          right: 1,
-          bottom: 1,
-          child: Container(
-            width: 13,
-            height: 13,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: chat.isOnline
-                  ? const Color(0xff22C55E)
-                  : theme.colorScheme.outline,
-              border: Border.all(color: theme.colorScheme.surface, width: 2),
+        // Only drawn while they are actually in the app. A grey dot for
+        // "offline" still reads as a lit indicator, so there is none.
+        if (isOnline)
+          Positioned(
+            right: 1,
+            bottom: 1,
+            child: Container(
+              width: 13,
+              height: 13,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xff22C55E),
+                border: Border.all(color: theme.colorScheme.surface, width: 2),
+              ),
             ),
           ),
-        ),
       ],
     );
   }

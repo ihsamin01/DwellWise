@@ -10,6 +10,7 @@ class SavedPropertiesProvider with ChangeNotifier {
   final Set<String> _savedIds = {};
   final List<PropertyModel> _savedProperties = [];
 
+
   Set<String> get savedIds => _savedIds;
 
   /// Saved properties, newest save first.

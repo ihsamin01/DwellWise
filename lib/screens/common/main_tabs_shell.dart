@@ -85,7 +85,10 @@ class MainTabsShellState extends State<MainTabsShell> {
             TenantHomeScreen(key: _homeKey, showBottomNavigation: false),
             const TenantSearchScreen(showBottomNavigation: false),
             const AiAssistantScreen(),
-            const TenantSavedScreen(showBottomNavigation: false),
+            TenantSavedScreen(
+              showBottomNavigation: false,
+              onBackToHome: () => setState(() => _currentIndex = 0),
+            ),
             ChatsScreen(onBackToHome: () => setState(() => _currentIndex = 0)),
             ProfileScreen(onBackToHome: () => setState(() => _currentIndex = 0)),
           ],

@@ -148,6 +148,12 @@ class PropertyProvider with ChangeNotifier {
   /// Loads the signed-in user's own listings from the database, so posts they
   /// made survive an app restart (and show up on any device they log in from).
   /// Falls back to the seeded demo entries when nobody is signed in.
+  /// Drops the listings held for the account that just left.
+  void clearForSignOut() {
+    _myListings.clear();
+    notifyListeners();
+  }
+
   Future<void> loadMyListings() async {
     if (Supabase.instance.client.auth.currentUser == null) return;
     try {
@@ -189,7 +195,11 @@ class PropertyProvider with ChangeNotifier {
   }
 
   /// Registers a new property listing.
+  /// Why the last [addProperty] failed, for the screen to show.
+  String? lastAddError;
+
   Future<bool> addProperty(PropertyModel newProperty) async {
+    lastAddError = null;
     _isLoading = true;
     notifyListeners();
     try {
@@ -204,6 +214,11 @@ class PropertyProvider with ChangeNotifier {
       await loadMyListings();
       return true;
     } catch (e) {
+      // Nothing is kept locally on this path: a listing the database
+      // refused must not sit in "My properties" looking posted.
+      lastAddError = e is NotSignedIn
+          ? 'You are signed out. Please sign in again and try posting.'
+          : '$e';
       debugPrint('Error creating listing: $e');
       return false;
     } finally {

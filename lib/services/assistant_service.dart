@@ -60,7 +60,11 @@ class AssistantService {
   final SupabaseService _db = SupabaseService();
 
   /// How far the search widens, in order, when the area name finds nothing.
-  static const List<double> _radiusSteps = [5, 10];
+  ///
+  /// Small steps on purpose: someone asking about a place means the streets
+  /// around it, not the far side of the city. Each step is tried in full
+  /// before the next, so the nearest homes are always offered first.
+  static const List<double> _radiusSteps = [2, 3, 5];
 
   /// Listings shown in the chat.
   static const int displayLimit = 6;
@@ -221,7 +225,11 @@ User message: "${_clean(message)}"
     }
 
     // 2.
-    final point = coordinatesFor(area);
+    final point = tryCoordinatesFor(area);
+    if (point == null) {
+      return const AssistantSearchResult(
+          matches: [], radiusKm: null, widened: false);
+    }
     for (final radius in _radiusSteps) {
       final nearby = await _db.getApprovedPropertiesNear(
         latitude: point.$1,
@@ -229,7 +237,7 @@ User message: "${_clean(message)}"
         radiusKm: radius,
       );
       final within = _withinRadius(nearby, point, radius);
-      final ranked = rankProperties(within, intent);
+      final ranked = _nearestFirst(rankProperties(within, intent), point);
       if (ranked.isNotEmpty) {
         return AssistantSearchResult(
           matches: ranked,
@@ -241,6 +249,25 @@ User message: "${_clean(message)}"
 
     return const AssistantSearchResult(
         matches: [], radiusKm: null, widened: false);
+  }
+
+  /// Re-orders same-quality matches so the closest comes first.
+  ///
+  /// Scores are banded rather than compared exactly, or a single point of
+  /// difference would outweigh being a kilometre nearer.
+  List<MatchResult> _nearestFirst(List<MatchResult> matches, (double, double) at) {
+    final sorted = [...matches];
+    sorted.sort((a, b) {
+      final band = (b.score ~/ 10).compareTo(a.score ~/ 10);
+      if (band != 0) return band;
+      final da = distanceKm(
+          at.$1, at.$2, a.property.latitude, a.property.longitude);
+      final db = distanceKm(
+          at.$1, at.$2, b.property.latitude, b.property.longitude);
+      if (da != db) return da.compareTo(db);
+      return a.property.price.compareTo(b.property.price);
+    });
+    return sorted;
   }
 
   /// In-budget listings a little further out.

@@ -3,6 +3,44 @@ library bd_area_coordinates;
 
 /// (latitude, longitude) pairs keyed by lower-cased place name.
 const Map<String, (double, double)> bdAreaCoordinates = {
+  // ---------------- LANDMARKS ----------------
+  // People name a university or a hospital far more often than the thana
+  // it stands in, and without these the lookup fell back to the middle of
+  // the city and searched a mile from where they meant.
+  'dhaka university': (23.7330, 90.3920),
+  'university of dhaka': (23.7330, 90.3920),
+  'dhaka versity': (23.7330, 90.3920),
+  'du campus': (23.7330, 90.3920),
+  'tsc': (23.7345, 90.3945),
+  'curzon hall': (23.7275, 90.4030),
+  'buet': (23.7265, 90.3925),
+  'dhaka medical college': (23.7258, 90.3980),
+  'dhaka college': (23.7340, 90.3840),
+  'eden college': (23.7290, 90.3820),
+  'jagannath university': (23.7100, 90.4130),
+  'bangabandhu sheikh mujib medical university': (23.7390, 90.3960),
+  'notre dame college': (23.7320, 90.4200),
+  'north south university': (23.8153, 90.4250),
+  'independent university': (23.8290, 90.4270),
+  'aiub': (23.8290, 90.4290),
+  'brac university': (23.7800, 90.4070),
+  'east west university': (23.7640, 90.4370),
+  'united international university': (23.7960, 90.4490),
+  'mist': (23.8280, 90.4020),
+  'military institute of science and technology': (23.8280, 90.4020),
+  'jahangirnagar university': (23.8800, 90.2670),
+  'national university': (23.8890, 90.2700),
+  'bangladesh agricultural university': (24.7220, 90.4260),
+  'chittagong university': (22.4700, 91.7880),
+  'chittagong military academy': (22.4680, 91.9700),
+  'bangladesh military academy': (22.4680, 91.9700),
+  'cuet': (22.4620, 91.9700),
+  'rajshahi university': (24.3690, 88.6350),
+  'ruet': (24.3630, 88.6280),
+  'khulna university': (22.8000, 89.5320),
+  'kuet': (22.9000, 89.5020),
+  'shahjalal university': (24.9180, 91.8320),
+  'sust': (24.9180, 91.8320),
   // ---------------- DHAKA CITY ----------------
   'dhaka': (23.8103, 90.4125),
   'banani': (23.7937, 90.4066),
@@ -15,6 +53,31 @@ const Map<String, (double, double)> bdAreaCoordinates = {
   'bashundhara': (23.8203, 90.4288),
   'bashundhara r/a': (23.8203, 90.4288),
   'uttara': (23.8759, 90.3795),
+  'uttara sector 1': (23.8640, 90.4020),
+  'uttara sector 3': (23.8608, 90.3966),
+  'uttara sector 4': (23.8664, 90.3968),
+  'uttara sector 5': (23.8724, 90.3993),
+  'uttara sector 6': (23.8690, 90.3893),
+  'uttara sector 7': (23.8722, 90.3866),
+  'uttara sector 9': (23.8776, 90.3833),
+  'uttara sector 10': (23.8730, 90.3722),
+  'uttara sector 11': (23.8760, 90.3928),
+  'uttara sector 12': (23.8785, 90.3906),
+  'uttara sector 13': (23.8686, 90.3760),
+  'uttara sector 14': (23.8749, 90.3796),
+  'uttara sector 15': (23.8820, 90.3760),
+  'uttara sector 16': (23.8880, 90.3720),
+  'uttara sector 17': (23.8848, 90.3640),
+  'uttara sector 18': (23.8905, 90.3690),
+  'diabari (uttara)': (23.8865, 90.3585),
+  'mohakhali': (23.7806, 90.4051),
+  'mohakhali dohs': (23.7857, 90.3966),
+  'mohakhali wireless': (23.7830, 90.4020),
+  'chairman bari': (23.7885, 90.4038),
+  'amtoli': (23.7841, 90.4013),
+  'baridhara j block': (23.8090, 90.4230),
+  'shahjadpur': (23.7970, 90.4245),
+  'rampura bridge': (23.7623, 90.4218),
   'uttara east': (23.8687, 90.4009),
   'uttara west': (23.8759, 90.3667),
   'airport': (23.8433, 90.3978),
@@ -251,8 +314,17 @@ const Map<String, (double, double)> bdAreaCoordinates = {
   'sherpur': (25.0205, 90.0153),
 };
 
-/// Resolves coordinates for a free-text area such as "Banani, Dhaka".
-(double, double) coordinatesFor(String area) {
+/// Resolves coordinates for a free-text area such as "Banani, Dhaka",
+/// falling back to the middle of Dhaka when the place is not recognised.
+///
+/// Use [tryCoordinatesFor] where guessing would be worse than admitting
+/// the place is unknown — searching around the wrong point returns homes
+/// nowhere near what was asked for.
+(double, double) coordinatesFor(String area) =>
+    tryCoordinatesFor(area) ?? bdAreaCoordinates['dhaka']!;
+
+/// Coordinates for [area], or null when nothing here matches it.
+(double, double)? tryCoordinatesFor(String area) {
   final parts = area
       .toLowerCase()
       .split(',')
@@ -272,14 +344,30 @@ const Map<String, (double, double)> bdAreaCoordinates = {
     if (hit != null) return hit;
   }
 
-  // Loose match.
+  // Loose match, longest name first: "dhaka university" has to beat the
+  // "dhaka" sitting inside it, or the search lands in the wrong place.
+  String? best;
+  (double, double)? bestHit;
   for (final part in parts) {
     for (final entry in bdAreaCoordinates.entries) {
-      if (part.contains(entry.key) || entry.key.contains(part)) {
-        return entry.value;
+      if (!_mentions(part, entry.key) && !_mentions(entry.key, part)) continue;
+      if (best == null || entry.key.length > best.length) {
+        best = entry.key;
+        bestHit = entry.value;
       }
     }
   }
+  return bestHit;
+}
 
-  return bdAreaCoordinates['dhaka']!;
+/// Whether [haystack] contains [needle] as a whole word, so "mirpur 1"
+/// does not match inside "mirpur 12".
+bool _mentions(String haystack, String needle) {
+  final at = haystack.indexOf(needle);
+  if (at == -1) return false;
+  final before = at == 0 ? ' ' : haystack[at - 1];
+  final afterAt = at + needle.length;
+  final after = afterAt >= haystack.length ? ' ' : haystack[afterAt];
+  bool boundary(String c) => !RegExp(r'[a-z0-9]').hasMatch(c);
+  return boundary(before) && boundary(after);
 }

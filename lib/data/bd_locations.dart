@@ -336,11 +336,14 @@ const Map<String, List<String>> bdThanaAreas = {
     'Dhaka Cantonment', 'ECB Chattar', 'Manikdi', 'Balughat', 'Vashantek Road',
   ],
   'Dhaka|Gulshan': [
-    'Gulshan 1', 'Gulshan 2', 'Niketan', 'Baridhara Diplomatic Zone',
-    'Gulshan Avenue',
+    'Gulshan 1', 'Gulshan 2', 'Niketan', 'Baridhara',
+    'Baridhara Diplomatic Zone', 'Baridhara J Block', 'Gulshan Avenue',
+    'Shahjadpur',
   ],
   'Dhaka|Banani': [
     'Banani', 'Banani DOHS', 'Kakoli', 'Banani Block E', 'Banani Block H',
+    'Mohakhali', 'Mohakhali DOHS', 'Mohakhali Wireless', 'Chairman Bari',
+    'Amtoli',
   ],
   'Dhaka|Vatara': [
     'Bashundhara R/A', 'Baridhara J Block', 'Notun Bazar', 'Khilbarirtek',
@@ -372,7 +375,8 @@ const Map<String, List<String>> bdThanaAreas = {
     'Eskaton', 'Bailey Road', 'Kakrail', 'Siddheswari', 'Minto Road',
   ],
   'Dhaka|Hatirjheel': [
-    'Moghbazar', 'Madhubag', 'Mirbagh', 'Nayatola',
+    'Hatirjheel', 'Moghbazar', 'Madhubag', 'Mirbagh', 'Nayatola',
+    'Rampura Bridge',
   ],
   'Dhaka|Tejgaon': [
     'Farmgate', 'Tejkunipara', 'Nakhalpara', 'Tejturi Bazar',
@@ -441,12 +445,14 @@ const Map<String, List<String>> bdThanaAreas = {
     'Rayerbag', 'Muradpur (Dhaka)', 'Jurain Rail Gate',
   ],
   'Dhaka|Uttara East': [
-    'Sector 1', 'Sector 3', 'Sector 4', 'Sector 5', 'Sector 7', 'Sector 9',
-    'Sector 11',
+    'Uttara', 'Uttara Sector 1', 'Uttara Sector 3', 'Uttara Sector 4',
+    'Uttara Sector 5', 'Uttara Sector 6', 'Uttara Sector 7',
+    'Uttara Sector 9', 'Uttara Sector 11',
   ],
   'Dhaka|Uttara West': [
-    'Sector 10', 'Sector 12', 'Sector 13', 'Sector 14', 'Sector 17',
-    'Sector 18 (Rajuk Uttara)',
+    'Uttara Sector 10', 'Uttara Sector 12', 'Uttara Sector 13',
+    'Uttara Sector 14', 'Uttara Sector 15', 'Uttara Sector 16',
+    'Uttara Sector 17', 'Uttara Sector 18', 'Diabari (Uttara)',
   ],
   'Dhaka|Uttarkhan': [
     'Uttarkhan', 'Mausair', 'Fayedabad',
@@ -647,6 +653,23 @@ class BdLocations {
 
   static List<String> thanasOf(String division, String district) =>
       bdDivisions[division]?[district] ?? [];
+
+  /// Every area in a district, from all its thanas at once.
+  ///
+  /// Posting a listing asks for one place name, and an owner knows their own
+  /// neighbourhood far better than which thana it falls under — so the whole
+  /// district is offered as a single searchable list. Thana names stay in it,
+  /// since some are used as an address on their own.
+  static List<String> areasOfDistrict(String division, String district) {
+    final thanas = thanasOf(division, district);
+    final all = <String>{};
+    for (final thana in thanas) {
+      all.add(thana);
+      all.addAll(areasForThana(district, thana));
+    }
+    final sorted = all.toList()..sort();
+    return sorted;
+  }
 
   /// Curated areas when available, otherwise an honest sadar/bazar fallback.
   static List<String> areasForThana(String district, String thana) {
