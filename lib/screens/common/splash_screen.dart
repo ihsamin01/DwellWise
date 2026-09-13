@@ -24,7 +24,9 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     final auth = context.read<AuthProvider>();
-    if (auth.isAuthenticated) {
+    // A session kept alive only for Fingerprint Unlock must still pass
+    // through the login screen's fingerprint gate before entering the app.
+    if (auth.isAuthenticated && !auth.requiresFingerprintUnlock) {
       context.go('/tenant-home');
     } else {
       context.go('/login');

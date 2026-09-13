@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/auth_service.dart';
+import '../services/fingerprint_auth_service.dart';
 
 /// A single device/session/history entry shown on the Account & Security page.
 class SecurityLogEntry {
@@ -17,20 +18,22 @@ class SecurityProvider with ChangeNotifier {
   bool _isPhoneVerified = true;
 
   final AuthService _authService = AuthService();
+  final FingerprintAuthService _fingerprintAuth = FingerprintAuthService();
 
   String? _errorMessage;
 
-  /// Why the last [changePassword] or [deleteAccount] call failed.
+  /// Why the last [changePassword], [deleteAccount], or fingerprint call
+  /// failed.
   String? get errorMessage => _errorMessage;
 
-  bool _twoFactorEnabled = false;
-  bool _biometricEnabled = false;
+  bool _fingerprintUnlockEnabled = false;
+  bool _fingerprintBusy = false;
 
   bool get isEmailVerified => _isEmailVerified;
   bool get isPhoneVerified => _isPhoneVerified;
 
-  bool get twoFactorEnabled => _twoFactorEnabled;
-  bool get biometricEnabled => _biometricEnabled;
+  bool get fingerprintUnlockEnabled => _fingerprintUnlockEnabled;
+  bool get fingerprintBusy => _fingerprintBusy;
 
   final List<SecurityLogEntry> activeSessions = const [
     SecurityLogEntry(title: 'Chrome on Windows', subtitle: 'Dhaka, Bangladesh · Active now'),
@@ -43,13 +46,61 @@ class SecurityProvider with ChangeNotifier {
     SecurityLogEntry(title: 'Password changed', subtitle: 'Dhaka, Bangladesh · 15 Jul 2026, 6:45 PM'),
   ];
 
-  void setTwoFactorEnabled(bool value) {
-    _twoFactorEnabled = value;
+  /// Loads the saved Fingerprint Unlock preference for the signed-in user.
+  /// Call when the Account & Security screen opens.
+  Future<void> loadFingerprintUnlockStatus() async {
+    final userId = _authService.currentUser?.id;
+    if (userId == null) return;
+    _fingerprintUnlockEnabled = await _fingerprintAuth.isEnabledForUser(userId);
     notifyListeners();
   }
 
-  void setBiometricEnabled(bool value) {
-    _biometricEnabled = value;
+  /// Verifies the device can authenticate with a fingerprint, runs the
+  /// native fingerprint prompt, and only then saves the preference. Never
+  /// stores fingerprint data or the user's password.
+  Future<bool> enableFingerprintUnlock() async {
+    final userId = _authService.currentUser?.id;
+    if (userId == null) {
+      _errorMessage = 'You need to be signed in to enable Fingerprint Unlock.';
+      notifyListeners();
+      return false;
+    }
+
+    _errorMessage = null;
+    _fingerprintBusy = true;
+    notifyListeners();
+
+    try {
+      final available = await _fingerprintAuth.isFingerprintAvailable();
+      if (!available) {
+        _errorMessage =
+            'Fingerprint authentication is not available on this device.';
+        return false;
+      }
+
+      final authenticated = await _fingerprintAuth.authenticate(
+        reason: 'Verify your fingerprint to enable Fingerprint Unlock',
+      );
+      if (!authenticated) {
+        return false;
+      }
+
+      await _fingerprintAuth.setEnabledForUser(userId, true);
+      _fingerprintUnlockEnabled = true;
+      return true;
+    } finally {
+      _fingerprintBusy = false;
+      notifyListeners();
+    }
+  }
+
+  /// Turns Fingerprint Unlock off for the signed-in user on this device.
+  Future<void> disableFingerprintUnlock() async {
+    final userId = _authService.currentUser?.id;
+    if (userId != null) {
+      await _fingerprintAuth.setEnabledForUser(userId, false);
+    }
+    _fingerprintUnlockEnabled = false;
     notifyListeners();
   }
 

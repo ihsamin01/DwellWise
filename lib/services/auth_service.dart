@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
+import 'fingerprint_auth_service.dart';
 
 /// Lightweight authenticated-user representation used by the app UI.
 class AppAuthUser {
@@ -35,7 +36,15 @@ class AuthService {
     scopes: const ['email', 'profile'],
   );
 
+  final FingerprintAuthService _fingerprintAuth = FingerprintAuthService();
+
   static const String _keepSignedInKey = 'dw_keep_signed_in';
+
+  /// Set by [applySessionPersistencePolicy] on startup when a session was
+  /// kept alive purely so Fingerprint Unlock can gate it, rather than the
+  /// user having chosen "Keep me signed in". The login screen clears this
+  /// once the fingerprint (or a normal password) unlock succeeds.
+  static bool pendingFingerprintUnlock = false;
 
   /// The currently signed-in Supabase user, or null.
   User? get currentUser => _client.auth.currentUser;
@@ -50,7 +59,16 @@ class AuthService {
   Future<void> applySessionPersistencePolicy() async {
     final prefs = await SharedPreferences.getInstance();
     final keep = prefs.getBool(_keepSignedInKey) ?? false;
-    if (!keep && currentUser != null) {
+    final user = currentUser;
+    if (!keep && user != null) {
+      final fingerprintEnabled =
+          await _fingerprintAuth.isEnabledForUser(user.id);
+      if (fingerprintEnabled) {
+        // Keep the session so the login screen can offer Fingerprint Unlock
+        // instead of a full sign-in, but require that gate before entry.
+        pendingFingerprintUnlock = true;
+        return;
+      }
       try {
         await _client.auth.signOut();
       } on AuthException catch (_) {

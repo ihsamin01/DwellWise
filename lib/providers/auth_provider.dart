@@ -16,6 +16,17 @@ class AuthProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _currentUser != null;
 
+  /// True when a session was kept alive only for Fingerprint Unlock, so the
+  /// login screen must gate it behind the fingerprint prompt (or a normal
+  /// password login) before treating the user as actually signed in.
+  bool get requiresFingerprintUnlock => AuthService.pendingFingerprintUnlock;
+
+  /// Clears the fingerprint gate after a successful fingerprint or password
+  /// unlock.
+  void completeFingerprintUnlock() {
+    AuthService.pendingFingerprintUnlock = false;
+  }
+
   /// Set when the last [register] attempt was refused because the email or the.
   AccountConflict get registerConflict => _registerConflict;
 
@@ -38,6 +49,7 @@ class AuthProvider with ChangeNotifier {
         return false;
       }
       _currentUser = AppAuthUser(email: user.email ?? '');
+      completeFingerprintUnlock();
       notifyListeners();
       return true;
     } on AuthException catch (e) {
@@ -134,6 +146,7 @@ class AuthProvider with ChangeNotifier {
       if (result.outcome == GoogleSignInOutcome.success) {
         final user = _authService.currentUser;
         _currentUser = AppAuthUser(email: user?.email ?? result.email ?? '');
+        completeFingerprintUnlock();
         notifyListeners();
       } else if (result.outcome == GoogleSignInOutcome.failed) {
         _setError(result.errorMessage ?? 'Google sign-in failed.');
@@ -200,6 +213,7 @@ class AuthProvider with ChangeNotifier {
     try {
       await _authService.signOut();
       _currentUser = null;
+      completeFingerprintUnlock();
       notifyListeners();
     } catch (e) {
       _setError(e.toString());
