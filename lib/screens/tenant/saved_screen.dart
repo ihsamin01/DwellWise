@@ -13,9 +13,15 @@ import '../../widgets/property_card.dart';
 class TenantSavedScreen extends StatefulWidget {
   final bool showBottomNavigation;
 
+  /// Switches to the Home tab in place, when this screen is a tab inside
+  /// MainTabsShell. Falls back to routing to '/home' when it's reached as
+  /// its own standalone screen instead (e.g. the '/saved-listings' route).
+  final VoidCallback? onBackToHome;
+
   const TenantSavedScreen({
     super.key,
     this.showBottomNavigation = true,
+    this.onBackToHome,
   });
 
   @override
@@ -183,7 +189,7 @@ class _TenantSavedScreenState extends State<TenantSavedScreen> {
             ),
             const SizedBox(height: 24),
             GestureDetector(
-              onTap: () => context.go('/home'),
+              onTap: widget.onBackToHome ?? () => context.go('/home'),
               child: Container(
                 height: 48,
                 padding: const EdgeInsets.symmetric(horizontal: 24),

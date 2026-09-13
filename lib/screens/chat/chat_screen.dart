@@ -13,6 +13,7 @@ import '../../models/chat_model.dart';
 import '../../providers/chat_provider.dart';
 import '../../services/chat_attachment_service.dart';
 import '../../services/supabase_service.dart';
+import 'user_profile_screen.dart';
 import '../../widgets/emoji_sticker_picker.dart';
 import '../../widgets/voice_message_bubble.dart';
 
@@ -375,6 +376,18 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   /// Hands the number to the phone's own dialer rather than pretending to.
+  void _openProfile(ChatModel chat) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => UserProfileScreen(
+          userId: chat.otherUserId!,
+          fallbackName: chat.userName,
+          fallbackImage: chat.userImage,
+        ),
+      ),
+    );
+  }
+
   Future<void> _callOtherParticipant(ChatModel? chat) async {
     var phone = chat?.otherUserPhone?.trim();
 
@@ -403,6 +416,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final opener = AppStrings.t(context, 'chat_opener');
     final theme = Theme.of(context);
     final chat = provider.chatById(widget.chatId);
+    final isOtherOnline = provider.isUserOnline(chat?.otherUserId);
     final messages = provider.messagesForChat(widget.chatId);
 
     if (messages.length != _lastRenderedMessageCount) {
@@ -421,7 +435,11 @@ class _ChatScreenState extends State<ChatScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: Row(
+        title: GestureDetector(
+          // The photo and the name together, so either one opens the person.
+          behavior: HitTestBehavior.opaque,
+          onTap: chat?.otherUserId == null ? null : () => _openProfile(chat!),
+          child: Row(
           children: [
             _ThreadAvatar(chat: chat),
             const SizedBox(width: 12),
@@ -447,14 +465,14 @@ class _ChatScreenState extends State<ChatScreen> {
                         height: 8,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: chat?.isOnline == true
+                          color: isOtherOnline
                               ? const Color(0xff22C55E)
                               : Colors.white54,
                         ),
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        chat?.isOnline == true ? 'Active now' : 'Offline',
+                        isOtherOnline ? 'Online' : 'Offline',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.white70,
                         ),
@@ -473,6 +491,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ],
+          ),
         ),
         actions: [
           IconButton(
@@ -781,16 +800,8 @@ class _MetaRow extends StatelessWidget {
           const SizedBox(width: 6),
           Icon(
             message.isRead ? Icons.done_all : Icons.done,
-            size: 15,
-            color: message.isRead ? const Color(0xff60A5FA) : c.withOpacity(0.72),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            message.isRead ? 'Seen' : 'Sent',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: c.withOpacity(0.72),
-              fontWeight: FontWeight.w600,
-            ),
+            size: 16,
+            color: message.isRead ? Colors.white : c.withOpacity(0.72),
           ),
         ],
       ],

@@ -6,6 +6,10 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/security_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
+import '../../config/routes.dart';
+import '../../providers/assistant_provider.dart';
+import '../../providers/chat_provider.dart';
+import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/user_provider.dart';
 
@@ -99,9 +103,13 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
 
     context.read<SavedPropertiesProvider>().clear();
     context.read<RecentlyViewedProvider>().clear();
+    context.read<ChatProvider>().clearForSignOut();
+    context.read<PropertyProvider>().clearForSignOut();
+    context.read<AssistantProvider>().clearForSignOut();
     await context.read<AuthProvider>().logout();
     if (!context.mounted) return;
 
+    AppRoutes.leaveShell();
     context.go('/login');
     messenger.showSnackBar(
       const SnackBar(

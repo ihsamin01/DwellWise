@@ -1,9 +1,18 @@
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/property_model.dart';
 import '../models/user_model.dart';
+
+/// Thrown when an action needs a signed-in account and there is none.
+class NotSignedIn implements Exception {
+  const NotSignedIn();
+
+  @override
+  String toString() => 'Not signed in';
+}
 
 /// Service handler interfacing with Supabase DB client operations.
 class SupabaseService {
@@ -128,11 +137,19 @@ class SupabaseService {
   }
 
   /// Uploads listing photos to the public `property-images` bucket and returns.
+  /// Why the last photo upload failed, for the screen to show.
+  String? lastImageUploadError;
+
   Future<List<String>> uploadPropertyImages(List<File> files) async {
     final client = _client;
+    lastImageUploadError = null;
     if (client == null || files.isEmpty) return [];
 
-    final uid = client.auth.currentUser?.id ?? 'anonymous';
+    final uid = client.auth.currentUser?.id;
+    if (uid == null) {
+      lastImageUploadError = 'you are not signed in';
+      return [];
+    }
     final stamp = DateTime.now().millisecondsSinceEpoch;
     final urls = <String>[];
 
@@ -144,19 +161,29 @@ class SupabaseService {
         await client.storage.from('property-images').upload(objectPath, file);
         urls.add(
             client.storage.from('property-images').getPublicUrl(objectPath));
-      } catch (_) {
-        // Skip this image; the listing is still posted.
+      } catch (e) {
+        // Worth saying out loud: a silent skip here used to post the listing
+        // with no photos and no hint as to why.
+        lastImageUploadError = '$e';
+        debugPrint('Property image upload failed for $objectPath: $e');
       }
     }
     return urls;
   }
+
+  /// Why the last avatar upload failed, for the screen to show.
+  String? lastAvatarUploadError;
 
   /// Uploads a profile photo to the public `avatars` bucket and returns its
   /// public URL, overwriting any previous photo for this user.
   Future<String?> uploadAvatar(File file) async {
     final client = _client;
     final uid = client?.auth.currentUser?.id;
-    if (client == null || uid == null) return null;
+    lastAvatarUploadError = null;
+    if (client == null || uid == null) {
+      lastAvatarUploadError = 'You are signed out.';
+      return null;
+    }
 
     final ext = file.path.contains('.') ? file.path.split('.').last : 'jpg';
     final objectPath = '$uid/avatar.$ext';
@@ -170,7 +197,11 @@ class SupabaseService {
       // Bust the CDN/cache so the new photo shows immediately, not the old
       // one still cached under the same object path.
       return '$url?t=${DateTime.now().millisecondsSinceEpoch}';
-    } catch (_) {
+    } catch (e) {
+      // A silent null here left the user staring at the old photo with no
+      // idea the upload had been refused.
+      lastAvatarUploadError = '$e';
+      debugPrint('Avatar upload failed for $objectPath: $e');
       return null;
     }
   }
@@ -181,12 +212,9 @@ class SupabaseService {
     if (client == null) return;
     final data = property.toJson()..remove('id');
     final uid = client.auth.currentUser?.id;
-    if (uid != null) data['owner_id'] = uid;
-    try {
-      await client.from('properties').insert(data);
-    } catch (e) {
-      // Keep the local add working even if the insert is rejected.
-    }
+    if (uid == null) throw const NotSignedIn();
+    data['owner_id'] = uid;
+    await client.from('properties').insert(data);
   }
 
   /// Fetches the profile row for [userId] from the `profiles` table.
@@ -287,6 +315,26 @@ class SupabaseService {
   }
 
   /// Persists a favorite.
+  /// The details shown when someone opens a person's profile from a chat.
+  ///
+  /// Separate from [getOwnerProfile], which fetches only what the listing
+  /// page needs; this one also carries the photo and address.
+  Future<Map<String, dynamic>?> getPublicProfile(String userId) async {
+    final client = _client;
+    if (client == null || userId.isEmpty) return null;
+    try {
+      final rows = await client
+          .from('profiles')
+          .select('id, name, phone_number, address, avatar_url, '
+              'verification_status')
+          .eq('id', userId)
+          .limit(1);
+      return rows.isEmpty ? null : rows.first;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> getOwnerProfile(String ownerId) async {
     final client = _client;
     if (client == null || ownerId.isEmpty) return null;
@@ -374,26 +422,45 @@ class SupabaseService {
   }
 
   /// The signed-in user's saved properties, newest save first.
+  ///
+  /// Fetched in two steps (ids, then the rows themselves) rather than one
+  /// embedded `properties(*)` select -- an embed silently drops a row
+  /// instead of erroring when the nested resource can't be resolved, which
+  /// hid a save behind a badge count with nothing under it.
   Future<List<PropertyModel>> getSavedProperties({int limit = 100}) async {
     final client = _client;
     final uid = client?.auth.currentUser?.id;
     if (client == null || uid == null) return [];
 
-    final rows = await client
-        .from('saved_properties')
-        .select('property_id, created_at, properties(*)')
-        .eq('user_id', uid)
-        .order('created_at', ascending: false)
-        .limit(limit);
+    try {
+      final saves = await client
+          .from('saved_properties')
+          .select('property_id')
+          .eq('user_id', uid)
+          .order('created_at', ascending: false)
+          .limit(limit);
 
-    final saved = <PropertyModel>[];
-    for (final row in rows) {
-      final property = row['properties'];
-      if (property is Map<String, dynamic>) {
-        saved.add(PropertyModel.fromJson(property));
-      }
+      final orderedIds = [
+        for (final row in saves) row['property_id'] as String,
+      ];
+      if (orderedIds.isEmpty) return [];
+
+      final rows = await client
+          .from('properties')
+          .select()
+          .inFilter('id', orderedIds);
+
+      final byId = {
+        for (final row in rows) row['id'] as String: PropertyModel.fromJson(row),
+      };
+      return [
+        for (final id in orderedIds)
+          if (byId[id] != null) byId[id]!,
+      ];
+    } catch (e) {
+      debugPrint('getSavedProperties failed: $e');
+      return [];
     }
-    return saved;
   }
 
   Future<void> saveProperty(String propertyId) async {
@@ -454,7 +521,7 @@ class SupabaseService {
       await client.from('recently_viewed').upsert({
         'user_id': uid,
         'property_id': propertyId,
-        'viewed_at': DateTime.now().toIso8601String(),
+        'viewed_at': DateTime.now().toUtc().toIso8601String(),
       });
     } catch (_) {
       // Keep the local history working even if the write is rejected.

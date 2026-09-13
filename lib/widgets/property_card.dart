@@ -63,19 +63,27 @@ class PropertyCard extends StatelessWidget {
                   topLeft: Radius.circular(8),
                   topRight: Radius.circular(8),
                 ),
-                child: CachedNetworkImage(
-                  imageUrl: property.imageUrls.isNotEmpty
-                      ? property.imageUrls[0]
-                      : 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80',
-                  height: 100,
-                  width: 120,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(color: colors.placeholder),
-                  errorWidget: (context, url, err) => Container(
-                    color: colors.placeholder,
-                    child: Icon(Icons.home_work_outlined, color: colors.textSecondary),
-                  ),
-                ),
+                child: property.imageUrls.isEmpty
+                    ? Container(
+                        height: 100,
+                        width: 120,
+                        color: colors.placeholder,
+                        child: Icon(Icons.home_work_outlined,
+                            color: colors.textSecondary),
+                      )
+                    : CachedNetworkImage(
+                        imageUrl: property.imageUrls[0],
+                        height: 100,
+                        width: 120,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) =>
+                            Container(color: colors.placeholder),
+                        errorWidget: (context, url, err) => Container(
+                          color: colors.placeholder,
+                          child: Icon(Icons.home_work_outlined,
+                              color: colors.textSecondary),
+                        ),
+                      ),
               ),
               Padding(
                 padding: const EdgeInsets.all(6.0),
@@ -343,9 +351,17 @@ class _ImageCarouselState extends State<_ImageCarousel> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    final images = widget.imageUrls.isNotEmpty
-        ? widget.imageUrls
-        : ['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80'];
+    final images = widget.imageUrls;
+
+    // No photo is better shown as no photo than as a stock house.
+    if (images.isEmpty) {
+      return Container(
+        color: colors.placeholder,
+        alignment: Alignment.center,
+        child: Icon(Icons.home_work_outlined,
+            size: 40, color: colors.textSecondary),
+      );
+    }
 
     return Stack(
       alignment: Alignment.bottomCenter,

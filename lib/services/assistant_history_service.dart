@@ -53,7 +53,8 @@ class AssistantHistoryService {
           title: (row['title'] as String?)?.trim().isNotEmpty == true
               ? row['title'] as String
               : 'Untitled',
-          updatedAt: DateTime.tryParse(row['updated_at'] as String? ?? '') ??
+          updatedAt: DateTime.tryParse(row['updated_at'] as String? ?? '')
+                  ?.toLocal() ??
               DateTime.now(),
         ),
     ];

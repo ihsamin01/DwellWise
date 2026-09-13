@@ -6,6 +6,10 @@ import '../../config/app_colors.dart';
 import '../../config/app_strings.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/recently_viewed_provider.dart';
+import '../../config/routes.dart';
+import '../../providers/assistant_provider.dart';
+import '../../providers/chat_provider.dart';
+import '../../providers/property_provider.dart';
 import '../../providers/saved_properties_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../models/user_model.dart';
@@ -61,13 +65,6 @@ class ProfileScreen extends StatelessWidget {
             title: AppStrings.t(context, 'p_my_properties'),
             subtitle: AppStrings.t(context, 'p_my_properties_sub'),
             onTap: () => context.push('/profile/my-properties'),
-          ),
-          _MenuTile(
-            colors: colors,
-            icon: Icons.insights_outlined,
-            title: AppStrings.t(context, 'p_analytics'),
-            subtitle: AppStrings.t(context, 'p_analytics_sub'),
-            onTap: () => context.push('/profile/analytics'),
           ),
           _MenuTile(
             colors: colors,
@@ -168,8 +165,14 @@ class ProfileScreen extends StatelessWidget {
     if (shouldLogout == true && context.mounted) {
       context.read<SavedPropertiesProvider>().clear();
       context.read<RecentlyViewedProvider>().clear();
+      context.read<ChatProvider>().clearForSignOut();
+      context.read<PropertyProvider>().clearForSignOut();
+      context.read<AssistantProvider>().clearForSignOut();
       await context.read<AuthProvider>().logout();
-      if (context.mounted) context.go('/login');
+      if (context.mounted) {
+        AppRoutes.leaveShell();
+        context.go('/login');
+      }
     }
   }
 }
