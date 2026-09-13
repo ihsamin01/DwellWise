@@ -422,26 +422,45 @@ class SupabaseService {
   }
 
   /// The signed-in user's saved properties, newest save first.
+  ///
+  /// Fetched in two steps (ids, then the rows themselves) rather than one
+  /// embedded `properties(*)` select -- an embed silently drops a row
+  /// instead of erroring when the nested resource can't be resolved, which
+  /// hid a save behind a badge count with nothing under it.
   Future<List<PropertyModel>> getSavedProperties({int limit = 100}) async {
     final client = _client;
     final uid = client?.auth.currentUser?.id;
     if (client == null || uid == null) return [];
 
-    final rows = await client
-        .from('saved_properties')
-        .select('property_id, created_at, properties(*)')
-        .eq('user_id', uid)
-        .order('created_at', ascending: false)
-        .limit(limit);
+    try {
+      final saves = await client
+          .from('saved_properties')
+          .select('property_id')
+          .eq('user_id', uid)
+          .order('created_at', ascending: false)
+          .limit(limit);
 
-    final saved = <PropertyModel>[];
-    for (final row in rows) {
-      final property = row['properties'];
-      if (property is Map<String, dynamic>) {
-        saved.add(PropertyModel.fromJson(property));
-      }
+      final orderedIds = [
+        for (final row in saves) row['property_id'] as String,
+      ];
+      if (orderedIds.isEmpty) return [];
+
+      final rows = await client
+          .from('properties')
+          .select()
+          .inFilter('id', orderedIds);
+
+      final byId = {
+        for (final row in rows) row['id'] as String: PropertyModel.fromJson(row),
+      };
+      return [
+        for (final id in orderedIds)
+          if (byId[id] != null) byId[id]!,
+      ];
+    } catch (e) {
+      debugPrint('getSavedProperties failed: $e');
+      return [];
     }
-    return saved;
   }
 
   Future<void> saveProperty(String propertyId) async {
