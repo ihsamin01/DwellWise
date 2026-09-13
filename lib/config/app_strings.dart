@@ -206,6 +206,19 @@ class AppStrings {
       'mp_delete_prefix': 'Remove',
       'mp_delete_suffix': 'from your properties?',
       'mp_removed': 'Listing removed.',
+      'mp_status_active': 'Active',
+      'mp_status_rented': 'Rented',
+      'mp_mark_rented': 'Mark as Rented',
+      'mp_list_again': 'List Again',
+      'mp_mark_rented_title': 'Mark this property as rented?',
+      'mp_mark_rented_body':
+          'Once rented, it will no longer be visible to property seekers. You can list it again later.',
+      'mp_relisted': 'Listing is live again.',
+      'mp_toggle_failed': 'Could not update the listing. Please try again.',
+      'mp_filter_active': 'Active',
+      'mp_filter_rented': 'Rented',
+      'mp_filter_all': 'All',
+      'mp_empty_filtered': 'No properties in this category.',
 
       // Purchase history.
       'ph_total': 'Total rent paid',
@@ -258,10 +271,15 @@ class AppStrings {
       'flt_thana': 'Thana',
       'flt_area': 'Area',
       'flt_type': 'Type',
+      'flt_price': 'Price',
       'flt_select_fmt': 'Select {}',
       'flt_search_hint_fmt': 'Type to filter {} list...',
       'flt_need_first_fmt': 'Please select a {} first',
       'flt_no_options': 'No options available.',
+      'flt_min_price': 'Minimum Price',
+      'flt_max_price': 'Maximum Price',
+      'flt_apply': 'Apply',
+      'flt_reset': 'Reset',
 
       // Saved properties.
       'chat_opener': 'Hello, I am interested in renting this property. Is it still available?',
@@ -468,6 +486,19 @@ class AppStrings {
       'mp_delete_prefix': 'আপনার প্রপার্টি থেকে',
       'mp_delete_suffix': 'সরিয়ে ফেলবেন?',
       'mp_removed': 'লিস্টিং সরিয়ে ফেলা হয়েছে।',
+      'mp_status_active': 'সক্রিয়',
+      'mp_status_rented': 'ভাড়া হয়েছে',
+      'mp_mark_rented': 'ভাড়া হয়েছে হিসেবে চিহ্নিত করুন',
+      'mp_list_again': 'আবার তালিকাভুক্ত করুন',
+      'mp_mark_rented_title': 'এই প্রপার্টি ভাড়া হয়েছে হিসেবে চিহ্নিত করবেন?',
+      'mp_mark_rented_body':
+          'ভাড়া হিসেবে চিহ্নিত করার পর এটি আর ভাড়াটেদের কাছে দেখা যাবে না। আপনি চাইলে পরে আবার তালিকাভুক্ত করতে পারবেন।',
+      'mp_relisted': 'লিস্টিং আবার সক্রিয় করা হয়েছে।',
+      'mp_toggle_failed': 'লিস্টিং আপডেট করা যায়নি। আবার চেষ্টা করুন।',
+      'mp_filter_active': 'সক্রিয়',
+      'mp_filter_rented': 'ভাড়া হয়েছে',
+      'mp_filter_all': 'সবগুলো',
+      'mp_empty_filtered': 'এই ক্যাটাগরিতে কোনো প্রপার্টি নেই।',
 
       // Purchase history.
       'ph_total': 'মোট প্রদত্ত ভাড়া',
@@ -520,10 +551,15 @@ class AppStrings {
       'flt_thana': 'থানা',
       'flt_area': 'এলাকা',
       'flt_type': 'ধরন',
+      'flt_price': 'মূল্য',
       'flt_select_fmt': '{} নির্বাচন করুন',
       'flt_search_hint_fmt': '{} খুঁজতে টাইপ করুন...',
       'flt_need_first_fmt': 'আগে {} নির্বাচন করুন',
       'flt_no_options': 'কোনো অপশন নেই।',
+      'flt_min_price': 'সর্বনিম্ন মূল্য',
+      'flt_max_price': 'সর্বোচ্চ মূল্য',
+      'flt_apply': 'প্রয়োগ করুন',
+      'flt_reset': 'রিসেট',
 
       // Saved properties.
       'chat_opener': 'আসসালামু আলাইকুম, আমি বাসাটি ভাড়া নিতে আগ্রহী। এখনো খালি আছে কি?',

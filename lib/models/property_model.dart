@@ -38,6 +38,11 @@ class PropertyModel {
   /// anything else is only visible to its owner. New listings publish straight
   /// away, so this defaults to 'approved'.
   final String status;
+
+  /// Owner-controlled occupancy flag, separate from [status]: true means the
+  /// owner has taken this listing off the public market (e.g. it got
+  /// rented) without deleting it. Defaults to false (publicly listed).
+  final bool isRented;
   final String ownerId;
   final List<String> facilities;
   final DateTime createdAt;
@@ -65,6 +70,7 @@ class PropertyModel {
     required this.imageUrls,
     required this.isVerified,
     this.status = 'approved',
+    this.isRented = false,
     required this.ownerId,
     required this.facilities,
     required this.createdAt,
@@ -76,6 +82,7 @@ class PropertyModel {
     double? price,
     String? priceFor,
     bool? isVerified,
+    bool? isRented,
     DateTime? createdAt,
   }) {
     return PropertyModel(
@@ -101,6 +108,7 @@ class PropertyModel {
       imageUrls: imageUrls,
       isVerified: isVerified ?? this.isVerified,
       status: status,
+      isRented: isRented ?? this.isRented,
       ownerId: ownerId,
       facilities: facilities,
       createdAt: createdAt ?? this.createdAt,
@@ -136,6 +144,7 @@ class PropertyModel {
       imageUrls: List<String>.from(json['image_urls'] ?? []),
       isVerified: json['is_verified'] as bool? ?? false,
       status: json['status'] as String? ?? 'approved',
+      isRented: json['is_rented'] as bool? ?? false,
       ownerId: json['owner_id'] as String? ?? '',
       facilities: List<String>.from(json['facilities'] ?? []),
       createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
@@ -164,6 +173,7 @@ class PropertyModel {
       'image_urls': imageUrls,
       'is_verified': isVerified,
       'status': status,
+      'is_rented': isRented,
       'owner_id': ownerId,
       'facilities': facilities,
       'created_at': createdAt.toIso8601String(),

@@ -224,6 +224,157 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
     );
   }
 
+  void _showPriceFilterModal(
+      BuildContext context, SearchFiltersProvider filterProvider) {
+    final colors = AppColors.of(context);
+    double? minVal = filterProvider.minPrice;
+    double? maxVal = filterProvider.maxPrice;
+
+    InputDecoration fieldDecoration(String hint) => InputDecoration(
+          prefixText: '৳ ',
+          prefixStyle: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600),
+          hintText: hint,
+          hintStyle: TextStyle(color: colors.textSecondary),
+          filled: true,
+          fillColor: colors.background,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: colors.border),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: colors.border),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: colors.primary, width: 1.5),
+          ),
+        );
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 16,
+              bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  AppStrings.t(sheetContext, 'flt_select_fmt')
+                      .replaceFirst('{}', _typeLabel(sheetContext, 'Price')),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: colors.textPrimary),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  AppStrings.t(sheetContext, 'flt_min_price'),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: colors.textSecondary),
+                ),
+                const SizedBox(height: 6),
+                TextFormField(
+                  initialValue: minVal != null ? minVal!.round().toString() : '',
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(color: colors.textPrimary),
+                  decoration: fieldDecoration('0'),
+                  onChanged: (val) => minVal = double.tryParse(val.trim()),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  AppStrings.t(sheetContext, 'flt_max_price'),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: colors.textSecondary),
+                ),
+                const SizedBox(height: 6),
+                TextFormField(
+                  initialValue: maxVal != null ? maxVal!.round().toString() : '',
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(color: colors.textPrimary),
+                  decoration: fieldDecoration('50000'),
+                  onChanged: (val) => maxVal = double.tryParse(val.trim()),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          side: BorderSide(color: colors.border),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: () {
+                          filterProvider.clearPriceRange();
+                          Navigator.pop(sheetContext);
+                        },
+                        child: Text(
+                          AppStrings.t(sheetContext, 'flt_reset'),
+                          style: TextStyle(color: colors.textPrimary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colors.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: () {
+                          if (minVal != null && maxVal != null && minVal! > maxVal!) {
+                            ScaffoldMessenger.of(sheetContext).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Minimum price cannot be greater than maximum price'),
+                              ),
+                            );
+                            return;
+                          }
+                          filterProvider.setPriceRange(minVal, maxVal);
+                          Navigator.pop(sheetContext);
+                        },
+                        child: Text(
+                          AppStrings.t(sheetContext, 'flt_apply'),
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
@@ -395,6 +546,15 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                         onTap: () =>
                             _showFilterModal(context, filterProvider, 'Type'),
                       ),
+                      _buildFilterButton(
+                        colors: colors,
+                        label: filterProvider.hasPriceFilter
+                            ? '${filterProvider.priceRangeLabel} ▼'
+                            : '${_typeLabel(context, 'Price')} ▼',
+                        isActive: filterProvider.hasPriceFilter,
+                        onTap: () =>
+                            _showPriceFilterModal(context, filterProvider),
+                      ),
                     ],
                   ),
                 ),
@@ -452,7 +612,7 @@ class _TenantSearchScreenState extends State<TenantSearchScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Division > District > Thana > Area  ·  Type',
+                    'Division > District > Thana > Area  ·  Type · Price',
                     style: TextStyle(fontSize: 12, color: colors.textSecondary),
                   ),
                 ],

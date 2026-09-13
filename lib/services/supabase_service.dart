@@ -32,6 +32,7 @@ class SupabaseService {
         .from('properties')
         .select()
         .eq('status', 'approved')
+        .eq('is_rented', false)
         .order('created_at', ascending: false)
         .limit(limit);
     return (response as List)
@@ -53,6 +54,7 @@ class SupabaseService {
         .from('properties')
         .select()
         .eq('status', 'approved')
+        .eq('is_rented', false)
         .ilike('area', '%$term%');
 
     if (city != null && city.trim().isNotEmpty) {
@@ -72,6 +74,8 @@ class SupabaseService {
     String? thana,
     String? district,
     String? type,
+    double? minPrice,
+    double? maxPrice,
     int limit = 60,
   }) async {
     final client = _client;
@@ -82,6 +86,7 @@ class SupabaseService {
           .from('properties')
           .select()
           .eq('status', 'approved')
+          .eq('is_rented', false)
           .ilike('address', '%$locality%');
 
       // Narrow names that repeat across the country (Kotwali, Sadar, Mirpur…).
@@ -91,6 +96,12 @@ class SupabaseService {
       }
       if (type != null && type.trim().isNotEmpty) {
         builder = builder.eq('property_type', type.trim());
+      }
+      if (minPrice != null) {
+        builder = builder.gte('price', minPrice);
+      }
+      if (maxPrice != null) {
+        builder = builder.lte('price', maxPrice);
       }
 
       final response =
@@ -123,6 +134,19 @@ class SupabaseService {
     return (response as List)
         .map((p) => PropertyModel.fromJson(p as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Marks one of the signed-in user's listings rented (hidden from public
+  /// search/home) or lists it again (re-included), without touching any
+  /// other field or deleting the row. Throws on failure, so the caller can
+  /// revert its optimistic UI update instead of showing a status the
+  /// database never actually saved.
+  Future<void> setPropertyRented(String propertyId, bool isRented) async {
+    final client = _client;
+    if (client == null) throw const NotSignedIn();
+    await client
+        .from('properties')
+        .update({'is_rented': isRented}).eq('id', propertyId);
   }
 
   /// Deletes one of the signed-in user's listings.
@@ -385,6 +409,7 @@ class SupabaseService {
         .from('properties')
         .select()
         .eq('status', 'approved')
+        .eq('is_rented', false)
         .ilike('area', '%${area.trim()}%')
         .limit(limit);
 
@@ -410,6 +435,7 @@ class SupabaseService {
         .from('properties')
         .select()
         .eq('status', 'approved')
+        .eq('is_rented', false)
         .gte('latitude', latitude - latSpan)
         .lte('latitude', latitude + latSpan)
         .gte('longitude', longitude - lngSpan)

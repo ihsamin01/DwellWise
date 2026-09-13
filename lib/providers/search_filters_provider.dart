@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/bd_locations.dart';
+import '../widgets/property_card.dart' show formatWithCommas;
 
 /// Provider handling hierarchical location filter values (Division, District,
 /// Thana, Area) backed by the full Bangladesh dataset in [BdLocations],
@@ -10,6 +11,8 @@ class SearchFiltersProvider with ChangeNotifier {
   String _thana = '';
   String _area = '';
   String _type = '';
+  double? _minPrice;
+  double? _maxPrice;
   String _sortBy = 'Newest';
 
   /// User-facing property categories offered by the Type filter.
@@ -22,7 +25,22 @@ class SearchFiltersProvider with ChangeNotifier {
   String get thana => _thana;
   String get area => _area;
   String get type => _type;
+  double? get minPrice => _minPrice;
+  double? get maxPrice => _maxPrice;
   String get sortBy => _sortBy;
+
+  bool get hasPriceFilter => _minPrice != null || _maxPrice != null;
+
+  /// e.g. "৳10,000 - ৳25,000", "৳10,000+", "Up to ৳25,000". Empty when
+  /// neither bound is set.
+  String get priceRangeLabel {
+    if (_minPrice == null && _maxPrice == null) return '';
+    if (_minPrice != null && _maxPrice != null) {
+      return '৳${formatWithCommas(_minPrice!)} - ৳${formatWithCommas(_maxPrice!)}';
+    }
+    if (_minPrice != null) return '৳${formatWithCommas(_minPrice!)}+';
+    return 'Up to ৳${formatWithCommas(_maxPrice!)}';
+  }
 
   /// Human-readable breadcrumb of the current selection, most specific last.
   /// e.g. "Dhaka > Dhaka > Pallabi > Kalshi". Empty when nothing selected.
@@ -70,6 +88,19 @@ class SearchFiltersProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Either bound may be null to leave that side open-ended.
+  void setPriceRange(double? min, double? max) {
+    _minPrice = min;
+    _maxPrice = max;
+    notifyListeners();
+  }
+
+  void clearPriceRange() {
+    _minPrice = null;
+    _maxPrice = null;
+    notifyListeners();
+  }
+
   void setSortBy(String val) {
     _sortBy = val;
     notifyListeners();
@@ -81,6 +112,8 @@ class SearchFiltersProvider with ChangeNotifier {
     _thana = '';
     _area = '';
     _type = '';
+    _minPrice = null;
+    _maxPrice = null;
     _sortBy = 'Newest';
     notifyListeners();
   }
