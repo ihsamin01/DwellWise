@@ -72,6 +72,8 @@ class SupabaseService {
     String? thana,
     String? district,
     String? type,
+    double? minPrice,
+    double? maxPrice,
     int limit = 60,
   }) async {
     final client = _client;
@@ -91,6 +93,12 @@ class SupabaseService {
       }
       if (type != null && type.trim().isNotEmpty) {
         builder = builder.eq('property_type', type.trim());
+      }
+      if (minPrice != null) {
+        builder = builder.gte('price', minPrice);
+      }
+      if (maxPrice != null) {
+        builder = builder.lte('price', maxPrice);
       }
 
       final response =

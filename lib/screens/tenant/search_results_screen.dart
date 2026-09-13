@@ -47,6 +47,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         thana: fp.thana,
         district: fp.district,
         type: fp.type,
+        minPrice: fp.minPrice,
+        maxPrice: fp.maxPrice,
       );
     } catch (e) {
       debugPrint('Search failed: $e');
@@ -71,6 +73,12 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     if (fp.type.isNotEmpty) {
       localMatches =
           localMatches.where((p) => p.propertyType == fp.type).toList();
+    }
+    if (fp.minPrice != null) {
+      localMatches = localMatches.where((p) => p.price >= fp.minPrice!).toList();
+    }
+    if (fp.maxPrice != null) {
+      localMatches = localMatches.where((p) => p.price <= fp.maxPrice!).toList();
     }
 
     // Register them so details/saved/recently-viewed can resolve them by id.
@@ -131,6 +139,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       if (filterProvider.thana.isNotEmpty) filterProvider.thana,
       if (filterProvider.area.isNotEmpty) filterProvider.area,
       if (filterProvider.type.isNotEmpty) filterProvider.type,
+      if (filterProvider.hasPriceFilter) filterProvider.priceRangeLabel,
     ];
 
     return Scaffold(

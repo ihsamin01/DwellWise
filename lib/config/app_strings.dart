@@ -258,10 +258,15 @@ class AppStrings {
       'flt_thana': 'Thana',
       'flt_area': 'Area',
       'flt_type': 'Type',
+      'flt_price': 'Price',
       'flt_select_fmt': 'Select {}',
       'flt_search_hint_fmt': 'Type to filter {} list...',
       'flt_need_first_fmt': 'Please select a {} first',
       'flt_no_options': 'No options available.',
+      'flt_min_price': 'Minimum Price',
+      'flt_max_price': 'Maximum Price',
+      'flt_apply': 'Apply',
+      'flt_reset': 'Reset',
 
       // Saved properties.
       'chat_opener': 'Hello, I am interested in renting this property. Is it still available?',
@@ -520,10 +525,15 @@ class AppStrings {
       'flt_thana': 'থানা',
       'flt_area': 'এলাকা',
       'flt_type': 'ধরন',
+      'flt_price': 'মূল্য',
       'flt_select_fmt': '{} নির্বাচন করুন',
       'flt_search_hint_fmt': '{} খুঁজতে টাইপ করুন...',
       'flt_need_first_fmt': 'আগে {} নির্বাচন করুন',
       'flt_no_options': 'কোনো অপশন নেই।',
+      'flt_min_price': 'সর্বনিম্ন মূল্য',
+      'flt_max_price': 'সর্বোচ্চ মূল্য',
+      'flt_apply': 'প্রয়োগ করুন',
+      'flt_reset': 'রিসেট',
 
       // Saved properties.
       'chat_opener': 'আসসালামু আলাইকুম, আমি বাসাটি ভাড়া নিতে আগ্রহী। এখনো খালি আছে কি?',
