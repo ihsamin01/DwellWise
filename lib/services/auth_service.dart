@@ -59,7 +59,7 @@ class AuthService {
   /// Called on startup.
   Future<void> applySessionPersistencePolicy() async {
     final prefs = await SharedPreferences.getInstance();
-    final keep = prefs.getBool(_keepSignedInKey) ?? true;
+    final keep = prefs.getBool(_keepSignedInKey) ?? false;
     final user = currentUser;
     if (!keep && user != null) {
       final fingerprintEnabled =
