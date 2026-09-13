@@ -14,8 +14,21 @@ import '../../providers/saved_properties_provider.dart';
 import '../../providers/user_provider.dart';
 
 /// Account status, security controls, and account deletion.
-class AccountSecurityScreen extends StatelessWidget {
+class AccountSecurityScreen extends StatefulWidget {
   const AccountSecurityScreen({super.key});
+
+  @override
+  State<AccountSecurityScreen> createState() => _AccountSecurityScreenState();
+}
+
+class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<SecurityProvider>().loadFingerprintUnlockStatus();
+    });
+  }
 
   void _showLogEntries(BuildContext context, String title, List<SecurityLogEntry> entries) {
     showModalBottomSheet<void>(
@@ -143,6 +156,20 @@ class AccountSecurityScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _handleEnableFingerprint(BuildContext context) async {
+    final security = context.read<SecurityProvider>();
+    final success = await security.enableFingerprintUnlock();
+    if (!context.mounted || success) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          security.errorMessage ?? 'Could not enable Fingerprint Unlock.',
+        ),
+        backgroundColor: const Color(0xffDC2626),
+      ),
+    );
+  }
+
   /// Masks a submitted NID/passport number down to its last 4 digits,.
   String _maskGovernmentId(String id) {
     if (id.length <= 4) return id;
@@ -222,22 +249,61 @@ class AccountSecurityScreen extends StatelessWidget {
           const SizedBox(height: 24),
           const Text('Authentication', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
           Card(
-            child: Column(
-              children: [
-                SwitchListTile(
-                  secondary: const Icon(Icons.shield_outlined),
-                  title: const Text('Two-Factor Authentication'),
-                  value: security.twoFactorEnabled,
-                  onChanged: security.setTwoFactorEnabled,
-                ),
-                const Divider(height: 1),
-                SwitchListTile(
-                  secondary: const Icon(Icons.fingerprint),
-                  title: const Text('Biometric Login'),
-                  value: security.biometricEnabled,
-                  onChanged: security.setBiometricEnabled,
-                ),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.fingerprint),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Fingerprint Unlock',
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Use your fingerprint to quickly unlock your DwellWise account.',
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: security.fingerprintUnlockEnabled
+                              ? OutlinedButton(
+                                  onPressed: security.fingerprintBusy
+                                      ? null
+                                      : () => security.disableFingerprintUnlock(),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xffDC2626),
+                                    side: const BorderSide(color: Color(0xffDC2626)),
+                                  ),
+                                  child: const Text('Disable'),
+                                )
+                              : ElevatedButton(
+                                  onPressed: security.fingerprintBusy
+                                      ? null
+                                      : () => _handleEnableFingerprint(context),
+                                  child: security.fingerprintBusy
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          ),
+                                        )
+                                      : const Text('Enable Fingerprint Unlock'),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 24),

@@ -6,6 +6,7 @@ import '../../config/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/auth_service.dart';
+import '../../services/fingerprint_auth_service.dart';
 
 /// Screen representing user login page.
 class LoginScreen extends StatefulWidget {
@@ -16,16 +17,32 @@ class LoginScreen extends StatefulWidget {
 }
 
 /// Which sign-in the user started.
-enum _SignInMethod { none, password, google }
+enum _SignInMethod { none, password, google, fingerprint }
 
 class _LoginScreenState extends State<LoginScreen> {
   _SignInMethod _inFlight = _SignInMethod.none;
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _fingerprintAuth = FingerprintAuthService();
 
   bool _obscurePassword = true;
-  bool _keepMeSignedIn = true;
+  bool _keepMeSignedIn = false;
+  bool _showFingerprintUnlock = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFingerprintUnlockAvailability();
+  }
+
+  Future<void> _checkFingerprintUnlockAvailability() async {
+    final authProvider = context.read<AuthProvider>();
+    if (!authProvider.requiresFingerprintUnlock) return;
+
+    final available = await _fingerprintAuth.isFingerprintAvailable();
+    if (mounted) setState(() => _showFingerprintUnlock = available);
+  }
 
   @override
   void dispose() {
@@ -104,6 +121,38 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         break;
     }
+  }
+
+  Future<void> _handleFingerprintUnlock() async {
+    if (_inFlight != _SignInMethod.none) return;
+    setState(() => _inFlight = _SignInMethod.fingerprint);
+
+    final authenticated = await _fingerprintAuth.authenticate(
+      reason: 'Use your fingerprint to unlock DwellWise',
+    );
+
+    if (!mounted) return;
+    setState(() => _inFlight = _SignInMethod.none);
+    if (!authenticated) return; // Stay on the login page; normal login still works.
+
+    final authProvider = context.read<AuthProvider>();
+    final userProvider = context.read<UserProvider>();
+
+    if (!authProvider.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your session has expired. Please sign in again.'),
+          backgroundColor: Color(0xffDC2626),
+        ),
+      );
+      setState(() => _showFingerprintUnlock = false);
+      return;
+    }
+
+    authProvider.completeFingerprintUnlock();
+    await userProvider.loadCurrentUserProfile();
+    if (!mounted) return;
+    context.go('/tenant-home');
   }
 
   void _handleSignIn() async {
@@ -384,6 +433,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   isLoading: _inFlight == _SignInMethod.password,
                   onPressed: _handleSignIn,
                 ),
+
+                // Fingerprint Unlock -- only for a device where this user
+                // has previously enabled it.
+                if (_showFingerprintUnlock) ...[
+                  const SizedBox(height: 20),
+                  _FingerprintUnlockButton(
+                    isLoading: _inFlight == _SignInMethod.fingerprint,
+                    onTap: _handleFingerprintUnlock,
+                  ),
+                ],
                 const SizedBox(height: 24),
 
                 // OR Continue section.
@@ -569,6 +628,63 @@ class _GoogleSignInButton extends StatelessWidget {
                   ),
                 ],
               ),
+      ),
+    );
+  }
+}
+
+/// Small, clean fingerprint entry point shown only for a device where this
+/// user has previously enabled Fingerprint Unlock.
+class _FingerprintUnlockButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final bool isLoading;
+
+  const _FingerprintUnlockButton({
+    Key? key,
+    required this.onTap,
+    this.isLoading = false,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
+    return Center(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(28),
+        onTap: isLoading ? null : onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: colors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: isLoading
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
+                        ),
+                      )
+                    : Icon(Icons.fingerprint, color: colors.primary, size: 26),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Fingerprint Unlock',
+                style: TextStyle(fontSize: 12, color: colors.textSecondary),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

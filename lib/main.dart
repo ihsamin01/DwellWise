@@ -32,7 +32,7 @@ Future<void> main() async {
   // Connect to Supabase before the app starts.
   await Supabase.initialize(
     url: SupabaseConfig.url,
-    anonKey: SupabaseConfig.anonKey,
+    publishableKey: SupabaseConfig.publishableKey,
   );
 
   // If the user didn't tick "Keep me signed in".

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Static support contact details. Actions are demo-only Snackbars — no
-/// dialer/mailer/maps integration is wired up.
+/// Static support contact details.
 class ContactUsScreen extends StatelessWidget {
   const ContactUsScreen({super.key});
 
@@ -9,10 +8,6 @@ class ContactUsScreen extends StatelessWidget {
   static const _email = 'support@dwellwise.com';
   static const _address = 'House 12, Road 5, Gulshan 1, Dhaka 1212, Bangladesh';
   static const _hours = 'Sunday – Thursday, 9:00 AM – 6:00 PM';
-
-  void _showSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,33 +44,6 @@ class ContactUsScreen extends StatelessWidget {
                   const _InfoRow(icon: Icons.schedule_outlined, label: 'Support Hours', value: _hours),
                 ],
               ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: () => _showSnackBar(context, 'Calling $_phone'),
-              icon: const Icon(Icons.call),
-              label: const Text('Call Now'),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 48,
-            child: OutlinedButton.icon(
-              onPressed: () => _showSnackBar(context, 'Opening email to $_email'),
-              icon: const Icon(Icons.email_outlined),
-              label: const Text('Email Us'),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 48,
-            child: OutlinedButton.icon(
-              onPressed: () => _showSnackBar(context, 'Opening directions to our office'),
-              icon: const Icon(Icons.directions_outlined),
-              label: const Text('Get Directions'),
             ),
           ),
         ],

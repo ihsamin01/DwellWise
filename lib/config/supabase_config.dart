@@ -7,7 +7,7 @@ class SupabaseConfig {
   SupabaseConfig._();
 
   static const String url = 'https://hjzczdhnslbdqvehpsza.supabase.co';
-  static const String anonKey =
+  static const String publishableKey =
       'sb_publishable_rOaigWZkOc_JTkpDIf6qkQ_-puzFzap';
 
   /// Google OAuth "Web application" client ID (from Google Cloud Console).

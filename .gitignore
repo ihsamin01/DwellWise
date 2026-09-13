@@ -4,6 +4,10 @@
 *.pyc
 *.swp
 .DS_Store
+
+# Local secrets / Node tooling (unrelated to the Flutter app itself)
+.env.local
+node_modules/
 .atom/
 .build/
 .buildlog/
