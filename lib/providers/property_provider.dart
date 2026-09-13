@@ -176,6 +176,33 @@ class PropertyProvider with ChangeNotifier {
     await _dbService.deleteProperty(propertyId);
   }
 
+  /// Why the last [setPropertyRented] call failed, for the screen to show.
+  String? lastRentedToggleError;
+
+  /// Marks a listing rented (hidden from public search/home) or lists it
+  /// again, keeping every other field untouched. Updates optimistically so
+  /// the status pill flips immediately, then reverts if the database call
+  /// fails.
+  Future<bool> setPropertyRented(String propertyId, bool isRented) async {
+    lastRentedToggleError = null;
+    final index = _myListings.indexWhere((p) => p.id == propertyId);
+    if (index == -1) return false;
+
+    final previous = _myListings[index];
+    _myListings[index] = previous.copyWith(isRented: isRented);
+    notifyListeners();
+
+    try {
+      await _dbService.setPropertyRented(propertyId, isRented);
+      return true;
+    } catch (e) {
+      _myListings[index] = previous;
+      lastRentedToggleError = '$e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// Loads properties list.
   Future<void> fetchProperties() async {
     _isLoading = true;

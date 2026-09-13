@@ -10,8 +10,13 @@ import '../../providers/property_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/property_card.dart';
 
+/// Which subset of the owner's listings the "My properties" screen shows.
+enum _MyPropertiesFilter { active, rented, all }
+
 /// Lists the properties the current user has posted for rent, with a quick
-/// delete action. New listings from "Add property" land here.
+/// delete action, plus marking a listing rented (hidden from public search
+/// without deleting it) and listing it again. New listings from "Add
+/// property" land here.
 class MyPropertiesScreen extends StatefulWidget {
   const MyPropertiesScreen({super.key});
 
@@ -20,6 +25,8 @@ class MyPropertiesScreen extends StatefulWidget {
 }
 
 class _MyPropertiesScreenState extends State<MyPropertiesScreen> {
+  _MyPropertiesFilter _filter = _MyPropertiesFilter.all;
+
   @override
   void initState() {
     super.initState();
@@ -33,12 +40,18 @@ class _MyPropertiesScreenState extends State<MyPropertiesScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    final listings = context.watch<PropertyProvider>().myListings;
+    final allListings = context.watch<PropertyProvider>().myListings;
     // These are the current user's own posts, so the owner shown on each card
     // is the signed-in user's profile name and phone number.
     final user = context.watch<UserProvider>().userModel;
     final ownerName = user?.name ?? 'You';
     final ownerPhone = user?.phoneNumber ?? '';
+
+    final listings = switch (_filter) {
+      _MyPropertiesFilter.active => allListings.where((p) => !p.isRented).toList(),
+      _MyPropertiesFilter.rented => allListings.where((p) => p.isRented).toList(),
+      _MyPropertiesFilter.all => allListings,
+    };
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -48,24 +61,91 @@ class _MyPropertiesScreenState extends State<MyPropertiesScreen> {
         icon: const Icon(Icons.add),
         label: Text(AppStrings.t(context, 'p_add_property')),
       ),
-      body: listings.isEmpty
-          ? _EmptyState(colors: colors)
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
-              itemCount: listings.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 14),
-              itemBuilder: (context, index) {
-                final property = listings[index];
-                return _MyPropertyCard(
-                  property: property,
-                  colors: colors,
-                  ownerName: ownerName,
-                  ownerPhone: ownerPhone,
-                  onTap: () => context.push('/property/${property.id}'),
-                  onDelete: () => _confirmDelete(context, property),
-                );
-              },
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (allListings.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _FilterTabs(
+                colors: colors,
+                filter: _filter,
+                onChanged: (val) => setState(() => _filter = val),
+              ),
             ),
+          Expanded(
+            child: listings.isEmpty
+                ? _EmptyState(colors: colors, noneAtAll: allListings.isEmpty)
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+                    itemCount: listings.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 14),
+                    itemBuilder: (context, index) {
+                      final property = listings[index];
+                      return _MyPropertyCard(
+                        property: property,
+                        colors: colors,
+                        ownerName: ownerName,
+                        ownerPhone: ownerPhone,
+                        onTap: () => context.push('/property/${property.id}'),
+                        onDelete: () => _confirmDelete(context, property),
+                        onMarkRented: () => _confirmMarkRented(context, property),
+                        onListAgain: () => _listAgain(context, property),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmMarkRented(BuildContext context, PropertyModel property) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(AppStrings.t(dialogContext, 'mp_mark_rented_title')),
+          content: Text(AppStrings.t(dialogContext, 'mp_mark_rented_body')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(AppStrings.t(dialogContext, 'cancel')),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(AppStrings.t(dialogContext, 'mp_mark_rented')),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final provider = context.read<PropertyProvider>();
+    final success = await provider.setPropertyRented(property.id, true);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success
+            ? AppStrings.tr(context, 'mp_status_rented')
+            : AppStrings.tr(context, 'mp_toggle_failed')),
+        backgroundColor: success ? const Color(0xff10B981) : const Color(0xffDC2626),
+      ),
+    );
+  }
+
+  Future<void> _listAgain(BuildContext context, PropertyModel property) async {
+    final provider = context.read<PropertyProvider>();
+    final success = await provider.setPropertyRented(property.id, false);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success
+            ? AppStrings.tr(context, 'mp_relisted')
+            : AppStrings.tr(context, 'mp_toggle_failed')),
+        backgroundColor: success ? const Color(0xff10B981) : const Color(0xffDC2626),
+      ),
     );
   }
 
@@ -109,6 +189,8 @@ class _MyPropertyCard extends StatelessWidget {
   final String ownerPhone;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback onMarkRented;
+  final VoidCallback onListAgain;
 
   const _MyPropertyCard({
     required this.property,
@@ -117,6 +199,8 @@ class _MyPropertyCard extends StatelessWidget {
     required this.ownerPhone,
     required this.onTap,
     required this.onDelete,
+    required this.onMarkRented,
+    required this.onListAgain,
   });
 
   @override
@@ -177,6 +261,8 @@ class _MyPropertyCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 6),
+                  _RentedStatusPill(isRented: property.isRented),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       Icon(Icons.location_on_outlined, size: 14, color: colors.textSecondary),
@@ -231,6 +317,33 @@ class _MyPropertyCard extends StatelessWidget {
                   Divider(height: 1, color: colors.border.withOpacity(0.6)),
                   const SizedBox(height: 12),
                   _ownerRow(context, colors),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: property.isRented
+                        ? OutlinedButton(
+                            onPressed: onListAgain,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: colors.primary,
+                              side: BorderSide(color: colors.primary),
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: Text(AppStrings.t(context, 'mp_list_again')),
+                          )
+                        : OutlinedButton(
+                            onPressed: onMarkRented,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: colors.textPrimary,
+                              side: BorderSide(color: colors.border),
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: Text(AppStrings.t(context, 'mp_mark_rented')),
+                          ),
+                  ),
                 ],
               ),
             ),
@@ -342,9 +455,94 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
+class _RentedStatusPill extends StatelessWidget {
+  final bool isRented;
+  const _RentedStatusPill({required this.isRented});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isRented ? const Color(0xff6B7280) : const Color(0xff10B981);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(isRented ? Icons.key_off_outlined : Icons.check_circle_outline,
+              size: 13, color: color),
+          const SizedBox(width: 4),
+          Text(
+            AppStrings.t(context, isRented ? 'mp_status_rented' : 'mp_status_active'),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterTabs extends StatelessWidget {
+  final AppColors colors;
+  final _MyPropertiesFilter filter;
+  final ValueChanged<_MyPropertiesFilter> onChanged;
+
+  const _FilterTabs({
+    required this.colors,
+    required this.filter,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Widget tab(_MyPropertiesFilter value, String labelKey) {
+      final isActive = filter == value;
+      return Padding(
+        padding: const EdgeInsets.only(right: 8.0),
+        child: GestureDetector(
+          onTap: () => onChanged(value),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: isActive ? colors.primaryTint : colors.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isActive ? colors.primary : colors.border,
+                width: isActive ? 1.5 : 1.0,
+              ),
+            ),
+            child: Text(
+              AppStrings.t(context, labelKey),
+              style: TextStyle(
+                color: isActive ? colors.primary : colors.textPrimary,
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          tab(_MyPropertiesFilter.all, 'mp_filter_all'),
+          tab(_MyPropertiesFilter.active, 'mp_filter_active'),
+          tab(_MyPropertiesFilter.rented, 'mp_filter_rented'),
+        ],
+      ),
+    );
+  }
+}
+
 class _EmptyState extends StatelessWidget {
   final AppColors colors;
-  const _EmptyState({required this.colors});
+  final bool noneAtAll;
+  const _EmptyState({required this.colors, this.noneAtAll = true});
 
   @override
   Widget build(BuildContext context) {
@@ -356,13 +554,17 @@ class _EmptyState extends StatelessWidget {
           children: [
             Icon(Icons.apartment_outlined, size: 72, color: colors.textSecondary),
             const SizedBox(height: 16),
-            Text(AppStrings.t(context, 'mp_empty_title'),
+            Text(
+                AppStrings.t(context,
+                    noneAtAll ? 'mp_empty_title' : 'mp_empty_filtered'),
                 style: TextStyle(
                     fontSize: 18, fontWeight: FontWeight.bold, color: colors.textPrimary)),
-            const SizedBox(height: 8),
-            Text(AppStrings.t(context, 'mp_empty_desc'),
-                textAlign: TextAlign.center,
-                style: TextStyle(color: colors.textSecondary)),
+            if (noneAtAll) ...[
+              const SizedBox(height: 8),
+              Text(AppStrings.t(context, 'mp_empty_desc'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: colors.textSecondary)),
+            ],
           ],
         ),
       ),

@@ -206,6 +206,19 @@ class AppStrings {
       'mp_delete_prefix': 'Remove',
       'mp_delete_suffix': 'from your properties?',
       'mp_removed': 'Listing removed.',
+      'mp_status_active': 'Active',
+      'mp_status_rented': 'Rented',
+      'mp_mark_rented': 'Mark as Rented',
+      'mp_list_again': 'List Again',
+      'mp_mark_rented_title': 'Mark this property as rented?',
+      'mp_mark_rented_body':
+          'Once rented, it will no longer be visible to property seekers. You can list it again later.',
+      'mp_relisted': 'Listing is live again.',
+      'mp_toggle_failed': 'Could not update the listing. Please try again.',
+      'mp_filter_active': 'Active',
+      'mp_filter_rented': 'Rented',
+      'mp_filter_all': 'All',
+      'mp_empty_filtered': 'No properties in this category.',
 
       // Purchase history.
       'ph_total': 'Total rent paid',
@@ -473,6 +486,19 @@ class AppStrings {
       'mp_delete_prefix': 'আপনার প্রপার্টি থেকে',
       'mp_delete_suffix': 'সরিয়ে ফেলবেন?',
       'mp_removed': 'লিস্টিং সরিয়ে ফেলা হয়েছে।',
+      'mp_status_active': 'সক্রিয়',
+      'mp_status_rented': 'ভাড়া হয়েছে',
+      'mp_mark_rented': 'ভাড়া হয়েছে হিসেবে চিহ্নিত করুন',
+      'mp_list_again': 'আবার তালিকাভুক্ত করুন',
+      'mp_mark_rented_title': 'এই প্রপার্টি ভাড়া হয়েছে হিসেবে চিহ্নিত করবেন?',
+      'mp_mark_rented_body':
+          'ভাড়া হিসেবে চিহ্নিত করার পর এটি আর ভাড়াটেদের কাছে দেখা যাবে না। আপনি চাইলে পরে আবার তালিকাভুক্ত করতে পারবেন।',
+      'mp_relisted': 'লিস্টিং আবার সক্রিয় করা হয়েছে।',
+      'mp_toggle_failed': 'লিস্টিং আপডেট করা যায়নি। আবার চেষ্টা করুন।',
+      'mp_filter_active': 'সক্রিয়',
+      'mp_filter_rented': 'ভাড়া হয়েছে',
+      'mp_filter_all': 'সবগুলো',
+      'mp_empty_filtered': 'এই ক্যাটাগরিতে কোনো প্রপার্টি নেই।',
 
       // Purchase history.
       'ph_total': 'মোট প্রদত্ত ভাড়া',
